@@ -30,3 +30,13 @@
 *.exe
 *.out
 *.app
+/StoryCreator/Win32
+/StoryCreator/*.local
+/StoryCreator/__astcache
+/StoryCreator/__history
+/StoryCreator/__recovery
+/Engine/Win32
+/Engine/*.local
+/Engine/__astcache
+/Engine/__history
+/Engine/__recovery

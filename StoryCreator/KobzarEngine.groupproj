@@ -1,0 +1,36 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{212618F5-C0D4-4DC9-A356-08AE056E7561}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="KobzarStoryCreator.cbproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="KobzarStoryCreator">
+        <MSBuild Projects="KobzarStoryCreator.cbproj"/>
+    </Target>
+    <Target Name="KobzarStoryCreator:Clean">
+        <MSBuild Projects="KobzarStoryCreator.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="KobzarStoryCreator:Make">
+        <MSBuild Projects="KobzarStoryCreator.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="KobzarStoryCreator"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="KobzarStoryCreator:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="KobzarStoryCreator:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
