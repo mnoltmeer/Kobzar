@@ -6,6 +6,9 @@
         <Projects Include="KobzarStoryCreator.cbproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="..\Engine\KobzarEngine.cbproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -23,14 +26,23 @@
     <Target Name="KobzarStoryCreator:Make">
         <MSBuild Projects="KobzarStoryCreator.cbproj" Targets="Make"/>
     </Target>
+    <Target Name="KobzarEngine">
+        <MSBuild Projects="..\Engine\KobzarEngine.cbproj"/>
+    </Target>
+    <Target Name="KobzarEngine:Clean">
+        <MSBuild Projects="..\Engine\KobzarEngine.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="KobzarEngine:Make">
+        <MSBuild Projects="..\Engine\KobzarEngine.cbproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="KobzarStoryCreator"/>
+        <CallTarget Targets="KobzarStoryCreator;KobzarEngine"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="KobzarStoryCreator:Clean"/>
+        <CallTarget Targets="KobzarStoryCreator:Clean;KobzarEngine:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="KobzarStoryCreator:Make"/>
+        <CallTarget Targets="KobzarStoryCreator:Make;KobzarEngine:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
