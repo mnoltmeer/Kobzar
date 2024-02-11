@@ -31,9 +31,7 @@ struct KE_INTERFACE
   virtual void __stdcall ClearStory() = 0;
   virtual int __stdcall AddScene() = 0;
   virtual int __stdcall AddAnswer() = 0;
-  virtual int __stdcall AddAdvAnswer() = 0;
   virtual int __stdcall AddScript() = 0;
-  virtual int __stdcall AddCondition() = 0;
   virtual int __stdcall ActivateElement(int id) = 0;
   virtual int __stdcall RemoveElement(int id) = 0;
   virtual int __stdcall GetID() = 0;
@@ -49,12 +47,6 @@ struct KE_INTERFACE
   virtual void __stdcall SetText(const wchar_t *new_text) = 0;
   virtual int __stdcall IsEndDialog() = 0;
   virtual void __stdcall SetEndDialog(bool end_dialog) = 0;
-  virtual const wchar_t *__stdcall GetQuestName() = 0;
-  virtual int __stdcall SetQuestName(const wchar_t *quest_name) = 0;
-  virtual int __stdcall GetNeedQuestValue() = 0;
-  virtual int __stdcall SetNeedQuestValue(int quest_state) = 0;
-  virtual int __stdcall GetResultQuestValue() = 0;
-  virtual int __stdcall SetResultQuestValue(int quest_state) = 0;
 };
 //-------------------------------------------------------------------------------
 

@@ -44,11 +44,10 @@ class KobzarEngine: public KE_INTERFACE
 {
   private:
 	bool write_log;
-    std::vector<TDlgBaseText*> items;
-	String QuestLibFile;
+	std::vector<TDlgBaseText*> items;
 
 	int GenDialogID();
-    int GenElementID();
+	int GenElementID();
 	void RemoveFromItems(TDlgBaseText *element);
 	bool SaveDlgSchema(const wchar_t *file);
 	bool LoadDlgSchema(const wchar_t *file);
@@ -71,12 +70,14 @@ class KobzarEngine: public KE_INTERFACE
 	inline virtual ~KobzarEngine(){};
 
 	virtual const wchar_t * __stdcall GetVersion();
-
-	virtual int __stdcall AddScreenText();
+    virtual int __stdcall CreateStory(const wchar_t *story_file);
+	virtual int __stdcall LoadStory(const wchar_t *story_file);
+	virtual int __stdcall SaveStory();
+	virtual void __stdcall CloseStory();
+	virtual void __stdcall ClearStory();
+	virtual int __stdcall AddScene();
 	virtual int __stdcall AddAnswer();
-	virtual int __stdcall AddAdvAnswer();
 	virtual int __stdcall AddScript();
-	virtual int __stdcall AddCondition();
 	virtual int __stdcall ActivateElement(int id);
 	virtual int __stdcall RemoveElement(int id);
 	virtual int __stdcall GetID();
@@ -92,12 +93,6 @@ class KobzarEngine: public KE_INTERFACE
 	virtual void __stdcall SetText(const wchar_t *new_text);
 	virtual int __stdcall IsEndDialog();
 	virtual void __stdcall SetEndDialog(bool end_dialog);
-	virtual const wchar_t *__stdcall GetQuestName();
-	virtual int __stdcall SetQuestName(const wchar_t *quest_name);
-	virtual int __stdcall GetNeedQuestValue();
-	virtual int __stdcall SetNeedQuestValue(int quest_state);
-	virtual int __stdcall GetResultQuestValue();
-	virtual int __stdcall SetResultQuestValue(int quest_state);
 };
 //-------------------------------------------------------------------------------
 #endif

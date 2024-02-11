@@ -81,7 +81,93 @@ DLL_EXPORT int __stdcall FreeKEInterface(KE_INTERFACE **eInterface)
 }
 //-------------------------------------------------------------------------
 
-int KobzarEngine::AddScreenText()
+int KobzarEngine::CreateStory(const wchar_t *story_file)
+{
+  int res = 1;
+
+  try
+	 {
+	   res = 1;
+	 }
+  catch (Exception &e)
+	 {
+	   res = 0;
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::CreateStory: " + e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int KobzarEngine::LoadStory(const wchar_t *story_file)
+{
+  int res = 1;
+
+  try
+	 {
+	   res = 1;
+	 }
+  catch (Exception &e)
+	 {
+	   res = 0;
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::LoadStory: " + e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int KobzarEngine::SaveStory()
+{
+  int res = 1;
+
+  try
+	 {
+	   res = 1;
+	 }
+  catch (Exception &e)
+	 {
+	   res = 0;
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::SaveStory: " + e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+void KobzarEngine::CloseStory()
+{
+  int res = 1;
+
+  try
+	 {
+	   res =1;
+	 }
+  catch (Exception &e)
+	 {
+	   res = 0;
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::CloseStory: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+void KobzarEngine::ClearStory()
+{
+  int res = 1;
+
+  try
+	 {
+	   res =1;
+	 }
+  catch (Exception &e)
+	 {
+	   res = 0;
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::ClearStory: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+int KobzarEngine::AddScene()
 {
   int res = 1;
 
@@ -92,8 +178,8 @@ int KobzarEngine::AddScreenText()
 	 }
   catch (Exception &e)
 	 {
-       res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::AddScreenText: " + e.ToString());
+	   res = 0;
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::AddScene: " + e.ToString());
 	 }
 
   return res;
@@ -106,32 +192,13 @@ int KobzarEngine::AddAnswer()
 
   try
 	 {
-	   TDlgBaseAnswer *tmp = new TDlgBaseAnswer(GenElementID());
-	   items.push_back(tmp);
-	 }
-  catch (Exception &e)
-	 {
-	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::AddAnswer: " + e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::AddAdvAnswer()
-{
-  int res = 1;
-
-  try
-	 {
 	   TDlgAnswer *tmp = new TDlgAnswer(GenElementID());
 	   items.push_back(tmp);
 	 }
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::AddAdvAnswer: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::AddAnswer: " + e.ToString());
 	 }
 
   return res;
@@ -151,25 +218,6 @@ int KobzarEngine::AddScript()
 	 {
 	   res = 0;
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::AddScript: " + e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::AddCondition()
-{
-  int res = 1;
-
-  try
-	 {
-	   TDlgCondition *tmp = new TDlgCondition(GenElementID());
-	   items.push_back(tmp);
-	 }
-  catch (Exception &e)
-	 {
-	   return res;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::AddCondition: " + e.ToString());
 	 }
 
   return res;
@@ -371,8 +419,6 @@ bool KobzarEngine::SaveDlgSchema(const wchar_t *file)
 	   fs->Position = 0;
 	   int val = 0;
 
-	   WriteStringIntoBinaryStream(fs.get(), QuestLibFile);
-
 	   for (int i = 0; i < items.size(); i++)
 		  {
 			val = 0;
@@ -411,27 +457,11 @@ bool KobzarEngine::SaveDlgSchema(const wchar_t *file)
 				WriteStringIntoBinaryStream(fs.get(), d->Result);
 			  }
 
-			if ((items[i]->Type == DlgSimpleAnsw) || (items[i]->Type == DlgAnsw))
-			  {
-				TDlgBaseAnswer *d = dynamic_cast<TDlgBaseAnswer*>(items[i]);
-				bool chk = d->EndDialog;
-				fs->Position += fs->Write(&chk, sizeof(bool));
-			  }
-
 			if (items[i]->Type == DlgAnsw)
 			  {
 				TDlgAnswer *d = dynamic_cast<TDlgAnswer*>(items[i]);
-
-				WriteStringIntoBinaryStream(fs.get(), d->QuestName);
-				WriteStringIntoBinaryStream(fs.get(), d->SetQuestValue);
-				WriteStringIntoBinaryStream(fs.get(), d->NeedQuestValue);
-			  }
-
-			if (items[i]->Type == DlgCondition)
-			  {
-				TDlgCondition *d = dynamic_cast<TDlgCondition*>(items[i]);
-
-				WriteStringIntoBinaryStream(fs.get(), d->Condition);
+				bool chk = d->EndDialog;
+				fs->Position += fs->Write(&chk, sizeof(bool));
 			  }
 		  }
 
@@ -464,11 +494,6 @@ bool KobzarEngine::LoadDlgSchema(const wchar_t *file)
 	   bool end_dlg;
 	   TDlgBaseText *lnk;
 
-	   fs->Position += fs->Read(&text_len, sizeof(int));
-
-	   if (text_len > 0)
-		 QuestLibFile = ReadStringFromBinaryStream(fs.get(), text_len);
-
 	   while (fs->Position < fs->Size)
 		 {
 		   fs->Position += fs->Read(&id, sizeof(int));
@@ -494,24 +519,6 @@ bool KobzarEngine::LoadDlgSchema(const wchar_t *file)
 
 				   break;
 				 }
-			   case DlgSimpleAnsw:
-				 {
-				   TDlgBaseAnswer *dl = new TDlgBaseAnswer(id,
-														   card_of_dialog,
-														   next_card_of_dialog,
-														   linked_id,
-														   linked_from_id);
-
-				   if (text_len > 0)
-					 dl->Text = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   fs->Position += fs->Read(&end_dlg, sizeof(bool));
-				   dl->EndDialog = end_dlg;
-
-				   lnk = dl;
-
-				   break;
-				 }
 			   case DlgAnsw:
 				 {
 				   TDlgAnswer *dl = new TDlgAnswer(id,
@@ -525,21 +532,6 @@ bool KobzarEngine::LoadDlgSchema(const wchar_t *file)
 
 				   fs->Position += fs->Read(&end_dlg, sizeof(bool));
 				   dl->EndDialog = end_dlg;
-
-				   fs->Position += fs->Read(&text_len, sizeof(int));
-
-				   if (text_len > 0)
-					 dl->QuestName = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   fs->Position += fs->Read(&text_len, sizeof(int));
-
-				   if (text_len > 0)
-					 dl->SetQuestValue = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   fs->Position += fs->Read(&text_len, sizeof(int));
-
-				   if (text_len > 0)
-					 dl->NeedQuestValue = ReadStringFromBinaryStream(fs.get(), text_len);
 
 				   lnk = dl;
 
@@ -561,25 +553,6 @@ bool KobzarEngine::LoadDlgSchema(const wchar_t *file)
 
 				   if (text_len > 0)
 					 dl->Result = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   lnk = dl;
-
-				   break;
-				 }
-			   case DlgCondition:
-				 {
-				   TDlgCondition *dl = new TDlgCondition(id,
-														 card_of_dialog,
-														 next_card_of_dialog,
-														 linked_id,
-														 linked_from_id);
-
-				   dl->Text = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   fs->Position += fs->Read(&text_len, sizeof(int));
-
-				   if (text_len > 0)
-					 dl->Condition = ReadStringFromBinaryStream(fs.get(), text_len);
 
 				   lnk = dl;
 
@@ -710,21 +683,11 @@ void KobzarEngine::XMLImport(String xml_file)
 	   _di_IXMLNode AnswerMassive;
 	   _di_IXMLNode Answer;
 	   _di_IXMLNode TextOfAnswer;
-	   _di_IXMLNode QuestName;
 	   _di_IXMLNode EndDialog;
-	   _di_IXMLNode QuestLib;
 
 	   int curr_card = -1;
-	   int i = 0;
 
-	   if (DialogFile->ChildNodes->Nodes[i]->GetNodeName() == "QuestLibFile")
-		 {
-		   QuestLib = DialogFile->ChildNodes->Nodes[0];
-		   QuestLibFile = QuestLib->Text;
-		   i++;
-		 }
-
-	   for (i; i < DialogFile->ChildNodes->Count; i++)
+	   for (int i = 0; i < DialogFile->ChildNodes->Count; i++)
 		  {
 			CardOfDialog = DialogFile->ChildNodes->Nodes[i];
 
@@ -763,40 +726,17 @@ void KobzarEngine::XMLImport(String xml_file)
 						{
 						  Answer = AnswerMassive->ChildNodes->Nodes[k];
 						  int ind = 0;
-						  int ncd, type;
+						  int ncd;
 						  bool end;
-						  String setquest, needquest, quest, text, check;
-
-						  if (Answer->ChildNodes->IndexOf("QuestName") >= 0)
-							type = 1; //Answer
-						  else if (Answer->ChildNodes->IndexOf("Check") >= 0)
-							type = 2; //Condition
-						  else
-							type = 0; //BaseAnswer
+						  String text;
 
 						  if (Answer->HasAttribute("NextCardOfDialog"))
 							ncd = StrToInt(Answer->GetAttribute("NextCardOfDialog"));
-
-						  if (Answer->HasAttribute("NeedQuestValue"))
-							needquest = Answer->GetAttribute("NeedQuestValue");
-
-						  if (Answer->HasAttribute("SetQuestValue"))
-							setquest = Answer->GetAttribute("SetQuestValue");
 
 						  ind = Answer->ChildNodes->IndexOf("TextOfAnswer");
 
 						  if (ind >= 0)
 							text = Answer->ChildNodes->Nodes[ind]->Text;
-
-						  ind = Answer->ChildNodes->IndexOf("Check");
-
-						  if (ind >= 0)
-							check = Answer->ChildNodes->Nodes[ind]->Text;
-
-						  ind = Answer->ChildNodes->IndexOf("QuestName");
-
-						  if (ind >= 0)
-							quest = Answer->ChildNodes->Nodes[ind]->Text;
 
 						  ind = Answer->ChildNodes->IndexOf("EndDialog");
 
@@ -807,39 +747,13 @@ void KobzarEngine::XMLImport(String xml_file)
 						  else
 							end = false;
 
-						  if (type == 1)
-							{
-							  TDlgAnswer *answ = new TDlgAnswer(GenElementID());
+						  TDlgAnswer *answ = new TDlgAnswer(GenElementID());
 
-							  answ->CardOfDialog = curr_card;
-							  answ->NextCardOfDialog = ncd;
-							  answ->NeedQuestValue = needquest;
-							  answ->SetQuestValue = setquest;
-							  answ->QuestName = quest;
-							  answ->EndDialog = end;
-							  answ->Text = text;
-							  items.push_back(answ);
-							}
-						  else if (type == 2)
-							{
-							  TDlgCondition *cond = new TDlgCondition(GenElementID());
-
-							  cond->CardOfDialog = curr_card;
-							  cond->NextCardOfDialog = ncd;
-							  cond->Text = text;
-							  cond->Condition = check;
-							  items.push_back(cond);
-							}
-						  else
-							{
-							  TDlgBaseAnswer *answ = new TDlgBaseAnswer(GenElementID());
-
-							  answ->CardOfDialog = curr_card;
-							  answ->NextCardOfDialog = ncd;
-							  answ->Text = text;
-							  answ->EndDialog = end;
-							  items.push_back(answ);
-							}
+						  answ->CardOfDialog = curr_card;
+						  answ->NextCardOfDialog = ncd;
+						  answ->Text = text;
+						  answ->EndDialog = end;
+						  items.push_back(answ);
 						}
 				  }
 			   }
@@ -861,10 +775,6 @@ void KobzarEngine::XMLExport(const wchar_t *path)
 	   std::unique_ptr<TStringList> list(new TStringList());
 
 	   String xml_exp = "<DialogFile>\r\n";
-
-	   xml_exp += "\t<QuestLibFile>";
-	   xml_exp += QuestLibFile;
-	   xml_exp += "</QuestLibFile>\r\n";
 
 	   for (int i = 0; i < items.size(); i++)
 		  {
@@ -958,4 +868,164 @@ void KobzarEngine::RemoveLimboLinks()
 }
 //---------------------------------------------------------------------------
 
+/*
+int TDlgBaseText::GetLinkedID()
+{
+  return l_id;
+}
+//---------------------------------------------------------------------------
+
+void TDlgBaseText::SetLinkedID(int val)
+{
+  if (Cathegory == DLG_TEXT_LIKE)
+	return;
+
+  TDlgBaseText *lnk = Library->FindElement(val);
+
+  if (lnk && (lnk->Cathegory == DLG_TEXT_LIKE))
+	{
+	  l_id = val;
+	  cd = lnk->CardOfDialog;
+	}
+  else if (lnk && (lnk->Cathegory != DLG_TEXT_LIKE))
+	{
+	  MessageBox(Application->Handle,
+				 String("No TEXT_LIKE element with ID = LinkedID (" +
+				 IntToStr(val) + ")").c_str(),
+				 String("Element ID: " + IntToStr(ID) + " report").c_str(),
+				 MB_OK | MB_ICONERROR);
+	}
+  else
+	{
+	  if (MessageBox(Application->Handle,
+					 String("No TEXT_LIKE element with ID = LinkedID (" +
+					 IntToStr(val) +
+					 ").\nSet value anyway?").c_str(),
+					 String("Element ID: " + IntToStr(ID) + " report").c_str(),
+					 MB_YESNO | MB_ICONWARNING) == mrYes)
+		{
+		  l_id = val;
+          cd = -1;
+		}
+	}
+}
+//---------------------------------------------------------------------------
+
+int TDlgBaseText::GetLinkedFromID()
+{
+  return l_fr_id;
+}
+//---------------------------------------------------------------------------
+
+void TDlgBaseText::SetLinkedFromID(int val)
+{
+  if (Cathegory == DLG_TEXT_LIKE)
+	return;
+
+  TDlgBaseText *lnk = Library->FindElement(val);
+
+  if (lnk && (lnk->Cathegory == DLG_TEXT_LIKE))
+	{
+	  l_fr_id = val;
+	  ncd = lnk->CardOfDialog;
+	}
+  else if (lnk && (lnk->Cathegory != DLG_TEXT_LIKE))
+	{
+	  MessageBox(Application->Handle,
+				 String("Element with ID = LinkedFromID (" +
+				 IntToStr(val) + ") is not TEXT_LIKE").c_str(),
+				 String("Element ID: " + IntToStr(ID) + " report").c_str(),
+				 MB_OK | MB_ICONERROR);
+	}
+  else
+	{
+	  if (MessageBox(Application->Handle,
+					 String("No TEXT_LIKE element with ID = LinkedFromID (" +
+							IntToStr(val) +
+							").\nSet value anyway?").c_str(),
+					 String("Element ID: " + IntToStr(ID) + " report").c_str(),
+					 MB_YESNO | MB_ICONWARNING) == mrYes)
+		{
+		  l_fr_id = val;
+          ncd = -1;
+		}
+	}
+}
+//---------------------------------------------------------------------------
+
+int TDlgBaseText::GetCardOfDialog()
+{
+  return cd;
+}
+//---------------------------------------------------------------------------
+
+void TDlgBaseText::SetCardOfDialog(int val)
+{
+  int old = cd;
+
+  if (Cathegory != DLG_TEXT_LIKE)
+	{
+	  cd = val;
+	  LinkedID = Library->FindTextElementID(val);
+	}
+  else
+	{
+	  cd = val;
+	  std::vector<TDlgBaseText*> lnks;
+
+	  if (Library->FindAnswersByDialog(cd, &lnks) > 0)
+		{
+		  if (MessageBox(Application->Handle,
+						 String("Founded ANSW_LIKE elements with CardOfDialog = " +
+								IntToStr(cd) +
+								".\nCreate links?").c_str(),
+						 String("Element ID: " + IntToStr(ID) + " report").c_str(),
+						 MB_YESNO | MB_ICONASTERISK) == mrYes)
+			{
+			  for (int i = 0; i < lnks.size(); i++)
+				 lnks[i]->LinkedID = ID;
+			}
+		}
+
+	  if ((old != cd) && (FLibrary->SearchDependeciesDialog(old) > 0))
+		{
+          if (MessageBox(Application->Handle,
+						 String("Founded links of old ANSW_LIKE elements.\nRebuild this links?").c_str(),
+						 String("Element ID: " + IntToStr(ID) + " report").c_str(),
+						 MB_YESNO | MB_ICONASTERISK) == mrYes)
+			{
+			  Library->UpdateCardOfDialog(old, CardOfDialog);
+			}
+		  else
+			{
+			  Library->UpdateLinkedID(ID, -1);
+			}
+		}
+	}
+}
+//---------------------------------------------------------------------------
+
+int TDlgBaseText::GetNextCardOfDialog()
+{
+  return ncd;
+}
+//---------------------------------------------------------------------------
+
+void TDlgBaseText::SetNextCardOfDialog(int val)
+{
+  if (Cathegory != DLG_TEXT_LIKE)
+	{
+	  ncd = val;
+	  int new_dlg_id = Library->FindTextElementID(ncd);
+
+	  if (new_dlg_id > -1)
+		{
+		  TDlgBaseText *ndlg = Library->FindElement(new_dlg_id);
+		  ndlg->LinkedID = ID;
+		  LinkedFromID = ndlg->ID;
+		}
+	}
+}
+//---------------------------------------------------------------------------
+*/
 #pragma package(smart_init)
