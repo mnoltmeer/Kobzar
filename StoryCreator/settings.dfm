@@ -4,8 +4,8 @@ object AppSettings: TAppSettings
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Settings'
-  ClientHeight = 148
-  ClientWidth = 391
+  ClientHeight = 168
+  ClientWidth = 409
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

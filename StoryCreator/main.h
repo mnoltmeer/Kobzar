@@ -63,7 +63,6 @@ __published:	// IDE-managed Components
 	TPopupMenu *MainPopupMenu;
 	TMenuItem *MPPScrTxt;
 	TMenuItem *MPPAnsw;
-	TMenuItem *MPPAdvAnsw;
 	TPopupMenu *ElementPopupMenu;
 	TMenuItem *EPPEdit;
 	TMenuItem *EPPDel;
@@ -72,7 +71,6 @@ __published:	// IDE-managed Components
 	TMenuItem *MenuNew;
 	TMenuItem *MenuShowItems;
 	TMenuItem *MenuInstruments;
-	TMenuItem *MenuQuestOrganiser;
 	TMenuItem *MenuFile;
 	TMenuItem *MenuImportXML;
 	TMenuItem *MenuExportText;
@@ -83,19 +81,14 @@ __published:	// IDE-managed Components
 	TImageCollection *Images;
 	TMenuItem *MenuPlaceText;
 	TMenuItem *MenuPlaceAnswer;
-	TMenuItem *MenuPlaceAdvAnswer;
 	TMenuItem *MenuPlaceScript;
-	TMenuItem *MenuPlaceCondition;
 	TMenuItem *MenuRecent;
 	TMenuItem *MPPScript;
-	TMenuItem *MPPCondition;
 	TPanel *Palette;
 	TBitBtn *BtUnselect;
 	TBitBtn *BtScreenText;
 	TBitBtn *BtAnswer;
-	TBitBtn *BtAdvAnswer;
 	TBitBtn *BtScript;
-	TBitBtn *BtCondition;
 	TPanel *QuickButtonsPanel;
 	TMenuItem *MenuButtonPanel;
 	TBitBtn *QBtNew;
@@ -123,14 +116,12 @@ __published:	// IDE-managed Components
 	void __fastcall MenuEditClick(TObject *Sender);
 	void __fastcall MPPScrTxtClick(TObject *Sender);
 	void __fastcall MPPAnswClick(TObject *Sender);
-	void __fastcall MPPAdvAnswClick(TObject *Sender);
 	void __fastcall EPPEditClick(TObject *Sender);
 	void __fastcall EPPDelClick(TObject *Sender);
 	void __fastcall EPPUnselClick(TObject *Sender);
 	void __fastcall MenuSaveAsClick(TObject *Sender);
 	void __fastcall MenuNewClick(TObject *Sender);
 	void __fastcall MenuShowItemsClick(TObject *Sender);
-	void __fastcall MenuQuestOrganiserClick(TObject *Sender);
 	void __fastcall MenuImportXMLClick(TObject *Sender);
 	void __fastcall MenuExportTextClick(TObject *Sender);
 	void __fastcall MenuToolPaletteClick(TObject *Sender);
@@ -141,20 +132,15 @@ __published:	// IDE-managed Components
 	void __fastcall BtUnselectClick(TObject *Sender);
 	void __fastcall BtScreenTextClick(TObject *Sender);
 	void __fastcall BtAnswerClick(TObject *Sender);
-	void __fastcall BtAdvAnswerClick(TObject *Sender);
 	void __fastcall BtScriptClick(TObject *Sender);
-	void __fastcall BtConditionClick(TObject *Sender);
 	void __fastcall FormResize(TObject *Sender);
 	void __fastcall MenuPlaceTextClick(TObject *Sender);
 	void __fastcall MenuPlaceAnswerClick(TObject *Sender);
-	void __fastcall MenuPlaceAdvAnswerClick(TObject *Sender);
 	void __fastcall MenuPlaceScriptClick(TObject *Sender);
-	void __fastcall MenuPlaceConditionClick(TObject *Sender);
 	void __fastcall FormMouseUp(TObject *Sender, TMouseButton Button, TShiftState Shift,
           int X, int Y);
 	void __fastcall FormMouseMove(TObject *Sender, TShiftState Shift, int X, int Y);
 	void __fastcall MPPScriptClick(TObject *Sender);
-	void __fastcall MPPConditionClick(TObject *Sender);
 	void __fastcall MenuButtonPanelClick(TObject *Sender);
 	void __fastcall QBtNewClick(TObject *Sender);
 	void __fastcall QBtOpenClick(TObject *Sender);
@@ -165,6 +151,7 @@ __published:	// IDE-managed Components
 	void __fastcall FormCreate(TObject *Sender);
 	void __fastcall ItemListClick(TObject *Sender);
 	void __fastcall ApplicationEventsMessage(tagMSG &Msg, bool &Handled);
+
 
 
 private:	// User declarations

@@ -5,7 +5,7 @@ object EditScriptForm: TEditScriptForm
   BorderStyle = bsSingle
   Caption = 'Edit Script'
   ClientHeight = 372
-  ClientWidth = 536
+  ClientWidth = 596
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -42,8 +42,8 @@ object EditScriptForm: TEditScriptForm
     ParentFont = False
   end
   object Label2: TLabel
-    Left = 4
-    Top = 38
+    Left = 211
+    Top = 8
     Width = 71
     Height = 16
     Caption = 'Parameters:'
@@ -75,7 +75,7 @@ object EditScriptForm: TEditScriptForm
     TabOrder = 0
   end
   object Confirm: TBitBtn
-    Left = 363
+    Left = 422
     Top = 343
     Width = 75
     Height = 25
@@ -92,7 +92,7 @@ object EditScriptForm: TEditScriptForm
     OnClick = ConfirmClick
   end
   object Discard: TBitBtn
-    Left = 455
+    Left = 514
     Top = 343
     Width = 75
     Height = 25
@@ -116,17 +116,17 @@ object EditScriptForm: TEditScriptForm
     TabOrder = 3
   end
   object Params: TEdit
-    Left = 81
-    Top = 37
-    Width = 448
+    Left = 285
+    Top = 8
+    Width = 304
     Height = 21
     TabOrder = 4
   end
   object Text: TRichEdit
-    Left = 2
-    Top = 64
-    Width = 527
-    Height = 273
+    Left = 3
+    Top = 35
+    Width = 587
+    Height = 302
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
     Font.Height = -11
@@ -139,23 +139,11 @@ object EditScriptForm: TEditScriptForm
     OnKeyPress = TextKeyPress
     OnKeyUp = TextKeyUp
   end
-  object OpenInIDE: TButton
-    Left = 448
-    Top = 6
-    Width = 82
-    Height = 25
-    Hint = 'Open script in ELI IDE if installed'
-    Caption = 'Open in Editor'
-    ParentShowHint = False
-    ShowHint = True
-    TabOrder = 6
-    OnClick = OpenInIDEClick
-  end
   object ResultParam: TEdit
     Left = 155
     Top = 343
     Width = 190
     Height = 21
-    TabOrder = 7
+    TabOrder = 6
   end
 end

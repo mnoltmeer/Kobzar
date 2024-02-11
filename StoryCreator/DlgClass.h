@@ -93,20 +93,15 @@ enum DlgActions
 	 {ActNone = 0,
 	  PlaceText = 1,
 	  PlaceAnswer = 2,
-	  SelectText = 3,
-	  SelectAnswer = 4,
-	  PlaceSimpleAnswer = 5,
-	  PlaceScript = 6,
-	  PlaceCondition = 7,
-	  SelectScript = 8,
-	  SelectCondition = 9};
+	  PlaceScript = 3,
+	  SelectText = 4,
+	  SelectAnswer = 5,
+	  SelectScript = 6};
 
 enum DlgType
 	 {DlgText = 1,
 	  DlgAnsw = 2,
-	  DlgSimpleAnsw = 3,
-	  DlgScript = 4,
-	  DlgCondition = 5};
+	  DlgScript = 3};
 
 int GenDialogID();
 int GenElementID();
@@ -246,7 +241,7 @@ class TDlgScreenText : public TDlgBaseText
 };
 //---------------------------------------------------------------------------
 
-class TDlgBaseAnswer : public TDlgBaseText
+class TDlgAnswer : public TDlgBaseText
 {
   private:
 	bool end_dlg;
@@ -256,48 +251,48 @@ class TDlgBaseAnswer : public TDlgBaseText
 	void SetEndDialog(bool val);
 
   public:
-	TDlgBaseAnswer(int left, int top): TDlgBaseText(left, top)
+	TDlgAnswer(int left, int top): TDlgBaseText(left, top)
 	{
-	  Type = DlgSimpleAnsw;
+	  Type = DlgAnsw;
 	  end_dlg = false;
 	  prev_id = -1;
 	}
 
-	TDlgBaseAnswer(int left, int top, TForm *ContainerOwner)
+	TDlgAnswer(int left, int top, TForm *ContainerOwner)
 	: TDlgBaseText(left, top, ContainerOwner)
     {
-	  Type = DlgSimpleAnsw;
+	  Type = DlgAnsw;
 	  end_dlg = false;
 	  prev_id = -1;
 	}
 
-	TDlgBaseAnswer(int left, int top, TBitmap *pic, TForm *ContainerOwner)
+	TDlgAnswer(int left, int top, TBitmap *pic, TForm *ContainerOwner)
 	: TDlgBaseText(left, top, pic, ContainerOwner)
     {
-	  Type = DlgSimpleAnsw;
+	  Type = DlgAnsw;
 	  end_dlg = false;
 	  prev_id = -1;
 	}
 
-	TDlgBaseAnswer(int left, int top, int el_id, TForm *ContainerOwner)
+	TDlgAnswer(int left, int top, int el_id, TForm *ContainerOwner)
 	: TDlgBaseText(left, top, el_id, ContainerOwner)
     {
-	  Type = DlgSimpleAnsw;
+	  Type = DlgAnsw;
       end_dlg = false;
 	  prev_id = -1;
 	}
 
-	TDlgBaseAnswer(int left, int top, int el_id, int dlg_id, int next_dlg_id,
+	TDlgAnswer(int left, int top, int el_id, int dlg_id, int next_dlg_id,
 				   int link_id, int link_fr_id, TForm *ContainerOwner)
 	: TDlgBaseText(left, top, el_id, dlg_id, next_dlg_id,
 				   link_id, link_fr_id, ContainerOwner)
 	{
-	  Type = DlgSimpleAnsw;
+	  Type = DlgAnsw;
 	  end_dlg = false;
 	  prev_id = -1;
 	}
 
-	virtual ~TDlgBaseAnswer(){};
+	virtual ~TDlgAnswer(){};
 
 	const wchar_t *CreateXML();
 
@@ -305,46 +300,6 @@ class TDlgBaseAnswer : public TDlgBaseText
 	__property int PrevLinkedFromID = {read = prev_id, write = prev_id};
 //отметка о том, что этот элемент закрывает сцену
 	__property bool EndDialog = {read = GetEndDialog, write = SetEndDialog};
-};
-//---------------------------------------------------------------------------
-
-class TDlgAnswer : public TDlgBaseAnswer
-{
-  private:
-	String quest_name;
-	String need_quest;
-	String set_quest;
-
-  public:
-	TDlgAnswer(int left, int top): TDlgBaseAnswer(left, top){Type = DlgAnsw;}
-
-	TDlgAnswer(int left, int top, TForm *ContainerOwner)
-	: TDlgBaseAnswer(left, top, ContainerOwner){Type = DlgAnsw;}
-
-	TDlgAnswer(int left, int top, TBitmap *pic, TForm *ContainerOwner)
-	: TDlgBaseAnswer(left, top, pic, ContainerOwner){Type = DlgAnsw;}
-
-	TDlgAnswer(int left, int top, int el_id, TForm *ContainerOwner)
-	: TDlgBaseAnswer(left, top, el_id, ContainerOwner){Type = DlgAnsw;}
-
-	TDlgAnswer(int left, int top, int el_id, int dlg_id, int next_dlg_id,
-			   int link_id, int link_fr_id, TForm *ContainerOwner)
-	: TDlgBaseAnswer(left, top, el_id, dlg_id, next_dlg_id,
-					 link_id, link_fr_id, ContainerOwner)
-    {
-	  Type = DlgAnsw;
-	}
-
-	virtual ~TDlgAnswer(){};
-
-	const wchar_t *CreateXML();
-
-//контейнер для имени квеста, с которым работает элемент
-	__property String QuestName = {read = quest_name, write = quest_name};
-//значение квеста, которое нужно для отображения ответа
-	__property String NeedQuestValue = {read = need_quest, write = need_quest};
-//значение квеста, которое будет установлено при выборе ответа
-	__property String SetQuestValue = {read = set_quest, write = set_quest};
 };
 //---------------------------------------------------------------------------
 
@@ -392,44 +347,6 @@ class TDlgScript : public TDlgBaseText
 };
 //---------------------------------------------------------------------------
 
-class TDlgCondition : public TDlgBaseText
-{
-  private:
-	String cond;
-	String script;
-    String GetConditionScript();
-
-  public:
-	TDlgCondition(int left, int top) : TDlgBaseText(left, top)
-	{Type = DlgCondition;}
-
-	TDlgCondition(int left, int top, TForm *ContainerOwner)
-	: TDlgBaseText(left, top, ContainerOwner){Type = DlgCondition;}
-
-	TDlgCondition(int left, int top, TBitmap *pic, TForm *ContainerOwner)
-	: TDlgBaseText(left, top, pic, ContainerOwner){Type = DlgCondition;}
-
-	TDlgCondition(int left, int top, int el_id, TForm *ContainerOwner)
-	: TDlgBaseText(left, top, el_id, ContainerOwner){Type = DlgCondition;}
-
-	TDlgCondition(int left, int top, int el_id, int dlg_id, int next_dlg_id,
-				  int link_id, int link_fr_id, TForm *ContainerOwner)
-	: TDlgBaseText(left, top, el_id, dlg_id, next_dlg_id,
-				   link_id, link_fr_id, ContainerOwner)
-	{
-	  Type = DlgCondition;
-	}
-
-	virtual ~TDlgCondition(){};
-
-	const wchar_t *CreateXML();
-
-//условие проверки
-	__property String Condition = {read = cond, write = cond};
-	__property String ConditionScript = {read = GetConditionScript};
-};
-//---------------------------------------------------------------------------
-
 TDlgBaseText *FindElement(int id);
 int FindLinkedElements(int id, std::vector<TDlgBaseText*> *el_list);
 int FindAnswersByDialog(int id, std::vector<TDlgBaseText*> *el_list);
@@ -444,9 +361,7 @@ void UpdateLinkedID(int old_id, int new_id);
 void UpdateCardOfDialog(int old_val, int new_val);
 void AddScreenText(int left, int top, TBitmap *pic, TForm *IconOwner);
 void AddAnswer(int left, int top, TBitmap *pic, TForm *IconOwner);
-void AddAdvAnswer(int left, int top, TBitmap *pic, TForm *IconOwner);
 void AddScript(int left, int top, TBitmap *pic, TForm *IconOwner);
-void AddCondition(int left, int top, TBitmap *pic, TForm *IconOwner);
 void XMLImport(String xml_file);
 void XMLExport(const wchar_t *path);
 void ClearItems();

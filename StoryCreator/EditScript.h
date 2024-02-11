@@ -40,14 +40,12 @@ __published:	// IDE-managed Components
 	TEdit *Params;
 	TLabel *Label2;
 	TRichEdit *Text;
-	TButton *OpenInIDE;
 	TLabel *Label4;
 	TEdit *ResultParam;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall DiscardClick(TObject *Sender);
 	void __fastcall ConfirmClick(TObject *Sender);
 	void __fastcall TextKeyUp(TObject *Sender, WORD &Key, TShiftState Shift);
-	void __fastcall OpenInIDEClick(TObject *Sender);
 	void __fastcall TextKeyPress(TObject *Sender, System::WideChar &Key);
 private:	// User declarations
 public:		// User declarations

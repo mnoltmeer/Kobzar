@@ -284,22 +284,6 @@ void AddAnswer(int left, int top, TBitmap *pic, TForm *IconOwner)
 {
   try
 	 {
-	   TDlgBaseAnswer *tmp = new TDlgBaseAnswer(left, top, pic, IconOwner);
-	   items.push_back(tmp);
-	   changed = true;
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::AddAnswer: " + e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-void AddAdvAnswer(int left, int top, TBitmap *pic, TForm *IconOwner)
-{
-  try
-	 {
 	   TDlgAnswer *tmp = new TDlgAnswer(left, top, pic, IconOwner);
 	   items.push_back(tmp);
 	   changed = true;
@@ -307,7 +291,7 @@ void AddAdvAnswer(int left, int top, TBitmap *pic, TForm *IconOwner)
   catch (Exception &e)
 	 {
 	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::AddAdvAnswer: " + e.ToString());
+			   "DlgClass::AddAnswer: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -328,22 +312,6 @@ void AddScript(int left, int top, TBitmap *pic, TForm *IconOwner)
 }
 //---------------------------------------------------------------------------
 
-void AddCondition(int left, int top, TBitmap *pic, TForm *IconOwner)
-{
-  try
-	 {
-	   TDlgCondition *tmp = new TDlgCondition(left, top, pic, IconOwner);
-	   items.push_back(tmp);
-	   changed = true;
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::AddCondition: " + e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
 bool SaveDlgSchema(const wchar_t *file)
 {
   bool res = false;
@@ -354,8 +322,6 @@ bool SaveDlgSchema(const wchar_t *file)
 
 	   fs->Position = 0;
 	   int val = 0;
-
-	   WriteStringIntoBinaryStream(fs.get(), QuestLibFile);
 
 	   for (int i = 0; i < items.size(); i++)
 		  {
@@ -395,27 +361,11 @@ bool SaveDlgSchema(const wchar_t *file)
 				WriteStringIntoBinaryStream(fs.get(), d->ResultParam);
 			  }
 
-			if ((items[i]->Type == DlgSimpleAnsw) || (items[i]->Type == DlgAnsw))
-			  {
-				TDlgBaseAnswer *d = dynamic_cast<TDlgBaseAnswer*>(items[i]);
-				bool chk = d->EndDialog;
-				fs->Position += fs->Write(&chk, sizeof(bool));
-			  }
-
 			if (items[i]->Type == DlgAnsw)
 			  {
 				TDlgAnswer *d = dynamic_cast<TDlgAnswer*>(items[i]);
-
-				WriteStringIntoBinaryStream(fs.get(), d->QuestName);
-				WriteStringIntoBinaryStream(fs.get(), d->SetQuestValue);
-				WriteStringIntoBinaryStream(fs.get(), d->NeedQuestValue);
-			  }
-
-			if (items[i]->Type == DlgCondition)
-			  {
-				TDlgCondition *d = dynamic_cast<TDlgCondition*>(items[i]);
-
-				WriteStringIntoBinaryStream(fs.get(), d->Condition);
+				bool chk = d->EndDialog;
+				fs->Position += fs->Write(&chk, sizeof(bool));
 			  }
 		  }
 
@@ -449,11 +399,6 @@ bool LoadDlgSchema(const wchar_t *file)
 	   bool end_dlg;
 	   TDlgBaseText *lnk;
 
-	   fs->Position += fs->Read(&text_len, sizeof(int));
-
-	   if (text_len > 0)
-		 QuestLibFile = ReadStringFromBinaryStream(fs.get(), text_len);
-
 	   while (fs->Position < fs->Size)
 		 {
 		   fs->Position += fs->Read(&id, sizeof(int));
@@ -483,27 +428,6 @@ bool LoadDlgSchema(const wchar_t *file)
 
 				   break;
 				 }
-			   case DlgSimpleAnsw:
-				 {
-				   TDlgBaseAnswer *dl = new TDlgBaseAnswer(left,
-														   top,
-														   id,
-														   card_of_dialog,
-														   next_card_of_dialog,
-														   linked_id,
-														   linked_from_id,
-														   StoryCreator);
-
-				   if (text_len > 0)
-					 dl->Text = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   fs->Position += fs->Read(&end_dlg, sizeof(bool));
-				   dl->EndDialog = end_dlg;
-
-				   lnk = dl;
-
-				   break;
-				 }
 			   case DlgAnsw:
 				 {
 				   TDlgAnswer *dl = new TDlgAnswer(left,
@@ -520,21 +444,6 @@ bool LoadDlgSchema(const wchar_t *file)
 
 				   fs->Position += fs->Read(&end_dlg, sizeof(bool));
 				   dl->EndDialog = end_dlg;
-
-				   fs->Position += fs->Read(&text_len, sizeof(int));
-
-				   if (text_len > 0)
-					 dl->QuestName = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   fs->Position += fs->Read(&text_len, sizeof(int));
-
-				   if (text_len > 0)
-					 dl->SetQuestValue = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   fs->Position += fs->Read(&text_len, sizeof(int));
-
-				   if (text_len > 0)
-					 dl->NeedQuestValue = ReadStringFromBinaryStream(fs.get(), text_len);
 
 				   lnk = dl;
 
@@ -560,28 +469,6 @@ bool LoadDlgSchema(const wchar_t *file)
 
 				   if (text_len > 0)
 					 dl->ResultParam = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   lnk = dl;
-
-				   break;
-				 }
-			   case DlgCondition:
-				 {
-				   TDlgCondition *dl = new TDlgCondition(left,
-														 top,
-														 id,
-														 card_of_dialog,
-														 next_card_of_dialog,
-														 linked_id,
-														 linked_from_id,
-														 StoryCreator);
-
-				   dl->Text = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   fs->Position += fs->Read(&text_len, sizeof(int));
-
-				   if (text_len > 0)
-					 dl->Condition = ReadStringFromBinaryStream(fs.get(), text_len);
 
 				   lnk = dl;
 
@@ -720,21 +607,12 @@ void XMLImport(String xml_file)
 	   _di_IXMLNode AnswerMassive;
 	   _di_IXMLNode Answer;
 	   _di_IXMLNode TextOfAnswer;
-	   _di_IXMLNode QuestName;
 	   _di_IXMLNode EndDialog;
-	   _di_IXMLNode QuestLib;
 
-	   int left = 180, top = 50, step = 0, curr_card = -1;
-	   int i = 0;
+	   int scene_left = StoryCreator->ItemList->Left + StoryCreator->ItemList->Width + 20;
+	   int left = scene_left + 50, top = 50, step = 0, curr_card = -1;
 
-	   if (DialogFile->ChildNodes->Nodes[i]->GetNodeName() == "QuestLibFile")
-		 {
-		   QuestLib = DialogFile->ChildNodes->Nodes[0];
-		   QuestLibFile = QuestLib->Text;
-		   i++;
-		 }
-
-	   for (i; i < DialogFile->ChildNodes->Count; i++)
+	   for (int i = 0; i < DialogFile->ChildNodes->Count; i++)
 		  {
 			CardOfDialog = DialogFile->ChildNodes->Nodes[i];
 
@@ -748,19 +626,17 @@ void XMLImport(String xml_file)
 
 					 if (ScreenText->HasAttribute("Params")) //Script
 					   {
-							  TDlgScript *lnk = new TDlgScript(180,
-															   top,
-															   StoryCreator);
+						 TDlgScript *lnk = new TDlgScript(scene_left, top, StoryCreator);
 
-							  lnk->CardOfDialog = curr_card;
-							  lnk->Params = ScreenText->GetAttribute("Params");
-							  lnk->Text = ScreenText->ChildNodes->Nodes[0]->Text;
-                              lnk->ResultParam = ScreenText->ChildNodes->Nodes[1]->Text;
-							  items.push_back(lnk);
+						 lnk->CardOfDialog = curr_card;
+						 lnk->Params = ScreenText->GetAttribute("Params");
+						 lnk->Text = ScreenText->ChildNodes->Nodes[0]->Text;
+						 lnk->ResultParam = ScreenText->ChildNodes->Nodes[1]->Text;
+						 items.push_back(lnk);
 					   }
 					 else  //ScreenText
 					   {
-						 TDlgScreenText *lnk = new TDlgScreenText(180, top, StoryCreator);
+						 TDlgScreenText *lnk = new TDlgScreenText(scene_left, top, StoryCreator);
 
 						 lnk->CardOfDialog = curr_card;
 						 lnk->Text = ScreenText->ChildNodes->Nodes[0]->Text;
@@ -777,40 +653,17 @@ void XMLImport(String xml_file)
 						{
 						  Answer = AnswerMassive->ChildNodes->Nodes[k];
 						  int ind = 0;
-						  int ncd, type;
+						  int ncd;
 						  bool end;
-						  String setquest, needquest, quest, text, check;
-
-						  if (Answer->ChildNodes->IndexOf("QuestName") >= 0)
-							type = 1; //Answer
-						  else if (Answer->ChildNodes->IndexOf("Check") >= 0)
-							type = 2; //Condition
-						  else
-							type = 0; //BaseAnswer
+						  String text;
 
 						  if (Answer->HasAttribute("NextCardOfDialog"))
 							ncd = StrToInt(Answer->GetAttribute("NextCardOfDialog"));
-
-						  if (Answer->HasAttribute("NeedQuestValue"))
-							needquest = Answer->GetAttribute("NeedQuestValue");
-
-						  if (Answer->HasAttribute("SetQuestValue"))
-							setquest = Answer->GetAttribute("SetQuestValue");
 
 						  ind = Answer->ChildNodes->IndexOf("TextOfAnswer");
 
 						  if (ind >= 0)
 							text = Answer->ChildNodes->Nodes[ind]->Text;
-
-						  ind = Answer->ChildNodes->IndexOf("Check");
-
-						  if (ind >= 0)
-							check = Answer->ChildNodes->Nodes[ind]->Text;
-
-						  ind = Answer->ChildNodes->IndexOf("QuestName");
-
-						  if (ind >= 0)
-							quest = Answer->ChildNodes->Nodes[ind]->Text;
 
 						  ind = Answer->ChildNodes->IndexOf("EndDialog");
 
@@ -821,39 +674,13 @@ void XMLImport(String xml_file)
 						  else
 							end = false;
 
-						  if (type == 1)
-							{
-							  TDlgAnswer *answ = new TDlgAnswer(left, top, StoryCreator);
+						  TDlgAnswer *answ = new TDlgAnswer(left, top, StoryCreator);
 
-							  answ->CardOfDialog = curr_card;
-							  answ->NextCardOfDialog = ncd;
-							  answ->NeedQuestValue = needquest;
-							  answ->SetQuestValue = setquest;
-							  answ->QuestName = quest;
-							  answ->EndDialog = end;
-							  answ->Text = text;
-							  items.push_back(answ);
-							}
-						  else if (type == 2)
-							{
-							  TDlgCondition *cond = new TDlgCondition(left, top, StoryCreator);
-
-							  cond->CardOfDialog = curr_card;
-							  cond->NextCardOfDialog = ncd;
-							  cond->Text = text;
-							  cond->Condition = check;
-							  items.push_back(cond);
-							}
-						  else
-							{
-							  TDlgBaseAnswer *answ = new TDlgBaseAnswer(left, top, StoryCreator);
-
-							  answ->CardOfDialog = curr_card;
-							  answ->NextCardOfDialog = ncd;
-							  answ->Text = text;
-							  answ->EndDialog = end;
-							  items.push_back(answ);
-							}
+						  answ->CardOfDialog = curr_card;
+						  answ->NextCardOfDialog = ncd;
+						  answ->Text = text;
+						  answ->EndDialog = end;
+						  items.push_back(answ);
 
 //приблизительные отступы по высоте и ширине
 						  left += 55;
@@ -888,10 +715,6 @@ void XMLExport(const wchar_t *path)
 		  {
 			String xml_exp = "<DialogFile>\r\n";
 
-			xml_exp += "\t<QuestLibFile>";
-			xml_exp += QuestLibFile;
-			xml_exp += "</QuestLibFile>\r\n";
-
 			for (int i = 0; i < items.size(); i++)
 			   {
 				 if (items[i]->Cathegory == DLG_TEXT_LIKE)
@@ -914,7 +737,7 @@ void XMLExport(const wchar_t *path)
 					 xml_exp += "\t\t</AnswersMassive>\r\n";
 					 xml_exp += "\t</CardOfDialog>\r\n";
 				   }
-			  }
+			   }
 
 			xml_exp += "</DialogFile>\r\n";
 
@@ -1367,8 +1190,6 @@ int TDlgBaseText::GetCathegory()
 	  case DlgText: res = DLG_TEXT_LIKE; break;
 	  case DlgScript: res = DLG_TEXT_LIKE; break;
 	  case DlgAnsw: res = DLG_ANSW_LIKE; break;
-	  case DlgSimpleAnsw: res = DLG_ANSW_LIKE; break;
-	  case DlgCondition: res = DLG_ANSW_LIKE; break;
 	}
 
   return res;
@@ -1405,12 +1226,12 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 		  Selected->NextCardOfDialog = this->CardOfDialog;
 		  Selected->LinkedFromID = this->ID;
 
-          if ((Selected->Type == DlgAnsw) || (Selected->Type == DlgSimpleAnsw))
+          if (Selected->Type == DlgAnsw)
 			{
 			  if (this->CardOfDialog != 0)
-				dynamic_cast<TDlgBaseAnswer*>(Selected)->EndDialog = false;
+				dynamic_cast<TDlgAnswer*>(Selected)->EndDialog = false;
 			  else
-				dynamic_cast<TDlgBaseAnswer*>(Selected)->EndDialog = true;
+				dynamic_cast<TDlgAnswer*>(Selected)->EndDialog = true;
 			}
 		}
 	  else if ((Selected->Cathegory == DLG_TEXT_LIKE) &&
@@ -1440,7 +1261,6 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 	  pl->Cols[1]->Clear();
 	  this->GiveInfo(pl->Cols[1]);
 	}
-
 }
 //---------------------------------------------------------------------------
 
@@ -1503,7 +1323,7 @@ const wchar_t *TDlgScreenText::CreateXML()
 //---------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
-const wchar_t *TDlgBaseAnswer::CreateXML()
+const wchar_t *TDlgAnswer::CreateXML()
 {
   XMLText = "\t\t\t<Answer NextCardOfDialog = '" + String(NextCardOfDialog) + "'>\r\n";
   XMLText = XMLText + "\t\t\t\t<TextOfAnswer>" + Text + "</TextOfAnswer>\r\n";
@@ -1517,13 +1337,13 @@ const wchar_t *TDlgBaseAnswer::CreateXML()
 }
 //---------------------------------------------------------------------------
 
-bool TDlgBaseAnswer::GetEndDialog()
+bool TDlgAnswer::GetEndDialog()
 {
   return end_dlg;
 }
 //---------------------------------------------------------------------------
 
-void TDlgBaseAnswer::SetEndDialog(bool val)
+void TDlgAnswer::SetEndDialog(bool val)
 {
   end_dlg = val;
 
@@ -1563,32 +1383,6 @@ void TDlgBaseAnswer::SetEndDialog(bool val)
 //---------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
-const wchar_t *TDlgAnswer::CreateXML()
-{
-  XMLText = "\t\t\t<Answer NextCardOfDialog = '" + String(NextCardOfDialog) + "'";
-
-  if (SetQuestValue != "")
-	XMLText = XMLText + " SetQuestValue = '" + SetQuestValue + "'";
-
-  if (NeedQuestValue != "")
-	XMLText = XMLText + " NeedQuestValue = '" + NeedQuestValue + "'";
-
-  XMLText = XMLText + ">\r\n";
-
-  XMLText = XMLText + "\t\t\t\t<TextOfAnswer>" + Text + "</TextOfAnswer>\r\n";
-
-  XMLText = XMLText + "\t\t\t\t<QuestName>" + QuestName + "</QuestName>\r\n";
-
-  if (EndDialog)
-	XMLText = XMLText + "\t\t\t\t<EndDialog>True</EndDialog>\r\n";
-
-  XMLText = XMLText + "\t\t\t</Answer>";
-
-  return XMLText.c_str();
-}
-//---------------------------------------------------------------------------
-
-//---------------------------------------------------------------------------
 const wchar_t *TDlgScript::CreateXML()
 {
   XMLText = "\t\t<ScreenTextMassive>\r\n";
@@ -1597,29 +1391,6 @@ const wchar_t *TDlgScript::CreateXML()
   XMLText = XMLText + "\t\t\t\t<Return>" + ResultParam + "</Return>\r\n";
   XMLText = XMLText + "\t\t\t</Script>\r\n";
   XMLText = XMLText + "\t\t</ScreenTextMassive>\r\n";
-
-  return XMLText.c_str();
-}
-//---------------------------------------------------------------------------
-
-//---------------------------------------------------------------------------
-String TDlgCondition::GetConditionScript()
-{
-  script = "#begin Condition;\r\n";
-  script = script + "if (" + cond + "){_return(1);}\r\n";
-  script = script + "else{_return(0);}\r\n";
-  script = script + "#end;\r\n";
-
-  return script;
-}
-//---------------------------------------------------------------------------
-
-const wchar_t *TDlgCondition::CreateXML()
-{
-  XMLText = "\t\t\t<Condition NextCardOfDialog = '" + String(NextCardOfDialog) + "'>\r\n";
-  XMLText = XMLText + "\t\t\t\t<Check>" + Condition + "</Check>\r\n";
-  XMLText = XMLText + "\t\t\t\t<TextOfAnswer>" + Text + "</TextOfAnswer>\r\n";
-  XMLText = XMLText + "\t\t\t</Condition>";
 
   return XMLText.c_str();
 }

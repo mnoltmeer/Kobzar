@@ -136,35 +136,6 @@ void __fastcall TEditScriptForm::TextKeyUp(TObject *Sender, WORD &Key, TShiftSta
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TEditScriptForm::OpenInIDEClick(TObject *Sender)
-{
-  Text->PlainText = true;
-  Text->Lines->SaveToFile(LogPath + "\\edited.es", TEncoding::UTF8);
-  Text->PlainText = false;
-
-  //посилаємо спец. пустий символ для підсвітки
-  if (SyntaxHighlight)
-	SendMessage(Text->Handle, WM_KEYUP, 0, NULL);
-
-  StartProcessByExeName(AppDir + "\\ScriptEditor.exe",
-						LogPath + "\\edited.es",
-						LogPath);
-
-  Sleep(300);
-
-  DWORD pid = GetProcessByExeName(L"ScriptEditor.exe");
-
-  while (FindHandleByPID(pid))
-	Sleep(100);
-
-  Text->PlainText = true;
-  Text->Lines->LoadFromFile(LogPath + "\\edited.es", TEncoding::UTF8);
-  Text->PlainText = false;
-
-  DeleteFile(LogPath + "\\edited.es");
-}
-//---------------------------------------------------------------------------
-
 void __fastcall TEditScriptForm::TextKeyPress(TObject *Sender, System::WideChar &Key)
 {
   switch (Key)

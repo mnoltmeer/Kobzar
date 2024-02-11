@@ -4,8 +4,8 @@ object EditAnswerForm: TEditAnswerForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Edit Answer'
-  ClientHeight = 169
-  ClientWidth = 427
+  ClientHeight = 181
+  ClientWidth = 432
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

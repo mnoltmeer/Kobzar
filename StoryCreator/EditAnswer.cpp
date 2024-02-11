@@ -55,7 +55,7 @@ void __fastcall TEditAnswerForm::UpdateInfo()
   NextCardOfDialog->Text = IntToStr(Selected->NextCardOfDialog);
   LinkedID->Text = IntToStr(Selected->LinkedID);
   LinkedFromID->Text = IntToStr(Selected->LinkedFromID);
-  EndDialog->Checked = dynamic_cast<TDlgBaseAnswer*>(Selected)->EndDialog;
+  EndDialog->Checked = dynamic_cast<TDlgAnswer*>(Selected)->EndDialog;
   ID->Text = IntToStr(Selected->ID);
 }
 //---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ void __fastcall TEditAnswerForm::ConfirmClick(TObject *Sender)
 {
   if (!EndDialog->Checked)
 	{
-	  dynamic_cast<TDlgBaseAnswer*>(Selected)->EndDialog = false;
+	  dynamic_cast<TDlgAnswer*>(Selected)->EndDialog = false;
 	}
 
   StoryCreator->PropList->Cells[1][0] = ID->Text;
@@ -82,7 +82,7 @@ void __fastcall TEditAnswerForm::ConfirmClick(TObject *Sender)
 
   if (EndDialog->Checked)
 	{
-	  dynamic_cast<TDlgBaseAnswer*>(Selected)->EndDialog = true;
+	  dynamic_cast<TDlgAnswer*>(Selected)->EndDialog = true;
 	  StoryCreator->Repaint();
 	}
 

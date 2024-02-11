@@ -26,9 +26,6 @@ This file is part of Kobzar Engine.
 #include "EditText.h"
 #include "EditScript.h"
 #include "EditAnswer.h"
-#include "EditAdvAnswer.h"
-#include "EditCondition.h"
-#include "quests.h"
 #include "settings.h"
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -105,10 +102,6 @@ void __fastcall TAppSettings::SelectFontClick(TObject *Sender)
 
 	  EditTextForm->Text->Font->Assign(FontDialog->Font);
 	  EditAnswerForm->Text->Font->Assign(FontDialog->Font);
-	  EditAdvAnswerForm->Text->Font->Assign(FontDialog->Font);
-	  EditConditionForm->Text->Font->Assign(FontDialog->Font);
-	  QuestManager->QuestList->Font->Assign(FontDialog->Font);
-	  QuestManager->QuestStates->Font->Assign(FontDialog->Font);
 
 //посилаємо спец. пустий символ для підсвітки
 	  if (SyntaxHighlight)

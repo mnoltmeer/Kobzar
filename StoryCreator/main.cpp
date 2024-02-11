@@ -27,10 +27,7 @@ This file is part of Kobzar Engine.
 #include "settings.h"
 #include "EditText.h"
 #include "EditAnswer.h"
-#include "EditAdvAnswer.h"
 #include "EditScript.h"
-#include "EditCondition.h"
-#include "quests.h"
 #include "Splash.h"
 #include "main.h"
 
@@ -43,10 +40,10 @@ bool FullScreen;
 String FontName;
 int FontSize;
 bool SyntaxHighlight;
-String QuestLibFile;
 String AppDir, LogPath;
 
 String Version;
+String Title;
 TStringList *LastFiles;
 TMenuItem *MenuLastFiles[5];
 
@@ -70,9 +67,10 @@ __fastcall TStoryCreator::TStoryCreator(TComponent* Owner)
 {
   LastFiles = new TStringList();
 
+  Title = "Kobzar Story Creator ";
   Version = GetVersionInString(Application->ExeName.c_str());
 
-  Caption = "Text Scene Creator " + Version + ": <new>";
+  Caption = Title + Version + ": <new>";
 
   LogPath = GetEnvironmentVariable("USERPROFILE") + "\\Documents";
 
@@ -106,105 +104,86 @@ void __fastcall TStoryCreator::FormCreate(TObject *Sender)
   BtUnselect->Glyph->Transparent = true;
   BtScreenText->Glyph = Images->GetBitmap(DlgText, 24, 24);
   BtScreenText->Glyph->Transparent = true;
-  BtAnswer->Glyph = Images->GetBitmap(DlgSimpleAnsw, 24, 24);
+  BtAnswer->Glyph = Images->GetBitmap(DlgAnsw, 24, 24);
   BtAnswer->Glyph->Transparent = true;
-  BtAdvAnswer->Glyph = Images->GetBitmap(DlgAnsw, 24, 24);
-  BtAdvAnswer->Glyph->Transparent = true;
   BtScript->Glyph = Images->GetBitmap(DlgScript, 24, 24);
   BtScript->Glyph->Transparent = true;
-  BtCondition->Glyph = Images->GetBitmap(DlgCondition, 24, 24);
-  BtCondition->Glyph->Transparent = true;
 
   MenuPlaceText->Bitmap = Images->GetBitmap(DlgText, 16, 16);
   MenuPlaceText->Bitmap->TransparentColor = clBlack;
   MenuPlaceText->Bitmap->Transparent = true;
-  MenuPlaceAnswer->Bitmap = Images->GetBitmap(DlgSimpleAnsw, 16, 16);
+  MenuPlaceAnswer->Bitmap = Images->GetBitmap(DlgAnsw, 16, 16);
   MenuPlaceAnswer->Bitmap->TransparentColor = clBlack;
   MenuPlaceAnswer->Bitmap->Transparent = true;
-  MenuPlaceAdvAnswer->Bitmap = Images->GetBitmap(DlgAnsw, 16, 16);
-  MenuPlaceAdvAnswer->Bitmap->TransparentColor = clBlack;
-  MenuPlaceAdvAnswer->Bitmap->Transparent = true;
   MenuPlaceScript->Bitmap = Images->GetBitmap(DlgScript, 16, 16);
   MenuPlaceScript->Bitmap->TransparentColor = clBlack;
   MenuPlaceScript->Bitmap->Transparent = true;
-  MenuPlaceCondition->Bitmap = Images->GetBitmap(DlgCondition, 16, 16);
-  MenuPlaceCondition->Bitmap->TransparentColor = clBlack;
-  MenuPlaceCondition->Bitmap->Transparent = true;
 
   MPPScrTxt->Bitmap = Images->GetBitmap(DlgText, 16, 16);
   MPPScrTxt->Bitmap->TransparentColor = clBlack;
   MPPScrTxt->Bitmap->Transparent = true;
-  MPPAnsw->Bitmap = Images->GetBitmap(DlgSimpleAnsw, 16, 16);
+  MPPAnsw->Bitmap = Images->GetBitmap(DlgAnsw, 16, 16);
   MPPAnsw->Bitmap->TransparentColor = clBlack;
   MPPAnsw->Bitmap->Transparent = true;
-  MPPAdvAnsw->Bitmap = Images->GetBitmap(DlgAnsw, 16, 16);
-  MPPAdvAnsw->Bitmap->TransparentColor = clBlack;
-  MPPAdvAnsw->Bitmap->Transparent = true;
   MPPScript->Bitmap = Images->GetBitmap(DlgScript, 16, 16);
   MPPScript->Bitmap->TransparentColor = clBlack;
   MPPScript->Bitmap->Transparent = true;
-  MPPCondition->Bitmap = Images->GetBitmap(DlgCondition, 16, 16);
-  MPPCondition->Bitmap->TransparentColor = clBlack;
-  MPPCondition->Bitmap->Transparent = true;
 
-  QBtNew->Glyph = Images->GetBitmap(6, 22, 22);
+  QBtNew->Glyph = Images->GetBitmap(4, 22, 22);
   QBtNew->Glyph->TransparentColor = clBlack;
   QBtNew->Glyph->Transparent = true;
-  QBtOpen->Glyph = Images->GetBitmap(7, 24, 24);
+  QBtOpen->Glyph = Images->GetBitmap(5, 24, 24);
   QBtOpen->Glyph->TransparentColor = clBlack;
   QBtOpen->Glyph->Transparent = true;
-  QBtSave->Glyph = Images->GetBitmap(8, 24, 24);
+  QBtSave->Glyph = Images->GetBitmap(6, 24, 24);
   QBtSave->Glyph->TransparentColor = clBlack;
   QBtSave->Glyph->Transparent = true;
-  QBtImport->Glyph = Images->GetBitmap(9, 24, 24);
+  QBtImport->Glyph = Images->GetBitmap(7, 24, 24);
   QBtImport->Glyph->TransparentColor = clBlack;
   QBtImport->Glyph->Transparent = true;
-  QBtExport->Glyph = Images->GetBitmap(10, 24, 24);
+  QBtExport->Glyph = Images->GetBitmap(8, 24, 24);
   QBtExport->Glyph->TransparentColor = clBlack;
   QBtExport->Glyph->Transparent = true;
 
-  MenuNew->Bitmap = Images->GetBitmap(6, 16, 16);
+  MenuNew->Bitmap = Images->GetBitmap(4, 16, 16);
   MenuNew->Bitmap->TransparentColor = clBlack;
   MenuNew->Bitmap->Transparent = true;
-  MenuLoad->Bitmap = Images->GetBitmap(7, 16, 16);
+  MenuLoad->Bitmap = Images->GetBitmap(5, 16, 16);
   MenuLoad->Bitmap->TransparentColor = clBlack;
   MenuLoad->Bitmap->Transparent = true;
-  MenuSave->Bitmap = Images->GetBitmap(8, 16, 16);
+  MenuSave->Bitmap = Images->GetBitmap(6, 16, 16);
   MenuSave->Bitmap->TransparentColor = clBlack;
   MenuSave->Bitmap->Transparent = true;
-  MenuSaveAs->Bitmap = Images->GetBitmap(8, 16, 16);
+  MenuSaveAs->Bitmap = Images->GetBitmap(6, 16, 16);
   MenuSaveAs->Bitmap->TransparentColor = clBlack;
   MenuSaveAs->Bitmap->Transparent = true;
-  MenuImportXML->Bitmap = Images->GetBitmap(9, 16, 16);
+  MenuImportXML->Bitmap = Images->GetBitmap(7, 16, 16);
   MenuImportXML->Bitmap->TransparentColor = clBlack;
   MenuImportXML->Bitmap->Transparent = true;
-  MenuExportXML->Bitmap = Images->GetBitmap(10, 16, 16);
+  MenuExportXML->Bitmap = Images->GetBitmap(8, 16, 16);
   MenuExportXML->Bitmap->TransparentColor = clBlack;
   MenuExportXML->Bitmap->Transparent = true;
-  MenuExportText->Bitmap = Images->GetBitmap(11, 16, 16);
+  MenuExportText->Bitmap = Images->GetBitmap(9, 16, 16);
   MenuExportText->Bitmap->TransparentColor = clBlack;
   MenuExportText->Bitmap->Transparent = true;
-  MenuQuestOrganiser->Bitmap = Images->GetBitmap(15, 16, 16);
-  MenuQuestOrganiser->Bitmap->TransparentColor = clBlack;
-  MenuQuestOrganiser->Bitmap->Transparent = true;
 
-  MenuEdit->Bitmap = Images->GetBitmap(13, 16, 16);
+  MenuEdit->Bitmap = Images->GetBitmap(11, 16, 16);
   MenuEdit->Bitmap->TransparentColor = clBlack;
   MenuEdit->Bitmap->Transparent = true;
-  MenuDel->Bitmap = Images->GetBitmap(12, 16, 16);
+  MenuDel->Bitmap = Images->GetBitmap(10, 16, 16);
   MenuDel->Bitmap->TransparentColor = clBlack;
   MenuDel->Bitmap->Transparent = true;
 
-  EPPEdit->Bitmap = Images->GetBitmap(13, 16, 16);
+  EPPEdit->Bitmap = Images->GetBitmap(11, 16, 16);
   EPPEdit->Bitmap->TransparentColor = clBlack;
   EPPEdit->Bitmap->Transparent = true;
-  EPPDel->Bitmap = Images->GetBitmap(12, 16, 16);
+  EPPDel->Bitmap = Images->GetBitmap(10, 16, 16);
   EPPDel->Bitmap->TransparentColor = clBlack;
   EPPDel->Bitmap->Transparent = true;
   EPPUnsel->Bitmap = Images->GetBitmap(0, 16, 16);
   EPPUnsel->Bitmap->TransparentColor = clBlack;
   EPPUnsel->Bitmap->Transparent = true;
-  EPPStandAlone->Bitmap = Images->GetBitmap(14, 16, 16);
+  EPPStandAlone->Bitmap = Images->GetBitmap(12, 16, 16);
   EPPStandAlone->Bitmap->TransparentColor = clBlack;
   EPPStandAlone->Bitmap->Transparent = true;
 }
@@ -221,10 +200,6 @@ void __fastcall TStoryCreator::FormShow(TObject *Sender)
 	   EditScriptForm->Text->Font->Assign(AppSettings->FontDialog->Font);
 	   EditTextForm->Text->Font->Assign(AppSettings->FontDialog->Font);
 	   EditAnswerForm->Text->Font->Assign(AppSettings->FontDialog->Font);
-	   EditAdvAnswerForm->Text->Font->Assign(AppSettings->FontDialog->Font);
-	   EditConditionForm->Text->Font->Assign(AppSettings->FontDialog->Font);
-	   QuestManager->QuestList->Font->Assign(AppSettings->FontDialog->Font);
-	   QuestManager->QuestStates->Font->Assign(AppSettings->FontDialog->Font);
 
 	   if (ParamStr(1) != "")
 		 {
@@ -232,12 +207,12 @@ void __fastcall TStoryCreator::FormShow(TObject *Sender)
 
 		   String ext = cur_proj_path.SubString(cur_proj_path.Length() - 3, 4);
 
-		   if (ext == ".dcs")
+		   if (ext == ".scs")
 			 LoadDlgSchema(cur_proj_path.c_str());
 		   else if (ext == ".xml")
 			 XMLImport(cur_proj_path);
 
-		   Caption = "Text Scene Creator " + Version + ": <" + CreateProjName(cur_proj_path) + ">";
+		   Caption = Title + Version + ": <" + CreateProjName(cur_proj_path) + ">";
 		   UpdateItemsList(ItemList);
 		   changed = false;
 
@@ -331,7 +306,7 @@ void __fastcall TStoryCreator::ReadSettings()
 		   reg->CloseKey();
 		 }
 
-	   if (reg->OpenKey("Software\\Kobzar\\TextSceneCreator\\UI", false))
+	   if (reg->OpenKey("Software\\Kobzar\\StoryCreator\\UI", false))
 		 {
 		   if (reg->ValueExists("FullScreen"))
 			 FullScreen = reg->ReadBool("FullScreen");
@@ -384,13 +359,13 @@ void __fastcall TStoryCreator::WriteSettings()
 
 	   reg->RootKey = HKEY_CURRENT_USER;
 
-	   if (!reg->KeyExists("Software\\Kobzar\\TextSceneCreator\\Editor"))
-		 reg->CreateKey("Software\\Kobzar\\TextSceneCreator\\Editor");
+	   if (!reg->KeyExists("Software\\Kobzar\\StoryCreator\\Editor"))
+		 reg->CreateKey("Software\\Kobzar\\StoryCreator\\Editor");
 
-	   if (!reg->KeyExists("Software\\StoryTeller\\TextSceneCreator\\UI"))
-		 reg->CreateKey("Software\\StoryTeller\\TextSceneCreator\\UI");
+	   if (!reg->KeyExists("Software\\StoryTeller\\StoryCreator\\UI"))
+		 reg->CreateKey("Software\\StoryTeller\\StoryCreator\\UI");
 
-	   if (reg->OpenKey("Software\\Kobzar\\TextSceneCreator\\Editor", false))
+	   if (reg->OpenKey("Software\\Kobzar\\StoryCreator\\Editor", false))
 		 {
 		   reg->WriteString("FontName", FontName);
 		   reg->WriteInteger("FontSize", FontSize);
@@ -399,7 +374,7 @@ void __fastcall TStoryCreator::WriteSettings()
 		   reg->CloseKey();
 		 }
 
-	   if (reg->OpenKey("Software\\Kobzar\\TextSceneCreator\\UI", false))
+	   if (reg->OpenKey("Software\\Kobzar\\StoryCreator\\UI", false))
 		 {
 		   reg->WriteInteger("FormHeight", ClientHeight);
 		   reg->WriteInteger("FormWidth", ClientWidth);
@@ -444,10 +419,10 @@ void __fastcall TStoryCreator::WriteLastFilesList()
 	 {
 	   reg->RootKey = HKEY_CURRENT_USER;
 
-	   if (!reg->KeyExists("Software\\Kobzar\\TextSceneCreator\\UI"))
-		 reg->CreateKey("Software\\Kobzar\\TextSceneCreator\\UI");
+	   if (!reg->KeyExists("Software\\Kobzar\\StoryCreator\\UI"))
+		 reg->CreateKey("Software\\Kobzar\\StoryCreator\\UI");
 
-	   if (reg->OpenKey("Software\\Kobzar\\TextSceneCreator\\UI", false))
+	   if (reg->OpenKey("Software\\Kobzar\\StoryCreator\\UI", false))
 		 {
 		   String list = ListToStr(LastFiles, ";");
 
@@ -469,7 +444,7 @@ void __fastcall TStoryCreator::ReadLastFilesList()
 
 	   reg->RootKey = HKEY_CURRENT_USER;
 
-	   if (reg->OpenKey("Software\\Kobzar\\TextSceneCreator\\UI", false))
+	   if (reg->OpenKey("Software\\Kobzar\\StoryCreator\\UI", false))
 		 StrToList(LastFiles, reg->ReadString("LastFiles"), ";");
 	 }
   catch (Exception &e)
@@ -536,12 +511,12 @@ void __fastcall TStoryCreator::PPLastFileClick(TObject *Sender)
 
        String ext = cur_proj_path.SubString(cur_proj_path.Length() - 3, 4);
 
-	   if (ext == ".dcs")
+	   if (ext == ".scs")
 		 LoadDlgSchema(cur_proj_path.c_str());
 	   else if (ext == ".xml")
 		 XMLImport(cur_proj_path);
 
-	   Caption = "Text Scene Creator " + Version + ": <" + CreateProjName(cur_proj_path) + ">";
+	   Caption = Title + Version + ": <" + CreateProjName(cur_proj_path) + ">";
 	   UpdateItemsList(ItemList);
        VisualiseElements();
 	   changed = false;
@@ -603,7 +578,7 @@ void __fastcall TStoryCreator::AnswerClick(TObject *Sender)
 
 void __fastcall TStoryCreator::SimpleAnswerClick(TObject *Sender)
 {
-  Choice = PlaceSimpleAnswer;
+  Choice = PlaceAnswer;
 }
 //---------------------------------------------------------------------------
 
@@ -619,10 +594,8 @@ void __fastcall TStoryCreator::MenuEditClick(TObject *Sender)
 		   switch (Selected->Type)
 			 {
 			   case DlgText: EditTextForm->Hide(); EditTextForm->Show(); break;
-			   case DlgSimpleAnsw: EditAnswerForm->Hide(); EditAnswerForm->Show(); break;
-			   case DlgAnsw: EditAdvAnswerForm->Hide(); EditAdvAnswerForm->Show(); break;
+			   case DlgAnsw: EditAnswerForm->Hide(); EditAnswerForm->Show(); break;
 			   case DlgScript: EditScriptForm->Hide(); EditScriptForm->Show(); break;
-               case DlgCondition: EditConditionForm->Hide(); EditConditionForm->Show(); break;
 			 }
 		 }
 	 }
@@ -685,7 +658,7 @@ void __fastcall TStoryCreator::MenuImportXMLClick(TObject *Sender)
 	  SaveCurrentProject(true);
 	  XMLImport(OpenSchema->FileName);
 	  cur_proj_path = "";
-	  Caption = "Text Scene Creator " + Version + ": <" + CreateProjName(cur_proj_path) + ">";
+	  Caption = Title + Version + ": <" + CreateProjName(cur_proj_path) + ">";
 	  UpdateItemsList(ItemList);
 	  changed = true;
 	}
@@ -711,10 +684,8 @@ void __fastcall TStoryCreator::MenuExportTextClick(TObject *Sender)
 				switch (items[i]->Type)
 				  {
 					case DlgText: type = "Text"; break;
-					case DlgAnsw: type = "Adv.Answer"; break;
-					case DlgSimpleAnsw: type = "Answer"; break;
+					case DlgAnsw: type = "Answer"; break;
 					case DlgScript: type = "Script"; break;
-					case DlgCondition: type = "Condition"; break;
 					default: type = "<unknown>"; break;
 				  }
 
@@ -747,15 +718,15 @@ void __fastcall TStoryCreator::MenuSaveClick(TObject *Sender)
 
 void __fastcall TStoryCreator::MenuSaveAsClick(TObject *Sender)
 {
-  SaveSchema->Filter = "DialogCreator schemas|*.dcs";
-  SaveSchema->DefaultExt = "dcs";
+  SaveSchema->Filter = "Story Creator schemas|*.scs";
+  SaveSchema->DefaultExt = "scs";
   SaveSchema->FileName = "";
 
   if (SaveSchema->Execute())
 	{
 	  SaveDlgSchema(SaveSchema->FileName.c_str());
 	  cur_proj_path = SaveSchema->FileName;
-	  Caption = "Text Scene Creator " + Version + ": <" + CreateProjName(cur_proj_path) + ">";
+	  Caption = Title + Version + ": <" + CreateProjName(cur_proj_path) + ">";
       changed = false;
 	}
 }
@@ -763,8 +734,8 @@ void __fastcall TStoryCreator::MenuSaveAsClick(TObject *Sender)
 
 void __fastcall TStoryCreator::MenuLoadClick(TObject *Sender)
 {
-  OpenSchema->Filter = "DialogCreator schemas|*.dcs";
-  OpenSchema->DefaultExt = "dcs";
+  OpenSchema->Filter = "Story Creator schemas|*.scs";
+  OpenSchema->DefaultExt = "scs";
   OpenSchema->FileName = "";
 
   if (OpenSchema->Execute())
@@ -772,7 +743,7 @@ void __fastcall TStoryCreator::MenuLoadClick(TObject *Sender)
 	  SaveCurrentProject(true);
 	  LoadDlgSchema(OpenSchema->FileName.c_str());
 	  cur_proj_path = OpenSchema->FileName;
-	  Caption = "Text Scene Creator " + Version + ": <" + CreateProjName(cur_proj_path) + ">";
+	  Caption = Title + Version + ": <" + CreateProjName(cur_proj_path) + ">";
 	  UpdateItemsList(ItemList);
       VisualiseElements();
 	  changed = false;
@@ -787,7 +758,7 @@ void __fastcall TStoryCreator::MenuNewClick(TObject *Sender)
   ClearItems();
   Repaint();
   cur_proj_path = "";
-  Caption = "Text Scene Creator " + Version + ": <new>";
+  Caption = Title + Version + ": <new>";
   UpdateItemsList(ItemList);
   changed = false;
 }
@@ -945,26 +916,12 @@ void __fastcall TStoryCreator::MPPAnswClick(TObject *Sender)
 {
   try
 	 {
-	   AddAnswer(MouseX, MouseY, Images->GetBitmap(DlgSimpleAnsw, 32, 32), this);
+	   AddAnswer(MouseX, MouseY, Images->GetBitmap(DlgAnsw, 32, 32), this);
 	   UpdateItemsList(ItemList);
 	 }
   catch (Exception &e)
 	 {
 	   SaveLog(LogPath + "\\exceptions.log", "MPPAnswClick: " + e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TStoryCreator::MPPAdvAnswClick(TObject *Sender)
-{
-  try
-	 {
-	   AddAdvAnswer(MouseX, MouseY, Images->GetBitmap(DlgAnsw, 32, 32), this);
-	   UpdateItemsList(ItemList);
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLog(LogPath + "\\exceptions.log", "MPPAdvAnswClick: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -979,20 +936,6 @@ void __fastcall TStoryCreator::MPPScriptClick(TObject *Sender)
   catch (Exception &e)
 	 {
 	   SaveLog(LogPath + "\\exceptions.log", "MPPScriptClick: " + e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TStoryCreator::MPPConditionClick(TObject *Sender)
-{
-  try
-	 {
-	   AddCondition(MouseX, MouseY, Images->GetBitmap(DlgCondition, 32, 32), this);
-	   UpdateItemsList(ItemList);
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLog(LogPath + "\\exceptions.log", "MPPConditionClick: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -1068,21 +1011,6 @@ void __fastcall TStoryCreator::MenuButtonPanelClick(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TStoryCreator::MenuQuestOrganiserClick(TObject *Sender)
-{
-  MenuQuestOrganiser->Checked = !MenuQuestOrganiser->Checked;
-
-  if (MenuQuestOrganiser->Checked)
-	{
-	  QuestManager->Show();
-	}
-  else
-	{
-	  QuestManager->Hide();
-	}
-}
-//---------------------------------------------------------------------------
-
 void __fastcall TStoryCreator::MenuToolPaletteClick(TObject *Sender)
 {
   MenuToolPalette->Checked = !MenuToolPalette->Checked;
@@ -1111,11 +1039,11 @@ void __fastcall TStoryCreator::MenuAboutClick(TObject *Sender)
 
   text += "\r\n\r\nCopyright 2020 Maxim Noltmeer (m.noltmeer@gmail.com)\r\n\r\n\
 This software is a part of StoryTeller Construction Set\r\n\r\n\
-Text Scene Creator is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License\r\n\
+Kobzar Story Creator is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License\r\n\
 as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\r\n\
-Text Scene Creator is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty\r\n\
+Kobzar Story Creator is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty\r\n\
 of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.\r\n\r\n\
-You should have received a copy of the GNU General Public License along with Text Scene Creator. \
+You should have received a copy of the GNU General Public License along with Kobzar Story Creator. \
 If not, see <http://www.gnu.org/licenses/>.\r\n\r\n\
 Any questions, feedback and suggestions about this software are\
 accepted by the Developer by email: m.noltmeer@gmail.com";
@@ -1137,10 +1065,8 @@ void UpdateItemsList(TListBox *list)
 			switch (items[i]->Type)
 			  {
 				case DlgText: type = "ScreenText"; break;
-				case DlgSimpleAnsw: type = "Answer"; break;
-				case DlgAnsw: type = "Adv. Answer"; break;
+				case DlgAnsw: type = "Answer"; break;
 				case DlgScript: type = "Script"; break;
-				case DlgCondition: type = "Condition"; break;
 				default: type = "<unknown>";
 			  }
 
@@ -1188,12 +1114,6 @@ void __fastcall TStoryCreator::BtScreenTextClick(TObject *Sender)
 
 void __fastcall TStoryCreator::BtAnswerClick(TObject *Sender)
 {
-  Choice = PlaceSimpleAnswer;
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TStoryCreator::BtAdvAnswerClick(TObject *Sender)
-{
   Choice = PlaceAnswer;
 }
 //---------------------------------------------------------------------------
@@ -1201,12 +1121,6 @@ void __fastcall TStoryCreator::BtAdvAnswerClick(TObject *Sender)
 void __fastcall TStoryCreator::BtScriptClick(TObject *Sender)
 {
   Choice = PlaceScript;
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TStoryCreator::BtConditionClick(TObject *Sender)
-{
-  Choice = PlaceCondition;
 }
 //---------------------------------------------------------------------------
 
@@ -1218,12 +1132,6 @@ void __fastcall TStoryCreator::MenuPlaceTextClick(TObject *Sender)
 
 void __fastcall TStoryCreator::MenuPlaceAnswerClick(TObject *Sender)
 {
-  Choice = PlaceSimpleAnswer;
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TStoryCreator::MenuPlaceAdvAnswerClick(TObject *Sender)
-{
   Choice = PlaceAnswer;
 }
 //---------------------------------------------------------------------------
@@ -1231,12 +1139,6 @@ void __fastcall TStoryCreator::MenuPlaceAdvAnswerClick(TObject *Sender)
 void __fastcall TStoryCreator::MenuPlaceScriptClick(TObject *Sender)
 {
   Choice = PlaceScript;
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TStoryCreator::MenuPlaceConditionClick(TObject *Sender)
-{
-  Choice = PlaceCondition;
 }
 //---------------------------------------------------------------------------
 
@@ -1332,19 +1234,9 @@ void __fastcall TStoryCreator::FormMouseDown(TObject *Sender, TMouseButton Butto
 				 }
 			   case PlaceAnswer:
 				 {
-				   AddAdvAnswer(X,
-								Y,
-								Images->GetBitmap(DlgAnsw, 32, 32),
-								this);
-				   UpdateItemsList(ItemList);
-
-				   break;
-				 }
-			   case PlaceSimpleAnswer:
-				 {
 				   AddAnswer(X,
 							 Y,
-							 Images->GetBitmap(DlgSimpleAnsw, 32, 32),
+							 Images->GetBitmap(DlgAnsw, 32, 32),
 							 this);
 				   UpdateItemsList(ItemList);
 
@@ -1360,17 +1252,6 @@ void __fastcall TStoryCreator::FormMouseDown(TObject *Sender, TMouseButton Butto
 
 				   break;
 				 }
-			   case PlaceCondition:
-				 {
-				   AddCondition(X,
-								Y,
-								Images->GetBitmap(DlgCondition, 32, 32),
-								this);
-				   UpdateItemsList(ItemList);
-
-				   break;
-				 }
-
 			 }
 
 		   PropList->Cols[1]->Clear();
@@ -1505,27 +1386,15 @@ void __fastcall TStoryCreator::ApplicationEventsMessage(tagMSG &Msg, bool &Handl
 			  break;
 			}
 
-		  case '2': //2 - PlaceSimpleAnswer
-			{
-			  Choice = PlaceSimpleAnswer;
-			  break;
-			}
-
-		  case '3': //3 - PlaceAnswer
+		  case '2': //2 - PlaceAnswer
 			{
 			  Choice = PlaceAnswer;
 			  break;
 			}
 
-		  case '4': //4 - PlaceScript
+		  case '5': //3 - PlaceScript
 			{
 			  Choice = PlaceScript;
-			  break;
-			}
-
-		  case '5': //5 - PlaceCondition
-			{
-			  Choice = PlaceCondition;
 			  break;
 			}
 
@@ -1537,5 +1406,4 @@ void __fastcall TStoryCreator::ApplicationEventsMessage(tagMSG &Msg, bool &Handl
     }
 }
 //---------------------------------------------------------------------------
-
 
