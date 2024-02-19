@@ -45,6 +45,10 @@ class KobzarEngine: public KE_INTERFACE
   private:
 	bool write_log;
 	std::vector<TDlgBaseText*> items;
+	String LastError;
+    TDlgBaseText *ActiveItem;
+
+	void CreateLog(const String &method_name, const String &error);
 
 	int GenDialogID();
 	int GenElementID();
@@ -70,6 +74,7 @@ class KobzarEngine: public KE_INTERFACE
 	inline virtual ~KobzarEngine(){};
 
 	virtual const wchar_t * __stdcall GetVersion();
+    virtual const wchar_t* __stdcall GetLastError();
     virtual int __stdcall CreateStory(const wchar_t *story_file);
 	virtual int __stdcall LoadStory(const wchar_t *story_file);
 	virtual int __stdcall SaveStory();
@@ -78,8 +83,10 @@ class KobzarEngine: public KE_INTERFACE
 	virtual int __stdcall AddScene();
 	virtual int __stdcall AddAnswer();
 	virtual int __stdcall AddScript();
-	virtual int __stdcall ActivateElement(int id);
-	virtual int __stdcall RemoveElement(int id);
+	virtual int __stdcall Activate(int id);
+	virtual int __stdcall Remove(int id);
+	virtual int __stdcall Link(int id, int to_id);
+	virtual int __stdcall Unlink(int id, int to_id);
 	virtual int __stdcall GetID();
 	virtual int __stdcall SetID(int new_id);
 	virtual int __stdcall GetDialog();
@@ -89,10 +96,14 @@ class KobzarEngine: public KE_INTERFACE
 	virtual int __stdcall GetLinkedFromID();
 	virtual int __stdcall SetLinkedFromID(int new_id);
 	virtual int __stdcall GetType();
-	virtual const wchar_t *__stdcall GetTex();
+	virtual const wchar_t *__stdcall GetText();
 	virtual void __stdcall SetText(const wchar_t *new_text);
 	virtual int __stdcall IsEndDialog();
 	virtual void __stdcall SetEndDialog(bool end_dialog);
+	virtual const wchar_t* __stdcall GetParams();
+	virtual void __stdcall SetParams(const wchar_t *params);
+	virtual const wchar_t* __stdcall GetResult();
+	virtual void __stdcall SetResult(const wchar_t *name);
 };
 //-------------------------------------------------------------------------------
 #endif

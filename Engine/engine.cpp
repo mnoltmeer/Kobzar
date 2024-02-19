@@ -224,9 +224,82 @@ int KobzarEngine::AddScript()
 }
 //---------------------------------------------------------------------------
 
+int KobzarEngine::Activate(int id)
+{
+  int res = 1;
+
+  try
+	 {
+	   res = 1;
+	 }
+  catch (Exception &e)
+	 {
+	   res = 0;
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::Activate: " + e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int KobzarEngine::Remove(int id)
+{
+  int res = 1;
+
+  try
+	 {
+	   res = 1;
+	 }
+  catch (Exception &e)
+	 {
+	   res = 0;
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::Remove: " + e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int KobzarEngine::Link(int id, int to_id)
+{
+  int res = 1;
+
+  try
+	 {
+	   res = 1;
+	 }
+  catch (Exception &e)
+	 {
+	   res = 0;
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::Link: " + e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int KobzarEngine::Unlink(int id, int to_id)
+{
+  int res = 1;
+
+  try
+	 {
+	   res = 1;
+	 }
+  catch (Exception &e)
+	 {
+	   res = 0;
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::Unlink: " + e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
 KobzarEngine::KobzarEngine()
 {
   write_log = false;
+  ActiveItem = nullptr;
 };
 //-------------------------------------------------------------------------
 
@@ -235,8 +308,21 @@ const wchar_t * __stdcall KobzarEngine::GetVersion()
   return GetVersionInString(path).c_str();
 }
 //-------------------------------------------------------------------------
+
+const wchar_t * __stdcall KobzarEngine::GetLastError()
+{
+  return LastError.c_str();
+}
+//-------------------------------------------------------------------------
 //------------------INTERNAL FUNCTIONS-------------------------------------
 //-------------------------------------------------------------------------
+void KobzarEngine::CreateLog(const String &method_name, const String &error)
+{
+  LastError = error;
+  SaveLogToUserFolder("Engine.log", "Kobzar", method_name + ": " + error);
+}
+//---------------------------------------------------------------------------
+
 int KobzarEngine::GenDialogID()
 {
   int max = -1;
@@ -251,7 +337,7 @@ int KobzarEngine::GenDialogID()
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::DialogID: " + e.ToString());
+	   CreateLog("KobzarEngine::GenDialogID", e.ToString());
 	   max = -2;
 	 }
 
@@ -273,7 +359,7 @@ int KobzarEngine::GenElementID()
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::ElementID: " + e.ToString());
+	   CreateLog("KobzarEngine::GenElementID", e.ToString());
 	   max = -2;
 	 }
 
@@ -295,7 +381,7 @@ TDlgBaseText *KobzarEngine::FindElement(int id)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "DlgClass::FindElement: " + e.ToString());
+	   CreateLog("KobzarEngine::FindElement", e.ToString());
 	   res = NULL;
 	 }
 
@@ -323,7 +409,7 @@ int KobzarEngine::FindLinkedElements(int id, std::vector<TDlgBaseText*> *el_list
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::FindLinkedElements: " + e.ToString());
+	   CreateLog("KobzarEngine::FindLinkedElements", e.ToString());
 	   cnt = -1;
 	 }
 
@@ -352,7 +438,7 @@ int KobzarEngine::FindAnswersByDialog(int dlg_id, std::vector<TDlgBaseText*> *el
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::FindAnswersByDialog: " + e.ToString());
+	   SaveLogToUserFolder(CreateLog("KobzarEngine::FindAnswersByDialog", e.ToString());
 	   cnt = -1;
 	 }
 
@@ -377,7 +463,7 @@ int KobzarEngine::FindTextElementID(int crd_dlg)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::FindTextElementID: " + e.ToString());
+	   CreateLog("KobzarEngine::FindTextElementID", e.ToString());
 	   res = -1;
 	 }
 
@@ -403,7 +489,7 @@ void KobzarEngine::RemoveFromItems(TDlgBaseText *element)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::RemoveFromItems: " + e.ToString());
+	   CreateLog("KobzarEngine::RemoveFromItems", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -469,7 +555,7 @@ bool KobzarEngine::SaveDlgSchema(const wchar_t *file)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::SaveDlgSchema: " + e.ToString());
+	   CreateLog("KobzarEngine::SaveDlgSchema", e.ToString());
 	   res = false;
 	 }
 
@@ -567,7 +653,7 @@ bool KobzarEngine::LoadDlgSchema(const wchar_t *file)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::LoadDlgSchema: " + e.ToString());
+	   CreateLog("KobzarEngine::LoadDlgSchema", e.ToString());
 	   res = false;
 	 }
 
@@ -592,7 +678,7 @@ int KobzarEngine::SearchDependeciesID(int id)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::SearchDependeciesID: " + e.ToString());
+	   CreateLog("KobzarEngine::SearchDependeciesID", e.ToString());
        dpnd = -1;
 	 }
 
@@ -617,7 +703,7 @@ int KobzarEngine::SearchDependeciesDialog(int id)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::SearchDependeciesDialog: " + e.ToString());
+	   CreateLog("KobzarEngine::SearchDependeciesDialog", e.ToString());
        dpnd = -1;
 	 }
 
@@ -640,7 +726,7 @@ void KobzarEngine::UpdateLinkedID(int old_id, int new_id)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::UpdateLinkedID: " + e.ToString());
+	   CreateLog("KobzarEngine::UpdateLinkedID", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -657,7 +743,7 @@ void KobzarEngine::UpdateCardOfDialog(int old_val, int new_val)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::UpdateCardOfDialog: " + e.ToString());
+	   CreateLog("KobzarEngine::UpdateCardOfDialog", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -763,7 +849,7 @@ void KobzarEngine::XMLImport(String xml_file)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::XMLImport: " + e.ToString());
+	   CreateLog("KobzarEngine::XMLImport", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -807,7 +893,7 @@ void KobzarEngine::XMLExport(const wchar_t *path)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::XMLExport: " + e.ToString());
+	   CreateLog("KobzarEngine::XMLExport", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -823,7 +909,7 @@ void KobzarEngine::ClearItems()
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::ClearItems: " + e.ToString());
+	   CreateLog("KobzarEngine::ClearItems", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -843,7 +929,7 @@ void KobzarEngine::BuildLinksAfterXMLImport()
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::BuildLinksAfterXMLImport: " + e.ToString());
+	   CreateLog("KobzarEngine::BuildLinksAfterXMLImport", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -863,20 +949,31 @@ void KobzarEngine::RemoveLimboLinks()
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::RemoveLimboLinks: " + e.ToString());
+	   CreateLog("KobzarEngine::RemoveLimboLinks", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
 
-/*
-int TDlgBaseText::GetLinkedID()
+int KobzarEngine::GetLinkedID()
 {
-  return l_id;
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::GetLinkedID", "No active element!");
+	  return 0;
+	}
+  else
+	return ActiveItem->LinkedID;
 }
 //---------------------------------------------------------------------------
 
-void TDlgBaseText::SetLinkedID(int val)
+void KobzarEngine::SetLinkedID(int val)
 {
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::SetLinkedID", "No active element!");
+	  return;
+	}
+
   if (Cathegory == DLG_TEXT_LIKE)
 	return;
 
@@ -911,14 +1008,26 @@ void TDlgBaseText::SetLinkedID(int val)
 }
 //---------------------------------------------------------------------------
 
-int TDlgBaseText::GetLinkedFromID()
+int KobzarEngine::GetLinkedFromID()
 {
-  return l_fr_id;
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::GetLinkedFromID", "No active element!");
+	  return 0;
+	}
+  else
+	return ActiveItem->LinkedFromID;
 }
 //---------------------------------------------------------------------------
 
-void TDlgBaseText::SetLinkedFromID(int val)
+void KobzarEngine::SetLinkedFromID(int val)
 {
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::SetLinkedFromID", "No active element!");
+	  return;
+	}
+
   if (Cathegory == DLG_TEXT_LIKE)
 	return;
 
@@ -953,14 +1062,26 @@ void TDlgBaseText::SetLinkedFromID(int val)
 }
 //---------------------------------------------------------------------------
 
-int TDlgBaseText::GetCardOfDialog()
+int KobzarEngine::GetCardOfDialog()
 {
-  return cd;
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::GetCardOfDialog", "No active element!");
+	  return 0;
+	}
+  else
+	return ActiveItem->CardOfDialog;
 }
 //---------------------------------------------------------------------------
 
-void TDlgBaseText::SetCardOfDialog(int val)
+void KobzarEngine::SetCardOfDialog(int val)
 {
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::SetCardOfDialog", "No active element!");
+	  return;
+	}
+
   int old = cd;
 
   if (Cathegory != DLG_TEXT_LIKE)
@@ -1005,14 +1126,26 @@ void TDlgBaseText::SetCardOfDialog(int val)
 }
 //---------------------------------------------------------------------------
 
-int TDlgBaseText::GetNextCardOfDialog()
+int KobzarEngine::GetNextCardOfDialog()
 {
-  return ncd;
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::GetCardOfDialog", "No active element!");
+	  return 0;
+	}
+  else
+	return ActiveItem->NextCardOfDialog;
 }
 //---------------------------------------------------------------------------
 
-void TDlgBaseText::SetNextCardOfDialog(int val)
+void KobzarEngine::SetNextCardOfDialog(int val)
 {
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::SetNextCardOfDialog", "No active element!");
+	  return;
+	}
+
   if (Cathegory != DLG_TEXT_LIKE)
 	{
 	  ncd = val;
@@ -1027,5 +1160,5 @@ void TDlgBaseText::SetNextCardOfDialog(int val)
 	}
 }
 //---------------------------------------------------------------------------
-*/
+
 #pragma package(smart_init)

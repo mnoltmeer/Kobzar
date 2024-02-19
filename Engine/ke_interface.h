@@ -24,6 +24,7 @@ This file is part of Kobzar Engine.
 struct KE_INTERFACE
 {
   virtual const wchar_t* __stdcall GetVersion() = 0;
+  virtual const wchar_t* __stdcall GetLastError() = 0;
   virtual int __stdcall CreateStory(const wchar_t *story_file) = 0;
   virtual int __stdcall LoadStory(const wchar_t *story_file) = 0;
   virtual int __stdcall SaveStory() = 0;
@@ -32,8 +33,10 @@ struct KE_INTERFACE
   virtual int __stdcall AddScene() = 0;
   virtual int __stdcall AddAnswer() = 0;
   virtual int __stdcall AddScript() = 0;
-  virtual int __stdcall ActivateElement(int id) = 0;
-  virtual int __stdcall RemoveElement(int id) = 0;
+  virtual int __stdcall Activate(int id) = 0;
+  virtual int __stdcall Remove(int id) = 0;
+  virtual int __stdcall Link(int id, int to_id) = 0;
+  virtual int __stdcall Unlink(int id, int to_id) = 0;
   virtual int __stdcall GetID() = 0;
   virtual int __stdcall SetID(int new_id) = 0;
   virtual int __stdcall GetDialog() = 0;
@@ -43,10 +46,14 @@ struct KE_INTERFACE
   virtual int __stdcall GetLinkedFromID() = 0;
   virtual int __stdcall SetLinkedFromID(int new_id) = 0;
   virtual int __stdcall GetType() = 0;
-  virtual const wchar_t *__stdcall GetTex() = 0;
+  virtual const wchar_t *__stdcall GetText() = 0;
   virtual void __stdcall SetText(const wchar_t *new_text) = 0;
   virtual int __stdcall IsEndDialog() = 0;
   virtual void __stdcall SetEndDialog(bool end_dialog) = 0;
+  virtual const wchar_t* __stdcall GetParams() = 0;
+  virtual void __stdcall SetParams(const wchar_t *params) = 0;
+  virtual const wchar_t* __stdcall GetResult() = 0;
+  virtual void __stdcall SetResult(const wchar_t *name) = 0;
 };
 //-------------------------------------------------------------------------------
 
