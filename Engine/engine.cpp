@@ -92,7 +92,7 @@ int KobzarEngine::CreateStory(const wchar_t *story_file)
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::CreateStory: " + e.ToString());
+	   CreateLog("Story::CreateStory", e.ToString());
 	 }
 
   return res;
@@ -110,7 +110,7 @@ int KobzarEngine::LoadStory(const wchar_t *story_file)
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::LoadStory: " + e.ToString());
+	   CreateLog("Story::LoadStory", e.ToString());
 	 }
 
   return res;
@@ -128,7 +128,7 @@ int KobzarEngine::SaveStory()
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::SaveStory: " + e.ToString());
+	   CreateLog("Story::SaveStory", e.ToString());
 	 }
 
   return res;
@@ -146,7 +146,7 @@ void KobzarEngine::CloseStory()
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::CloseStory: " + e.ToString());
+	   CreateLog("Story::CloseStory", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -162,7 +162,7 @@ void KobzarEngine::ClearStory()
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::ClearStory: " + e.ToString());
+	   CreateLog("Story::ClearStory", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -179,7 +179,7 @@ int KobzarEngine::AddScene()
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::AddScene: " + e.ToString());
+	   CreateLog("Story::AddScene", e.ToString());
 	 }
 
   return res;
@@ -198,7 +198,7 @@ int KobzarEngine::AddAnswer()
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::AddAnswer: " + e.ToString());
+	   CreateLog("Story::AddAnswer", e.ToString());
 	 }
 
   return res;
@@ -217,7 +217,7 @@ int KobzarEngine::AddScript()
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::AddScript: " + e.ToString());
+	   CreateLog("Story::AddScript", e.ToString());
 	 }
 
   return res;
@@ -235,7 +235,7 @@ int KobzarEngine::Activate(int id)
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::Activate: " + e.ToString());
+	   CreateLog("Story::Activate", e.ToString());
 	 }
 
   return res;
@@ -253,7 +253,7 @@ int KobzarEngine::Remove(int id)
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::Remove: " + e.ToString());
+	   CreateLog("Story::Remove", e.ToString());
 	 }
 
   return res;
@@ -271,7 +271,7 @@ int KobzarEngine::Link(int id, int to_id)
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::Link: " + e.ToString());
+	   CreateLog("Story::Link", e.ToString());
 	 }
 
   return res;
@@ -289,7 +289,7 @@ int KobzarEngine::Unlink(int id, int to_id)
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "Story::Unlink: " + e.ToString());
+	   CreateLog("Story::Unlink", e.ToString());
 	 }
 
   return res;
@@ -438,7 +438,7 @@ int KobzarEngine::FindAnswersByDialog(int dlg_id, std::vector<TDlgBaseText*> *el
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder(CreateLog("KobzarEngine::FindAnswersByDialog", e.ToString());
+	   CreateLog("KobzarEngine::FindAnswersByDialog", e.ToString());
 	   cnt = -1;
 	 }
 
@@ -954,6 +954,30 @@ void KobzarEngine::RemoveLimboLinks()
 }
 //---------------------------------------------------------------------------
 
+int KobzarEngine::GetID()
+{
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::GetID", "No active element!");
+	  return 0;
+	}
+  else
+	return ActiveItem->ID;
+}
+//---------------------------------------------------------------------------
+
+void KobzarEngine::SetID(int val)
+{
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::SetID", "No active element!");
+	  return;
+	}
+  else
+	UpdateLinkedID(ActiveItem->ID, val);
+}
+//---------------------------------------------------------------------------
+
 int KobzarEngine::GetLinkedID()
 {
   if (!ActiveItem)
@@ -974,36 +998,28 @@ void KobzarEngine::SetLinkedID(int val)
 	  return;
 	}
 
-  if (Cathegory == DLG_TEXT_LIKE)
-	return;
+  if (ActiveItem->Cathegory == DLG_TEXT_LIKE)
+	{
+	  CreateLog("KobzarEngine::SetLinkedID", "Can't change LinkedID property of TEXT_LIKE element");
+	  return;
+	}
 
-  TDlgBaseText *lnk = Library->FindElement(val);
+  TDlgBaseText *lnk = FindElement(val);
 
   if (lnk && (lnk->Cathegory == DLG_TEXT_LIKE))
 	{
-	  l_id = val;
-	  cd = lnk->CardOfDialog;
+	  ActiveItem->LinkedID = val;
+	  ActiveItem->CardOfDialog = lnk->CardOfDialog;
 	}
   else if (lnk && (lnk->Cathegory != DLG_TEXT_LIKE))
 	{
-	  MessageBox(Application->Handle,
-				 String("No TEXT_LIKE element with ID = LinkedID (" +
-				 IntToStr(val) + ")").c_str(),
-				 String("Element ID: " + IntToStr(ID) + " report").c_str(),
-				 MB_OK | MB_ICONERROR);
+	  CreateLog("KobzarEngine::SetLinkedID",
+				"Element with ID = LinkedID (" + IntToStr(val) + ") is not TEXT_LIKE element");
 	}
   else
 	{
-	  if (MessageBox(Application->Handle,
-					 String("No TEXT_LIKE element with ID = LinkedID (" +
-					 IntToStr(val) +
-					 ").\nSet value anyway?").c_str(),
-					 String("Element ID: " + IntToStr(ID) + " report").c_str(),
-					 MB_YESNO | MB_ICONWARNING) == mrYes)
-		{
-		  l_id = val;
-          cd = -1;
-		}
+	  CreateLog("KobzarEngine::SetLinkedID",
+				"No TEXT_LIKE element with ID = LinkedID (" + IntToStr(val) + ")");
 	}
 }
 //---------------------------------------------------------------------------
@@ -1028,45 +1044,37 @@ void KobzarEngine::SetLinkedFromID(int val)
 	  return;
 	}
 
-  if (Cathegory == DLG_TEXT_LIKE)
-	return;
+  if (ActiveItem->Cathegory == DLG_TEXT_LIKE)
+	{
+	  CreateLog("KobzarEngine::SetLinkedFromID", "Can't change LinkedFromID property of TEXT_LIKE element");
+	  return;
+	}
 
-  TDlgBaseText *lnk = Library->FindElement(val);
+  TDlgBaseText *lnk = FindElement(val);
 
   if (lnk && (lnk->Cathegory == DLG_TEXT_LIKE))
 	{
-	  l_fr_id = val;
-	  ncd = lnk->CardOfDialog;
+	  ActiveItem->LinkedFromID = val;
+	  ActiveItem->NextCardOfDialog = lnk->CardOfDialog;
 	}
   else if (lnk && (lnk->Cathegory != DLG_TEXT_LIKE))
 	{
-	  MessageBox(Application->Handle,
-				 String("Element with ID = LinkedFromID (" +
-				 IntToStr(val) + ") is not TEXT_LIKE").c_str(),
-				 String("Element ID: " + IntToStr(ID) + " report").c_str(),
-				 MB_OK | MB_ICONERROR);
+	  CreateLog("KobzarEngine::SetLinkedFromID",
+				"Element with ID = LinkedFromID (" + IntToStr(val) + ") is not TEXT_LIKE");
 	}
   else
 	{
-	  if (MessageBox(Application->Handle,
-					 String("No TEXT_LIKE element with ID = LinkedFromID (" +
-							IntToStr(val) +
-							").\nSet value anyway?").c_str(),
-					 String("Element ID: " + IntToStr(ID) + " report").c_str(),
-					 MB_YESNO | MB_ICONWARNING) == mrYes)
-		{
-		  l_fr_id = val;
-          ncd = -1;
-		}
+	  CreateLog("KobzarEngine::SetLinkedFromID",
+				"No TEXT_LIKE element with ID = LinkedFromID (" + IntToStr(val) + ")");
 	}
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::GetCardOfDialog()
+int KobzarEngine::GetDialog()
 {
   if (!ActiveItem)
 	{
-	  CreateLog("KobzarEngine::GetCardOfDialog", "No active element!");
+	  CreateLog("KobzarEngine::GetDialog", "No active element!");
 	  return 0;
 	}
   else
@@ -1074,63 +1082,48 @@ int KobzarEngine::GetCardOfDialog()
 }
 //---------------------------------------------------------------------------
 
-void KobzarEngine::SetCardOfDialog(int val)
+void KobzarEngine::SetDialog(int val)
 {
   if (!ActiveItem)
 	{
-	  CreateLog("KobzarEngine::SetCardOfDialog", "No active element!");
+	  CreateLog("KobzarEngine::SetDialog", "No active element!");
 	  return;
 	}
 
-  int old = cd;
+  int old = ActiveItem->CardOfDialog;
 
-  if (Cathegory != DLG_TEXT_LIKE)
+  if (ActiveItem->Cathegory != DLG_TEXT_LIKE)
 	{
-	  cd = val;
-	  LinkedID = Library->FindTextElementID(val);
+	  ActiveItem->CardOfDialog = val;
+	  ActiveItem->LinkedID = FindTextElementID(val);
 	}
   else
 	{
-	  cd = val;
+	  ActiveItem->CardOfDialog = val;
 	  std::vector<TDlgBaseText*> lnks;
 
-	  if (Library->FindAnswersByDialog(cd, &lnks) > 0)
+	  if (FindAnswersByDialog(ActiveItem->CardOfDialog, &lnks) > 0)
 		{
-		  if (MessageBox(Application->Handle,
-						 String("Founded ANSW_LIKE elements with CardOfDialog = " +
-								IntToStr(cd) +
-								".\nCreate links?").c_str(),
-						 String("Element ID: " + IntToStr(ID) + " report").c_str(),
-						 MB_YESNO | MB_ICONASTERISK) == mrYes)
-			{
-			  for (int i = 0; i < lnks.size(); i++)
-				 lnks[i]->LinkedID = ID;
-			}
+		  CreateLog("KobzarEngine::SetDialog", "Founded ANSW_LIKE elements with CardOfDialog. Creating links");
+
+		  for (int i = 0; i < lnks.size(); i++)
+		     lnks[i]->LinkedID = ActiveItem->ID;
 		}
 
-	  if ((old != cd) && (FLibrary->SearchDependeciesDialog(old) > 0))
+	  if ((old != ActiveItem->CardOfDialog) && (SearchDependeciesDialog(old) > 0))
 		{
-          if (MessageBox(Application->Handle,
-						 String("Founded links of old ANSW_LIKE elements.\nRebuild this links?").c_str(),
-						 String("Element ID: " + IntToStr(ID) + " report").c_str(),
-						 MB_YESNO | MB_ICONASTERISK) == mrYes)
-			{
-			  Library->UpdateCardOfDialog(old, CardOfDialog);
-			}
-		  else
-			{
-			  Library->UpdateLinkedID(ID, -1);
-			}
+		  CreateLog("KobzarEngine::SetDialog", "Founded links of old ANSW_LIKE elements. Rebuilding links");
+		  UpdateCardOfDialog(old, ActiveItem->CardOfDialog);
 		}
 	}
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::GetNextCardOfDialog()
+int KobzarEngine::GetNextDialog()
 {
   if (!ActiveItem)
 	{
-	  CreateLog("KobzarEngine::GetCardOfDialog", "No active element!");
+	  CreateLog("KobzarEngine::GetNextDialog", "No active element!");
 	  return 0;
 	}
   else
@@ -1138,11 +1131,11 @@ int KobzarEngine::GetNextCardOfDialog()
 }
 //---------------------------------------------------------------------------
 
-void KobzarEngine::SetNextCardOfDialog(int val)
+void KobzarEngine::SetNextDialog(int val)
 {
   if (!ActiveItem)
 	{
-	  CreateLog("KobzarEngine::SetNextCardOfDialog", "No active element!");
+	  CreateLog("KobzarEngine::SetNextDialog", "No active element!");
 	  return;
 	}
 

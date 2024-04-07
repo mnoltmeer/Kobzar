@@ -38,13 +38,13 @@ struct KE_INTERFACE
   virtual int __stdcall Link(int id, int to_id) = 0;
   virtual int __stdcall Unlink(int id, int to_id) = 0;
   virtual int __stdcall GetID() = 0;
-  virtual int __stdcall SetID(int new_id) = 0;
+  virtual void __stdcall SetID(int new_id) = 0;
   virtual int __stdcall GetDialog() = 0;
-  virtual int __stdcall SetDialog(int new_id) = 0;
+  virtual void __stdcall SetDialog(int new_id) = 0;
   virtual int __stdcall GetLinkedID() = 0;
-  virtual int __stdcall SetLinkedID(int new_id) = 0;
+  virtual void __stdcall SetLinkedID(int new_id) = 0;
   virtual int __stdcall GetLinkedFromID() = 0;
-  virtual int __stdcall SetLinkedFromID(int new_id) = 0;
+  virtual void __stdcall SetLinkedFromID(int new_id) = 0;
   virtual int __stdcall GetType() = 0;
   virtual const wchar_t *__stdcall GetText() = 0;
   virtual void __stdcall SetText(const wchar_t *new_text) = 0;
