@@ -145,7 +145,7 @@ class TDlgScript : public TDlgBaseText
 //контейнер для списка параметров
 	__property String Params = {read = params, write = params};
 //результат выполнения
-	__property String Result = {read = result, write = result};
+	__property String Result = {read = result};
 };
 //---------------------------------------------------------------------------
 

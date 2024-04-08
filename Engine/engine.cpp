@@ -637,8 +637,8 @@ bool KobzarEngine::LoadDlgSchema(const wchar_t *file)
 
 				   fs->Position += fs->Read(&text_len, sizeof(int));
 
-				   if (text_len > 0)
-					 dl->Result = ReadStringFromBinaryStream(fs.get(), text_len);
+				   //if (text_len > 0)
+					 //dl->Result = ReadStringFromBinaryStream(fs.get(), text_len);
 
 				   lnk = dl;
 
@@ -792,7 +792,7 @@ void KobzarEngine::XMLImport(String xml_file)
 						 lnk->CardOfDialog = curr_card;
 						 lnk->Params = ScreenText->GetAttribute("Params");
 						 lnk->Text = ScreenText->ChildNodes->Nodes[0]->Text;
-						 lnk->Result = ScreenText->ChildNodes->Nodes[1]->Text;
+						 //lnk->Result = ScreenText->ChildNodes->Nodes[1]->Text;
 						 items.push_back(lnk);
 					   }
 					 else  //ScreenText
@@ -1139,19 +1139,131 @@ void KobzarEngine::SetNextDialog(int val)
 	  return;
 	}
 
-  if (Cathegory != DLG_TEXT_LIKE)
+  if (ActiveItem->Cathegory != DLG_TEXT_LIKE)
 	{
-	  ncd = val;
-	  int new_dlg_id = Library->FindTextElementID(ncd);
+	  ActiveItem->NextCardOfDialog = val;
+	  int new_dlg_id = FindTextElementID(ActiveItem->NextCardOfDialog);
 
 	  if (new_dlg_id > -1)
 		{
-		  TDlgBaseText *ndlg = Library->FindElement(new_dlg_id);
-		  ndlg->LinkedID = ID;
-		  LinkedFromID = ndlg->ID;
+		  TDlgBaseText *ndlg = FindElement(new_dlg_id);
+		  ndlg->LinkedID = ActiveItem->ID;
+		  ActiveItem->LinkedFromID = ndlg->ID;
 		}
 	}
 }
 //---------------------------------------------------------------------------
 
+int KobzarEngine::GetType()
+{
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::GetType", "No active element!");
+	  return 0;
+	}
+  else
+	return ActiveItem->Type;
+}
+//---------------------------------------------------------------------------
+
+const wchar_t *KobzarEngine::GetText()
+{
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::GetTextg", "No active element!");
+	  return nullptr;
+	}
+  else
+	return ActiveItem->Text.c_str();
+}
+//---------------------------------------------------------------------------
+
+void KobzarEngine::SetText(const wchar_t *val)
+{
+  if (!ActiveItem)
+	CreateLog("KobzarEngine::SetText", "No active element!");
+  else
+	ActiveItem->Text = String(val);
+}
+//---------------------------------------------------------------------------
+
+int KobzarEngine::IsEndDialog()
+{
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::GetTextg", "No active element!");
+	  return -1;
+	}
+  else if (ActiveItem->Type == DlgAnsw)
+	return reinterpret_cast<TDlgAnswer*>(ActiveItem)->EndDialog;
+  else
+	{
+	  CreateLog("KobzarEngine::IsEndDialog",
+				"Element with ID = " + IntToStr(ActiveItem->ID) + ", is not an Answer");
+
+	  return -1;
+	}
+}
+//---------------------------------------------------------------------------
+
+void KobzarEngine::SetEndDialog(bool val)
+{
+  if (!ActiveItem)
+	CreateLog("KobzarEngine::SetEndDialog", "No active element!");
+  else if (ActiveItem->Type == DlgAnsw)
+	{
+	  TDlgAnswer *itm = reinterpret_cast<TDlgAnswer*>(ActiveItem);
+
+	  itm->EndDialog = val;
+
+	  if (val)
+		{
+		  itm->PrevLinkedFromID = itm->LinkedFromID;
+		  itm->LinkedFromID = -1;
+		  itm->NextCardOfDialog = -1;
+		}
+	  else if (itm->PrevLinkedFromID > 0)
+		{
+		  SetLinkedFromID(itm->PrevLinkedFromID);
+          itm->PrevLinkedFromID = -1;
+		}
+	}
+  else
+	CreateLog("KobzarEngine::SetEndDialog",
+			  "Element with ID = " + IntToStr(ActiveItem->ID) + ", is not an Answer");
+}
+//---------------------------------------------------------------------------
+
+const wchar_t *KobzarEngine::GetParams()
+{
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::GetParams", "No active element!");
+	  return nullptr;
+	}
+  else
+	return reinterpret_cast<TDlgScript*>(ActiveItem)->Params.c_str();
+}
+//---------------------------------------------------------------------------
+
+void KobzarEngine::SetParams(const wchar_t *val)
+{
+  if (!ActiveItem)
+	CreateLog("KobzarEngine::SetParams", "No active element!");
+  else
+	reinterpret_cast<TDlgScript*>(ActiveItem)->Params = String(val);
+}
+//---------------------------------------------------------------------------
+
+const wchar_t *KobzarEngine::GetResult()
+{
+  if (!ActiveItem)
+	{
+	  CreateLog("KobzarEngine::GetResult", "No active element!");
+	  return nullptr;
+	}
+  else
+	return reinterpret_cast<TDlgScript*>(ActiveItem)->Result.c_str();
+}
+//---------------------------------------------------------------------------
 #pragma package(smart_init)

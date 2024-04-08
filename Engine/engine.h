@@ -88,24 +88,23 @@ class KobzarEngine: public KE_INTERFACE
 	virtual int __stdcall Link(int id, int to_id);
 	virtual int __stdcall Unlink(int id, int to_id);
 	virtual int __stdcall GetID();
-	virtual void __stdcall SetID(int new_id);
+	virtual void __stdcall SetID(int val);
 	virtual int __stdcall GetDialog();
-	virtual void __stdcall SetDialog(int new_id);
+	virtual void __stdcall SetDialog(int val);
 	virtual int __stdcall GetNextDialog();
 	virtual void __stdcall SetNextDialog(int val);
 	virtual int __stdcall GetLinkedID();
-	virtual void __stdcall SetLinkedID(int new_id);
+	virtual void __stdcall SetLinkedID(int val);
 	virtual int __stdcall GetLinkedFromID();
-	virtual void __stdcall SetLinkedFromID(int new_id);
+	virtual void __stdcall SetLinkedFromID(int val);
 	virtual int __stdcall GetType();
 	virtual const wchar_t *__stdcall GetText();
-	virtual void __stdcall SetText(const wchar_t *new_text);
+	virtual void __stdcall SetText(const wchar_t *val);
 	virtual int __stdcall IsEndDialog();
-	virtual void __stdcall SetEndDialog(bool end_dialog);
+	virtual void __stdcall SetEndDialog(bool val);
 	virtual const wchar_t* __stdcall GetParams();
-	virtual void __stdcall SetParams(const wchar_t *params);
+	virtual void __stdcall SetParams(const wchar_t *val);
 	virtual const wchar_t* __stdcall GetResult();
-	virtual void __stdcall SetResult(const wchar_t *name);
 };
 //-------------------------------------------------------------------------------
 #endif
