@@ -358,7 +358,6 @@ bool SaveDlgSchema(const wchar_t *file)
 				TDlgScript *d = dynamic_cast<TDlgScript*>(items[i]);
 
 				WriteStringIntoBinaryStream(fs.get(), d->Params);
-				WriteStringIntoBinaryStream(fs.get(), d->ResultParam);
 			  }
 
 			if (items[i]->Type == DlgAnsw)
@@ -464,11 +463,6 @@ bool LoadDlgSchema(const wchar_t *file)
 
 				   if (text_len > 0)
 					 dl->Params = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   fs->Position += fs->Read(&text_len, sizeof(int));
-
-				   if (text_len > 0)
-					 dl->ResultParam = ReadStringFromBinaryStream(fs.get(), text_len);
 
 				   lnk = dl;
 
@@ -610,7 +604,7 @@ void XMLImport(String xml_file)
 	   _di_IXMLNode EndDialog;
 
 	   int scene_left = StoryCreator->ItemList->Left + StoryCreator->ItemList->Width + 20;
-	   int left = scene_left + 50, top = 50, step = 0, curr_card = -1;
+	   int left = scene_left + 80, top = 50, step = 0, curr_card = -1;
 
 	   for (int i = 0; i < DialogFile->ChildNodes->Count; i++)
 		  {
@@ -631,7 +625,6 @@ void XMLImport(String xml_file)
 						 lnk->CardOfDialog = curr_card;
 						 lnk->Params = ScreenText->GetAttribute("Params");
 						 lnk->Text = ScreenText->ChildNodes->Nodes[0]->Text;
-						 lnk->ResultParam = ScreenText->ChildNodes->Nodes[1]->Text;
 						 items.push_back(lnk);
 					   }
 					 else  //ScreenText
@@ -688,7 +681,7 @@ void XMLImport(String xml_file)
 						}
 
 					 top += 60;
-					 left = 180;
+					 scene_left + 80;
 				  }
 			   }
 		  }
@@ -713,7 +706,7 @@ void XMLExport(const wchar_t *path)
 
 	   try
 		  {
-			String xml_exp = "<DialogFile>\r\n";
+			String xml_exp = "<StoryFile>\r\n";
 
 			for (int i = 0; i < items.size(); i++)
 			   {
@@ -739,7 +732,7 @@ void XMLExport(const wchar_t *path)
 				   }
 			   }
 
-			xml_exp += "</DialogFile>\r\n";
+			xml_exp += "</StoryFile>\r\n";
 
 			list->Text = xml_exp;
 		    list->SaveToFile(path, TEncoding::UTF8);
@@ -1388,7 +1381,6 @@ const wchar_t *TDlgScript::CreateXML()
   XMLText = "\t\t<ScreenTextMassive>\r\n";
   XMLText = XMLText + "\t\t\t<Script Params = '" + Params + "'>\r\n";
   XMLText = XMLText + "\t\t\t\t<Text>" + Text + "</Text>\r\n";
-  XMLText = XMLText + "\t\t\t\t<Return>" + ResultParam + "</Return>\r\n";
   XMLText = XMLText + "\t\t\t</Script>\r\n";
   XMLText = XMLText + "\t\t</ScreenTextMassive>\r\n";
 

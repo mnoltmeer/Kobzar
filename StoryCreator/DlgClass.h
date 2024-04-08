@@ -308,7 +308,6 @@ class TDlgScript : public TDlgBaseText
   private:
 	String params;
 	String result;
-	String res_param;
 
   public:
 	TDlgScript(int left, int top) : TDlgBaseText(left, top)
@@ -342,8 +341,6 @@ class TDlgScript : public TDlgBaseText
 	__property String Params = {read = params, write = params};
 //результат выполнения
 	__property String Result = {read = result};
-//имя параметра, в который сохраняется результат
-	__property String ResultParam = {read = res_param, write = res_param};
 };
 //---------------------------------------------------------------------------
 

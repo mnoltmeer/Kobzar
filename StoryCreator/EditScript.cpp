@@ -50,7 +50,6 @@ void __fastcall TEditScriptForm::FormShow(TObject *Sender)
   CardOfDialog->Text = IntToStr(Selected->CardOfDialog);
   ID->Text = IntToStr(Selected->ID);
   Params->Text = dynamic_cast<TDlgScript*>(Selected)->Params;
-  ResultParam->Text = dynamic_cast<TDlgScript*>(Selected)->ResultParam;
 
 //посилаємо спец. пустий символ для підсвітки
   if (SyntaxHighlight)
@@ -77,11 +76,8 @@ void __fastcall TEditScriptForm::ConfirmClick(TObject *Sender)
 	changed = true;
   else if (tmp->Params != Params->Text)
 	changed = true;
-  else if (tmp->ResultParam != ResultParam->Text)
-	changed = true;
 
   tmp->Params = Params->Text;
-  tmp->ResultParam = ResultParam->Text;
   Selected->Text = Text->Text;
   Text->PlainText = false;
 

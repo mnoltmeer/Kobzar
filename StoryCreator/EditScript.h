@@ -40,8 +40,6 @@ __published:	// IDE-managed Components
 	TEdit *Params;
 	TLabel *Label2;
 	TRichEdit *Text;
-	TLabel *Label4;
-	TEdit *ResultParam;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall DiscardClick(TObject *Sender);
 	void __fastcall ConfirmClick(TObject *Sender);

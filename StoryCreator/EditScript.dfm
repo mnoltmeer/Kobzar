@@ -4,8 +4,8 @@ object EditScriptForm: TEditScriptForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Edit Script'
-  ClientHeight = 372
-  ClientWidth = 596
+  ClientHeight = 384
+  ClientWidth = 598
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -47,19 +47,6 @@ object EditScriptForm: TEditScriptForm
     Width = 71
     Height = 16
     Caption = 'Parameters:'
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -13
-    Font.Name = 'Tahoma'
-    Font.Style = []
-    ParentFont = False
-  end
-  object Label4: TLabel
-    Left = 2
-    Top = 346
-    Width = 147
-    Height = 16
-    Caption = 'Save result in Parameter:'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
@@ -138,12 +125,5 @@ object EditScriptForm: TEditScriptForm
     WantTabs = True
     OnKeyPress = TextKeyPress
     OnKeyUp = TextKeyUp
-  end
-  object ResultParam: TEdit
-    Left = 155
-    Top = 343
-    Width = 190
-    Height = 21
-    TabOrder = 6
   end
 end

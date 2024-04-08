@@ -6,7 +6,7 @@
         <AppType>Application</AppType>
         <MainSource>KobzarStoryCreator.cpp</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Release</Config>
+        <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <CC_Suffix Condition="'$(CC_Suffix)'==''">c</CC_Suffix>
@@ -124,13 +124,13 @@
         <ILINK_TranslatedLibraryPath>$(BDSLIB)\$(PLATFORM)\debug\$(LANGDIR);$(ILINK_TranslatedLibraryPath)</ILINK_TranslatedLibraryPath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <LinkPackageStatics>rtl.lib;vcl.lib;vclactnband.lib;vclx.lib;vclwinx.lib;vclimg.lib;xmlrtl.lib;IndyProtocols.lib;IndyCore.lib;IndySystem.lib;bindengine.lib</LinkPackageStatics>
         <AppDPIAwarenessMode>PerMonitor</AppDPIAwarenessMode>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
         <ILINK_LibraryPath>$(BDSLIB)\$(PLATFORM)$(CC_SUFFIX)\debug;$(ILINK_LibraryPath)</ILINK_LibraryPath>
+        <BCC_UseClassicCompiler>false</BCC_UseClassicCompiler>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
         <AppDPIAwarenessMode>PerMonitorV2</AppDPIAwarenessMode>
@@ -215,12 +215,12 @@
             <DependentOn>..\..\work-functions\MyFunc.h</DependentOn>
             <BuildOrder>15</BuildOrder>
         </CppCompile>
+        <FormResources Include="Splash.dfm"/>
         <FormResources Include="settings.dfm"/>
         <FormResources Include="main.dfm"/>
-        <FormResources Include="Splash.dfm"/>
+        <FormResources Include="EditScript.dfm"/>
         <FormResources Include="EditAnswer.dfm"/>
         <FormResources Include="EditText.dfm"/>
-        <FormResources Include="EditScript.dfm"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
