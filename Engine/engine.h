@@ -1,5 +1,5 @@
 /*!
-Copyright 2023 Maxim Noltmeer (m.noltmeer@gmail.com)
+Copyright 2023-2024 Maxim Noltmeer (m.noltmeer@gmail.com)
 
 This file is part of Kobzar Engine.
 
@@ -43,9 +43,9 @@ wchar_t path[4096];
 class KobzarEngine: public KE_INTERFACE
 {
   private:
-	bool write_log;
 	std::vector<TDlgBaseText*> items;
 	String LastError;
+    String CurrentFile;
     TDlgBaseText *ActiveItem;
 
 	void CreateLog(const String &method_name, const String &error);
@@ -53,10 +53,10 @@ class KobzarEngine: public KE_INTERFACE
 	int GenDialogID();
 	int GenElementID();
 	void RemoveFromItems(TDlgBaseText *element);
-	bool SaveDlgSchema(const wchar_t *file);
-	bool LoadDlgSchema(const wchar_t *file);
+	bool SaveDlgSchema(String file);
+	bool LoadDlgSchema(String file);
 	void XMLImport(String xml_file);
-	void XMLExport(const wchar_t *path);
+	void XMLExport(String xml_file);
 	void ClearItems();
 	void BuildLinksAfterXMLImport();
 	void RemoveLimboLinks();

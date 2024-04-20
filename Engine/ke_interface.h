@@ -1,5 +1,5 @@
 /*!
-Copyright 2023 Maxim Noltmeer (m.noltmeer@gmail.com)
+Copyright 2023-2024 Maxim Noltmeer (m.noltmeer@gmail.com)
 
 This file is part of Kobzar Engine.
 

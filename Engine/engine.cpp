@@ -1,5 +1,5 @@
 /*!
-Copyright 2023 Maxim Noltmeer (m.noltmeer@gmail.com)
+Copyright 2023-2024 Maxim Noltmeer (m.noltmeer@gmail.com)
 
 This file is part of Kobzar Engine.
 
@@ -81,13 +81,22 @@ DLL_EXPORT int __stdcall FreeKEInterface(KE_INTERFACE **eInterface)
 }
 //-------------------------------------------------------------------------
 
+KobzarEngine::KobzarEngine()
+{
+  ActiveItem = nullptr;
+  CurrentFile = "";
+  LastError = "";
+};
+//-------------------------------------------------------------------------
+
 int KobzarEngine::CreateStory(const wchar_t *story_file)
 {
   int res = 1;
 
   try
 	 {
-	   SaveToFile(String(story_file), "");
+	   String file = ParseString(String(story_file), "\\\\", GetDirPathFromFilePath(String(path)));
+	   SaveToFile(file, "");
 	 }
   catch (Exception &e)
 	 {
@@ -105,10 +114,14 @@ int KobzarEngine::LoadStory(const wchar_t *story_file)
 
   try
 	 {
-	   if (UpperCase(GetFileExtensionFromFileName(String(story_file))) == "SCS")
-		 LoadDlgSchema(story_file);
+	   String file = ParseString(String(story_file), "\\\\", GetDirPathFromFilePath(String(path)));
+
+	   if (UpperCase(file) == "SCS")
+		 LoadDlgSchema(file);
 	   else
-         XMLImport(String(story_file));
+		 XMLImport(file);
+
+       CurrentFile = String(story_file);
 	 }
   catch (Exception &e)
 	 {
@@ -126,7 +139,10 @@ int KobzarEngine::SaveStory()
 
   try
 	 {
-	   res = 1;
+	   if (UpperCase(GetFileExtensionFromFileName(CurrentFile)) == "SCS")
+		 SaveDlgSchema(CurrentFile);
+	   else
+		 XMLExport(CurrentFile);
 	 }
   catch (Exception &e)
 	 {
@@ -144,7 +160,8 @@ void KobzarEngine::CloseStory()
 
   try
 	 {
-	   res =1;
+	   ClearStory();
+       CurrentFile = "";
 	 }
   catch (Exception &e)
 	 {
@@ -298,13 +315,6 @@ int KobzarEngine::Unlink(int id, int to_id)
   return res;
 }
 //---------------------------------------------------------------------------
-
-KobzarEngine::KobzarEngine()
-{
-  write_log = false;
-  ActiveItem = nullptr;
-};
-//-------------------------------------------------------------------------
 
 const wchar_t * __stdcall KobzarEngine::GetVersion()
 {
@@ -497,13 +507,13 @@ void KobzarEngine::RemoveFromItems(TDlgBaseText *element)
 }
 //---------------------------------------------------------------------------
 
-bool KobzarEngine::SaveDlgSchema(const wchar_t *file)
+bool KobzarEngine::SaveDlgSchema(String file)
 {
   bool res = false;
 
   try
 	 {
-	   std::unique_ptr<TFileStream> fs(new TFileStream(file, fmOpenWrite|fmCreate));
+	   std::unique_ptr<TFileStream> fs(new TFileStream(file.c_str(), fmOpenWrite|fmCreate));
 
 	   fs->Position = 0;
 	   int val = 0;
@@ -566,13 +576,13 @@ bool KobzarEngine::SaveDlgSchema(const wchar_t *file)
 }
 //---------------------------------------------------------------------------
 
-bool KobzarEngine::LoadDlgSchema(const wchar_t *file)
+bool KobzarEngine::LoadDlgSchema(String file)
 {
   bool res = false;
 
   try
 	 {
-	   std::unique_ptr<TFileStream> fs(new TFileStream(file, fmOpenRead));
+	   std::unique_ptr<TFileStream> fs(new TFileStream(file.c_str(), fmOpenRead));
 
 	   ClearItems();
 
@@ -857,7 +867,7 @@ void KobzarEngine::XMLImport(String xml_file)
 }
 //---------------------------------------------------------------------------
 
-void KobzarEngine::XMLExport(const wchar_t *path)
+void KobzarEngine::XMLExport(String xml_file)
 {
   try
 	 {
@@ -892,7 +902,7 @@ void KobzarEngine::XMLExport(const wchar_t *path)
 	   xml_exp += "</StoryFile>\r\n";
 
 	   list->Text = xml_exp;
-	   list->SaveToFile(path, TEncoding::UTF8);
+	   list->SaveToFile(xml_file, TEncoding::UTF8);
 	 }
   catch (Exception &e)
 	 {
@@ -1244,8 +1254,15 @@ const wchar_t *KobzarEngine::GetParams()
 	  CreateLog("KobzarEngine::GetParams", "No active element!");
 	  return nullptr;
 	}
-  else
+  else if (ActiveItem->Type == DlgScript)
 	return reinterpret_cast<TDlgScript*>(ActiveItem)->Params.c_str();
+  else
+	{
+	  CreateLog("KobzarEngine::GetParams",
+				"Element with ID = " + IntToStr(ActiveItem->ID) + ", is not a Script");
+
+	  return nullptr;
+	}
 }
 //---------------------------------------------------------------------------
 
@@ -1253,8 +1270,11 @@ void KobzarEngine::SetParams(const wchar_t *val)
 {
   if (!ActiveItem)
 	CreateLog("KobzarEngine::SetParams", "No active element!");
-  else
+  else if (ActiveItem->Type == DlgScript)
 	reinterpret_cast<TDlgScript*>(ActiveItem)->Params = String(val);
+  else
+	CreateLog("KobzarEngine::SetParams",
+			  "Element with ID = " + IntToStr(ActiveItem->ID) + ", is not a Script");
 }
 //---------------------------------------------------------------------------
 
@@ -1265,8 +1285,15 @@ const wchar_t *KobzarEngine::GetResult()
 	  CreateLog("KobzarEngine::GetResult", "No active element!");
 	  return nullptr;
 	}
-  else
+  else if (ActiveItem->Type == DlgScript)
 	return reinterpret_cast<TDlgScript*>(ActiveItem)->Result.c_str();
+  else
+	{
+	  CreateLog("KobzarEngine::GetResult",
+				"Element with ID = " + IntToStr(ActiveItem->ID) + ", is not a Script");
+
+      return nullptr;
+	}
 }
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
