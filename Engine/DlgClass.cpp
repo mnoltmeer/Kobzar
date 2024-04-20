@@ -140,7 +140,7 @@ const wchar_t *TDlgScript::CreateXML()
   XMLText = "\t\t<ScreenTextMassive>\r\n";
   XMLText = XMLText + "\t\t\t<Script Params = '" + Params + "'>\r\n";
   XMLText = XMLText + "\t\t\t\t<Text>" + Text + "</Text>\r\n";
-  XMLText = XMLText + "\t\t\t\t<Return>" + Result + "</Return>\r\n";
+  //XMLText = XMLText + "\t\t\t\t<Return>" + Result + "</Return>\r\n";
   XMLText = XMLText + "\t\t\t</Script>\r\n";
   XMLText = XMLText + "\t\t</ScreenTextMassive>\r\n";
 

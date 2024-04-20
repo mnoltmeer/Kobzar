@@ -87,7 +87,7 @@ int KobzarEngine::CreateStory(const wchar_t *story_file)
 
   try
 	 {
-	   res = 1;
+	   SaveToFile(String(story_file), "");
 	 }
   catch (Exception &e)
 	 {
@@ -105,7 +105,10 @@ int KobzarEngine::LoadStory(const wchar_t *story_file)
 
   try
 	 {
-	   res = 1;
+	   if (UpperCase(GetFileExtensionFromFileName(String(story_file))) == "SCS")
+		 LoadDlgSchema(story_file);
+	   else
+         XMLImport(String(story_file));
 	 }
   catch (Exception &e)
 	 {
@@ -157,7 +160,7 @@ void KobzarEngine::ClearStory()
 
   try
 	 {
-	   res =1;
+	   ClearItems();
 	 }
   catch (Exception &e)
 	 {
@@ -540,7 +543,7 @@ bool KobzarEngine::SaveDlgSchema(const wchar_t *file)
 				TDlgScript *d = dynamic_cast<TDlgScript*>(items[i]);
 
 				WriteStringIntoBinaryStream(fs.get(), d->Params);
-				WriteStringIntoBinaryStream(fs.get(), d->Result);
+				//WriteStringIntoBinaryStream(fs.get(), d->Result);
 			  }
 
 			if (items[i]->Type == DlgAnsw)
@@ -860,7 +863,7 @@ void KobzarEngine::XMLExport(const wchar_t *path)
 	 {
 	   std::unique_ptr<TStringList> list(new TStringList());
 
-	   String xml_exp = "<DialogFile>\r\n";
+	   String xml_exp = "<StoryFile>\r\n";
 
 	   for (int i = 0; i < items.size(); i++)
 		  {
@@ -886,7 +889,7 @@ void KobzarEngine::XMLExport(const wchar_t *path)
 			  }
 		  }
 
-	   xml_exp += "</DialogFile>\r\n";
+	   xml_exp += "</StoryFile>\r\n";
 
 	   list->Text = xml_exp;
 	   list->SaveToFile(path, TEncoding::UTF8);
