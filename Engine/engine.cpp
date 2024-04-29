@@ -89,6 +89,12 @@ KobzarEngine::KobzarEngine()
 };
 //-------------------------------------------------------------------------
 
+void KobzarEngine::LoadFunctionsToELI(ELI_INTERFACE *FEIface)
+{
+  FEIface->AddFunction(L"_Foo", L"num pID", &eFoo);
+}
+//---------------------------------------------------------------------------
+
 int KobzarEngine::CreateStory(const wchar_t *story_file)
 {
   int res = 1;
@@ -250,12 +256,51 @@ int KobzarEngine::Activate(int id)
 
   try
 	 {
-	   res = 1;
+	   ActiveItem = FindElement(id);
+
+       if (!ActiveItem)
+		 throw Exception("No active element!");
 	 }
   catch (Exception &e)
 	 {
 	   res = 0;
 	   CreateLog("Story::Activate", e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int KobzarEngine::Execute(int id)
+{
+  int res = 1;
+
+  try
+	 {
+	   TDlgScript *itm = reinterpret_cast<TDlgScript*>(FindElement(id));
+
+	   if (!itm)
+		 throw Exception("Element with ID = " + IntToStr(id) + " not found");
+	   else if (itm->Type != DlgScript)
+		 throw Exception("Element with ID = " + IntToStr(itm->ID) + ", is not a Script");
+	   else
+		 {
+		   std::unique_ptr<ELIScript> script(new ELIScript(GetDirPathFromFilePath(String(path)) + "\\ELI.dll"));
+
+		   LoadFunctionsToELI(script->Interpreter);
+		   script->Text = itm->Text;
+		   script->Params = itm->Params;
+
+		   if (!script->Run())
+			 throw Exception(script->Log);
+		   else
+			 itm->Result = script->Result;
+         }
+	 }
+  catch (Exception &e)
+	 {
+	   res = 0;
+	   CreateLog("Story::Execute", e.ToString());
 	 }
 
   return res;
@@ -268,7 +313,12 @@ int KobzarEngine::Remove(int id)
 
   try
 	 {
-	   res = 1;
+	   TDlgBaseText *itm = FindElement(id);
+
+	   if (!itm)
+		 throw Exception("Element with ID = " + IntToStr(id) + " not found");
+	   else
+         RemoveFromItems(itm);
 	 }
   catch (Exception &e)
 	 {
@@ -1389,6 +1439,26 @@ const wchar_t *KobzarEngine::GetResult()
 	 }
 
   return res;
+}
+//---------------------------------------------------------------------------
+
+void __stdcall KobzarEngine::eFoo(void *p)
+{
+  ELI_INTERFACE *ep;
+
+  try
+	 {
+	   ep = static_cast<ELI_INTERFACE*>(p);
+
+	   String id = ep->GetParamToStr(L"pID");
+
+	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "*eInterface = new KobzarEngine() :" + e.ToString());
+	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	 }
 }
 //---------------------------------------------------------------------------
 #pragma package(smart_init)

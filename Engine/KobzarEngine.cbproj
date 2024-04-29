@@ -143,6 +143,13 @@
             <DependentOn>DlgClass.h</DependentOn>
             <BuildOrder>3</BuildOrder>
         </CppCompile>
+        <None Include="eli_interface.h">
+            <BuildOrder>6</BuildOrder>
+        </None>
+        <CppCompile Include="eli_script.cpp">
+            <DependentOn>eli_script.h</DependentOn>
+            <BuildOrder>5</BuildOrder>
+        </CppCompile>
         <CppCompile Include="engine.cpp">
             <DependentOn>engine.h</DependentOn>
             <BuildOrder>4</BuildOrder>

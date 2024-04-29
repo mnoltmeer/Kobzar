@@ -30,6 +30,7 @@ This file is part of Kobzar Engine.
 #include <System.Classes.hpp>
 #include "ke_interface.h"
 #include "DlgClass.h"
+#include "eli_script.h"
 
 #ifdef BUILD_DLL
     #define DLL_EXPORT __declspec(dllexport)
@@ -46,9 +47,10 @@ class KobzarEngine: public KE_INTERFACE
 	std::vector<TDlgBaseText*> items;
 	String LastError;
     String CurrentFile;
-    TDlgBaseText *ActiveItem;
+	TDlgBaseText *ActiveItem;
 
 	void CreateLog(const String &method_name, const String &error);
+	void LoadFunctionsToELI(ELI_INTERFACE *FEIface);
 
 	int GenDialogID();
 	int GenElementID();
@@ -84,6 +86,7 @@ class KobzarEngine: public KE_INTERFACE
 	virtual int __stdcall AddAnswer();
 	virtual int __stdcall AddScript();
 	virtual int __stdcall Activate(int id);
+	virtual int __stdcall Execute(int id);
 	virtual int __stdcall Remove(int id);
 	virtual int __stdcall Link(int id, int to_id);
 	virtual int __stdcall Unlink(int id, int to_id);
@@ -105,6 +108,8 @@ class KobzarEngine: public KE_INTERFACE
 	virtual const wchar_t* __stdcall GetParams();
 	virtual void __stdcall SetParams(const wchar_t *val);
 	virtual const wchar_t* __stdcall GetResult();
+
+    static void __stdcall eFoo(void *p);
 };
 //-------------------------------------------------------------------------------
 #endif
