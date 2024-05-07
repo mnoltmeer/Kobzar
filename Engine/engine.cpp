@@ -271,7 +271,7 @@ int KobzarEngine::Activate(int id)
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::Execute(int id)
+int KobzarEngine::RunScript(int id)
 {
   int res = 1;
 
@@ -286,9 +286,11 @@ int KobzarEngine::Execute(int id)
 	   else
 		 {
 		   std::unique_ptr<ELIScript> script(new ELIScript(GetDirPathFromFilePath(String(path)) + "\\ELI.dll"));
+		   String header = "#begin Script_" + IntToStr(itm->ID) + ";\r\n#protect\r\n{\r\n";
+		   String footer = "\r\n}\r\n#end;";
 
 		   LoadFunctionsToELI(script->Interpreter);
-		   script->Text = itm->Text;
+		   script->Text = header + itm->Text + footer;
 		   script->Params = itm->Params;
 
 		   if (!script->Run())
@@ -300,7 +302,7 @@ int KobzarEngine::Execute(int id)
   catch (Exception &e)
 	 {
 	   res = 0;
-	   CreateLog("Story::Execute", e.ToString());
+	   CreateLog("Story::RunScript", e.ToString());
 	 }
 
   return res;

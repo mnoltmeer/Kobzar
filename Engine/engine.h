@@ -86,7 +86,7 @@ class KobzarEngine: public KE_INTERFACE
 	virtual int __stdcall AddAnswer();
 	virtual int __stdcall AddScript();
 	virtual int __stdcall Activate(int id);
-	virtual int __stdcall Execute(int id);
+	virtual int __stdcall RunScript(int id);
 	virtual int __stdcall Remove(int id);
 	virtual int __stdcall Link(int id, int to_id);
 	virtual int __stdcall Unlink(int id, int to_id);
