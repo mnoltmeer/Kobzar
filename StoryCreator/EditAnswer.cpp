@@ -62,11 +62,6 @@ void __fastcall TEditAnswerForm::UpdateInfo()
 
 void __fastcall TEditAnswerForm::ConfirmClick(TObject *Sender)
 {
-  if (!EndDialog->Checked)
-	{
-	  dynamic_cast<TDlgAnswer*>(Selected)->EndDialog = false;
-	}
-
   StoryCreator->PropList->Cells[1][0] = ID->Text;
   StoryCreator->PropList->Cells[1][3] = CardOfDialog->Text;
   StoryCreator->PropList->Cells[1][4] = NextCardOfDialog->Text;
@@ -80,9 +75,16 @@ void __fastcall TEditAnswerForm::ConfirmClick(TObject *Sender)
 
   StoryCreator->ChangeElement();
 
-  if (EndDialog->Checked)
+  TDlgAnswer *itm = dynamic_cast<TDlgAnswer*>(Selected);
+
+  if (!EndDialog->Checked & itm->EndDialog)
 	{
-	  dynamic_cast<TDlgAnswer*>(Selected)->EndDialog = true;
+	  itm->EndDialog = false;
+	  StoryCreator->Repaint();
+	}
+  else if (EndDialog->Checked && !itm->EndDialog)
+    {
+	  itm->EndDialog = true;
 	  StoryCreator->Repaint();
 	}
 
@@ -95,4 +97,5 @@ void __fastcall TEditAnswerForm::DiscardClick(TObject *Sender)
   Close();
 }
 //---------------------------------------------------------------------------
+
 
