@@ -5,7 +5,7 @@ object StoryCreator: TStoryCreator
   Height = 546
   AutoScroll = True
   Caption = 'Kobzar Story Creator'
-  Color = clMoneyGreen
+  Color = clWindow
   DoubleBuffered = True
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

@@ -1,5 +1,5 @@
 /*!
-Copyright 2023 Maxim Noltmeer (m.noltmeer@gmail.com)
+Copyright 2023-2024 Maxim Noltmeer (m.noltmeer@gmail.com)
 
 This file is part of Kobzar Engine.
 
@@ -33,6 +33,7 @@ TEditAnswerForm *EditAnswerForm;
 extern TDlgBaseText *Selected;
 //extern TStringGrid *PropList;
 extern bool changed;
+extern int Choice;
 
 //---------------------------------------------------------------------------
 __fastcall TEditAnswerForm::TEditAnswerForm(TComponent* Owner)
@@ -88,12 +89,14 @@ void __fastcall TEditAnswerForm::ConfirmClick(TObject *Sender)
 	  StoryCreator->Repaint();
 	}
 
+  Choice = ActNone;
   Close();
 }
 //---------------------------------------------------------------------------
 
 void __fastcall TEditAnswerForm::DiscardClick(TObject *Sender)
 {
+  Choice = ActNone;
   Close();
 }
 //---------------------------------------------------------------------------

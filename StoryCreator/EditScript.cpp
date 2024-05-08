@@ -1,5 +1,5 @@
 /*!
-Copyright 2023 Maxim Noltmeer (m.noltmeer@gmail.com)
+Copyright 2023-2024 Maxim Noltmeer (m.noltmeer@gmail.com)
 
 This file is part of Kobzar Engine.
 
@@ -34,6 +34,7 @@ extern TDlgBaseText *Selected;
 extern bool SyntaxHighlight;
 extern String AppDir, LogPath;
 extern bool changed;
+extern int Choice;
 
 //---------------------------------------------------------------------------
 __fastcall TEditScriptForm::TEditScriptForm(TComponent* Owner)
@@ -59,6 +60,7 @@ void __fastcall TEditScriptForm::FormShow(TObject *Sender)
 
 void __fastcall TEditScriptForm::DiscardClick(TObject *Sender)
 {
+  Choice = ActNone;
   Close();
 }
 //---------------------------------------------------------------------------
@@ -84,6 +86,7 @@ void __fastcall TEditScriptForm::ConfirmClick(TObject *Sender)
   dynamic_cast<TDlgScript*>(Selected)->Params = Params->Text;
 
   StoryCreator->ChangeElement();
+  Choice = ActNone;
   Close();
 }
 //---------------------------------------------------------------------------

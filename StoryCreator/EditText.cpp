@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 /*!
-Copyright 2020 Maxim Noltmeer (m.noltmeer@gmail.com)
+Copyright 2023-2024 Maxim Noltmeer (m.noltmeer@gmail.com)
 
 This file is part of Text Scene Creator.
 
@@ -32,6 +32,7 @@ This file is part of Text Scene Creator.
 TEditTextForm *EditTextForm;
 extern TDlgBaseText *Selected;
 extern bool changed;
+extern int Choice;
 
 //---------------------------------------------------------------------------
 __fastcall TEditTextForm::TEditTextForm(TComponent* Owner)
@@ -51,6 +52,7 @@ void __fastcall TEditTextForm::FormShow(TObject *Sender)
 
 void __fastcall TEditTextForm::DiscardClick(TObject *Sender)
 {
+  Choice = ActNone;
   Close();
 }
 //---------------------------------------------------------------------------
@@ -66,6 +68,7 @@ void __fastcall TEditTextForm::ConfirmClick(TObject *Sender)
   Selected->Text = Text->Text;
 
   StoryCreator->ChangeElement();
+  Choice = ActNone;
   Close();
 }
 //---------------------------------------------------------------------------

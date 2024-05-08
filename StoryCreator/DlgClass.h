@@ -1,5 +1,5 @@
 /*!
-Copyright 2023 Maxim Noltmeer (m.noltmeer@gmail.com)
+Copyright 2023-2024 Maxim Noltmeer (m.noltmeer@gmail.com)
 
 This file is part of Kobzar Engine.
 
@@ -39,55 +39,9 @@ This file is part of Kobzar Engine.
 #define DLG_TEXT_LIKE 0
 #define DLG_ANSW_LIKE 1
 
-namespace DblClick_BitBtn
-{
-  class TBitBtn : public Vcl::Buttons::TBitBtn
-  {
-	private:
-	  TNotifyEvent FOnDblClick;
-
-	  MESSAGE void __fastcall WmButtonDoubleClick(TMessage &Message)
-	  {
-		Vcl::Buttons::TBitBtn::Dispatch(&Message);
-
-		if (FOnDblClick)
-		  FOnDblClick(this);
-	  }
-
-      MESSAGE void __fastcall WmButtonClick(TMessage &Message)
-	  {
-		TMsg msg;
-		long tm = ::GetTickCount() + ::GetDoubleClickTime(); // время для реакции на двойной клик
-
-        while(::GetTickCount() < tm) // ждем возможного получения WM_LBUTTONDBLCLK компонентом
-		  {
-			if (::PeekMessage(&msg, Handle, WM_LBUTTONDBLCLK,
-							 WM_LBUTTONDBLCLK, PM_NOREMOVE))
-			  {
-				return; // Дождались - двойной клик, здесь делать нечего
-			  }
-		  }
-
-        Vcl::Buttons::TBitBtn::Dispatch(&Message);
-
-		if (OnClick)
-		  OnClick(this);
-	  }
-
-      BEGIN_MESSAGE_MAP
-		MESSAGE_HANDLER(WM_LBUTTONDBLCLK, TMessage, WmButtonDoubleClick);
-		MESSAGE_HANDLER(WM_LBUTTONDOWN, TMessage, WmButtonClick)
-	  END_MESSAGE_MAP(Vcl::Buttons::TBitBtn);
-
-    public:
-	  __fastcall virtual TBitBtn(System::Classes::TComponent* AOwner)
-	  : Vcl::Buttons::TBitBtn(AOwner){}
-
-      __property TNotifyEvent OnDblClick = {read = FOnDblClick, write = FOnDblClick};
-  };
-}
-#define TBitBtn DblClick_BitBtn::TBitBtn
-
+#define TEXT_COLOR 0x3393FF
+#define ANSW_COLOR 0xFFC133
+#define SCRIPT_COLOR 0x33FF3C
 
 enum DlgActions
 	 {ActNone = 0,
@@ -119,7 +73,7 @@ class TDlgBaseText
 	int ncd;
 	String xml;
 	String txt;
-	TBitBtn *cont;
+	TLabel *cont;
 	int left;
 	int top;
 	int cath;
@@ -139,8 +93,8 @@ class TDlgBaseText
 	int GetNextCardOfDialog();
 	void SetNextCardOfDialog(int val);
 
-	TBitBtn *GetContainer(){return cont;}
-	void SetContainer(TBitBtn *val){cont = val;}
+	TLabel *GetContainer(){return cont;}
+	void SetContainer(TLabel *val){cont = val;}
 
 	int GetLeft();
 	void SetLeft(int val);
@@ -156,7 +110,6 @@ class TDlgBaseText
 	TDlgBaseText(int left, int top, int el_id, TForm *ContainerOwner);
 	TDlgBaseText(int left, int top, int el_id, int dlg_id, TForm *ContainerOwner);
 	TDlgBaseText(int left, int top, TForm *ContainerOwner);
-	TDlgBaseText(int left, int top, TBitmap *pic, TForm *ContainerOwner);
 	TDlgBaseText(int left,
 				 int top,
 				 int el_id,
@@ -168,8 +121,8 @@ class TDlgBaseText
 	virtual ~TDlgBaseText();
 
 	void SetPos(int left, int top);
-	TBitBtn *CreateContainer(TBitmap *pic, TForm *owner);
-	void SetContainerImage(TBitmap *pic);
+	TLabel *CreateContainer(TForm *owner);
+    void SetContainerData();
 
 	virtual const wchar_t *CreateXML() = 0;
 	virtual const wchar_t *GetInfo();
@@ -200,7 +153,7 @@ class TDlgBaseText
 //контейнер для текста, который содержит элемент
 	__property String Text = {read = txt, write = txt};
 //иконка элемента, отображается на форме
-	__property TBitBtn *Container = {read = GetContainer, write = SetContainer};
+	__property TLabeledEdit *Container = {read = GetContainer, write = SetContainer};
 //позиции элемента на форме
 	__property int Left = {read = GetLeft, write = SetLeft};
 	__property int Top = {read = GetTop, write = SetTop};
@@ -223,17 +176,15 @@ class TDlgScreenText : public TDlgBaseText
 	{
 	  Type = DlgText;
 	  CardOfDialog = GenDialogID();
-	}
-
-	TDlgScreenText(int left, int top, TBitmap *pic, TForm *ContainerOwner)
-	: TDlgBaseText(left, top, pic, ContainerOwner)
-	{
-	  Type = DlgText;
-	  CardOfDialog = GenDialogID();
+	  SetContainerData();
 	}
 
 	TDlgScreenText(int left, int top, int el_id, int dlg_id, TForm *ContainerOwner)
-	: TDlgBaseText(left, top, el_id, dlg_id, ContainerOwner){Type = DlgText;}
+	: TDlgBaseText(left, top, el_id, dlg_id, ContainerOwner)
+	{
+	  Type = DlgText;
+      SetContainerData();
+	}
 
 	virtual ~TDlgScreenText(){};
 
@@ -264,14 +215,7 @@ class TDlgAnswer : public TDlgBaseText
 	  Type = DlgAnsw;
 	  end_dlg = false;
 	  prev_id = -1;
-	}
-
-	TDlgAnswer(int left, int top, TBitmap *pic, TForm *ContainerOwner)
-	: TDlgBaseText(left, top, pic, ContainerOwner)
-    {
-	  Type = DlgAnsw;
-	  end_dlg = false;
-	  prev_id = -1;
+	  SetContainerData();
 	}
 
 	TDlgAnswer(int left, int top, int el_id, TForm *ContainerOwner)
@@ -280,6 +224,7 @@ class TDlgAnswer : public TDlgBaseText
 	  Type = DlgAnsw;
       end_dlg = false;
 	  prev_id = -1;
+	  SetContainerData();
 	}
 
 	TDlgAnswer(int left, int top, int el_id, int dlg_id, int next_dlg_id,
@@ -290,6 +235,7 @@ class TDlgAnswer : public TDlgBaseText
 	  Type = DlgAnsw;
 	  end_dlg = false;
 	  prev_id = -1;
+      SetContainerData();
 	}
 
 	virtual ~TDlgAnswer(){};
@@ -321,17 +267,15 @@ class TDlgScript : public TDlgBaseText
 	{
 	  Type = DlgScript;
 	  CardOfDialog = GenDialogID();
-	}
-
-	TDlgScript(int left, int top, TBitmap *pic, TForm *ContainerOwner)
-	: TDlgBaseText(left, top, pic, ContainerOwner)
-	{
-	  Type = DlgScript;
-	  CardOfDialog = GenDialogID();
+	  SetContainerData();
 	}
 
 	TDlgScript(int left, int top, int el_id, int dlg_id, TForm *ContainerOwner)
-	: TDlgBaseText(left, top, el_id, dlg_id, ContainerOwner){Type = DlgScript;}
+	: TDlgBaseText(left, top, el_id, dlg_id, ContainerOwner)
+	{
+	  Type = DlgScript;
+      SetContainerData();
+	}
 
 	virtual ~TDlgScript(){};
 
@@ -350,15 +294,16 @@ int FindAnswersByDialog(int id, std::vector<TDlgBaseText*> *el_list);
 int FindTextElementID(int crd_dlg);
 void RemoveFromItems(TDlgBaseText *element);
 void RedrawLinks();
+void UpdateContainers();
 bool SaveDlgSchema(const wchar_t *file);
 bool LoadDlgSchema(const wchar_t *file);
 int SearchDependeciesID(int id);
 int SearchDependeciesDialog(int id);
 void UpdateLinkedID(int old_id, int new_id);
 void UpdateCardOfDialog(int old_val, int new_val);
-void AddScreenText(int left, int top, TBitmap *pic, TForm *IconOwner);
-void AddAnswer(int left, int top, TBitmap *pic, TForm *IconOwner);
-void AddScript(int left, int top, TBitmap *pic, TForm *IconOwner);
+void AddScreenText(int left, int top, TForm *IconOwner);
+void AddAnswer(int left, int top, TForm *IconOwner);
+void AddScript(int left, int top, TForm *IconOwner);
 void XMLImport(String xml_file);
 void XMLExport(const wchar_t *path);
 void ClearItems();

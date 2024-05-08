@@ -4,8 +4,8 @@ object EditTextForm: TEditTextForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Edit ScreenText'
-  ClientHeight = 291
-  ClientWidth = 431
+  ClientHeight = 298
+  ClientWidth = 435
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

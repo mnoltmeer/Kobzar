@@ -1,5 +1,5 @@
 /*!
-Copyright 2023 Maxim Noltmeer (m.noltmeer@gmail.com)
+Copyright 2023-2024 Maxim Noltmeer (m.noltmeer@gmail.com)
 
 This file is part of Kobzar Engine.
 
@@ -46,6 +46,7 @@ This file is part of Kobzar Engine.
 #include <Vcl.ImageCollection.hpp>
 #include <Vcl.Buttons.hpp>
 #include <Vcl.AppEvnts.hpp>
+#include <Vcl.Mask.hpp>
 
 //---------------------------------------------------------------------------
 class TStoryCreator : public TForm
@@ -171,8 +172,6 @@ public:		// User declarations
 	__fastcall TStoryCreator(TComponent* Owner);
 	void __fastcall PropsDrawCell(TObject *Sender, int ACol, int ARow,
 								  const TRect &Rect, TGridDrawState State);
-
-    void __fastcall ContainerKeyUp(TObject *Sender, WORD &Key, TShiftState Shift);
 
 	void __fastcall ContainerMouseDown(TObject *Sender,
 									   TMouseButton Button,

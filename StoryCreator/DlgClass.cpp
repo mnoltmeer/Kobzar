@@ -1,5 +1,5 @@
 /*!
-Copyright 2023 Maxim Noltmeer (m.noltmeer@gmail.com)
+Copyright 2023-2024 Maxim Noltmeer (m.noltmeer@gmail.com)
 
 This file is part of Kobzar Engine.
 
@@ -264,11 +264,26 @@ void RedrawLinks()
 }
 //---------------------------------------------------------------------------
 
-void AddScreenText(int left, int top, TBitmap *pic, TForm *IconOwner)
+void UpdateContainers()
 {
   try
 	 {
-	   TDlgScreenText *tmp = new TDlgScreenText(left, top, pic, IconOwner);
+	   for (int i = 0; i < items.size(); i++)
+		  items[i]->SetContainerData();
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLog(LogPath + "\\exceptions.log",
+			   "DlgClass::UpdateContainers: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+void AddScreenText(int left, int top, TForm *IconOwner)
+{
+  try
+	 {
+	   TDlgScreenText *tmp = new TDlgScreenText(left, top, IconOwner);
 	   items.push_back(tmp);
 	   changed = true;
 	 }
@@ -280,11 +295,11 @@ void AddScreenText(int left, int top, TBitmap *pic, TForm *IconOwner)
 }
 //---------------------------------------------------------------------------
 
-void AddAnswer(int left, int top, TBitmap *pic, TForm *IconOwner)
+void AddAnswer(int left, int top, TForm *IconOwner)
 {
   try
 	 {
-	   TDlgAnswer *tmp = new TDlgAnswer(left, top, pic, IconOwner);
+	   TDlgAnswer *tmp = new TDlgAnswer(left, top, IconOwner);
 	   items.push_back(tmp);
 	   changed = true;
 	 }
@@ -296,11 +311,11 @@ void AddAnswer(int left, int top, TBitmap *pic, TForm *IconOwner)
 }
 //---------------------------------------------------------------------------
 
-void AddScript(int left, int top, TBitmap *pic, TForm *IconOwner)
+void AddScript(int left, int top, TForm *IconOwner)
 {
   try
 	 {
-	   TDlgScript *tmp = new TDlgScript(left, top, pic, IconOwner);
+	   TDlgScript *tmp = new TDlgScript(left, top, IconOwner);
 	   items.push_back(tmp);
 	   changed = true;
 	 }
@@ -681,7 +696,7 @@ void XMLImport(String xml_file)
 						}
 
 					 top += 60;
-					 scene_left + 80;
+					 scene_left += 80;
 				  }
 			   }
 		  }
@@ -844,7 +859,7 @@ TDlgBaseText::TDlgBaseText(int left, int top, int el_id, TForm *ContainerOwner)
   ncd = -1;
   l_id = -1;
   l_fr_id = -1;
-  Container = CreateContainer(NULL, ContainerOwner);
+  Container = CreateContainer(ContainerOwner);
   SetPos(left, top);
 }
 //---------------------------------------------------------------------------
@@ -858,7 +873,7 @@ TDlgBaseText::TDlgBaseText(int left, int top, int el_id, int dlg_id, TForm *Cont
   ncd = -1;
   l_id = -1;
   l_fr_id = -1;
-  Container = CreateContainer(NULL, ContainerOwner);
+  Container = CreateContainer(ContainerOwner);
   SetPos(left, top);
 }
 //---------------------------------------------------------------------------
@@ -872,21 +887,7 @@ TDlgBaseText::TDlgBaseText(int left, int top, TForm *ContainerOwner)
   ncd = -1;
   l_id = -1;
   l_fr_id = -1;
-  Container = CreateContainer(NULL, ContainerOwner);
-  SetPos(left, top);
-}
-//---------------------------------------------------------------------------
-
-TDlgBaseText::TDlgBaseText(int left, int top, TBitmap *pic, TForm *ContainerOwner)
-{
-  id = GenElementID();
-  this->left = left;
-  this->top = top;
-  cd = -1;
-  ncd = -1;
-  l_id = -1;
-  l_fr_id = -1;
-  Container = CreateContainer(pic, ContainerOwner);
+  Container = CreateContainer(ContainerOwner);
   SetPos(left, top);
 }
 //---------------------------------------------------------------------------
@@ -901,7 +902,7 @@ TDlgBaseText::TDlgBaseText(int left, int top, int el_id, int dlg_id, int next_dl
   ncd = next_dlg_id;
   l_id = link_id;
   l_fr_id = link_fr_id;
-  Container = CreateContainer(NULL, ContainerOwner);
+  Container = CreateContainer(ContainerOwner);
   SetPos(left, top);
 }
 //---------------------------------------------------------------------------
@@ -1218,14 +1219,6 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 
 		  Selected->NextCardOfDialog = this->CardOfDialog;
 		  Selected->LinkedFromID = this->ID;
-
-          if (Selected->Type == DlgAnsw)
-			{
-			  if (this->CardOfDialog != 0)
-				dynamic_cast<TDlgAnswer*>(Selected)->EndDialog = false;
-			  else
-				dynamic_cast<TDlgAnswer*>(Selected)->EndDialog = true;
-			}
 		}
 	  else if ((Selected->Cathegory == DLG_TEXT_LIKE) &&
 			   (this->Cathegory == DLG_ANSW_LIKE))
@@ -1246,6 +1239,9 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 
 	  pl->Cols[1]->Clear();
 	  this->GiveInfo(pl->Cols[1]);
+
+	  TLabel *clicked = dynamic_cast<TLabel*>(Sender);
+	  clicked->Color = clYellow;
 	}
   else
 	{
@@ -1253,37 +1249,40 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 
 	  pl->Cols[1]->Clear();
 	  this->GiveInfo(pl->Cols[1]);
+
+      TLabel *clicked = dynamic_cast<TLabel*>(Sender);
+	  clicked->Color = clYellow;
 	}
 }
 //---------------------------------------------------------------------------
 
 void __fastcall TDlgBaseText::ContainerMouseEnter(TObject *Sender)
 {
-  TBitBtn *clicked = dynamic_cast<TBitBtn*>(Sender);
+  TLabel *clicked = dynamic_cast<TLabel*>(Sender);
 
   clicked->Hint = GetInfo();
   clicked->ShowHint = true;
 }
 //---------------------------------------------------------------------------
 
-TBitBtn *TDlgBaseText::CreateContainer(TBitmap *pic, TForm *owner)
+TLabel *TDlgBaseText::CreateContainer(TForm *owner)
 {
-  TBitBtn *res = new TBitBtn(owner);
+  TLabel *res = new TLabel(owner);
 
   res->Parent = owner;
-  res->DoubleBuffered = true;
-
-  res->Glyph = pic;
-  //res->Glyph->Assign(pic);
-  res->Width = res->Glyph->Width + 6;
-  res->Height = res->Glyph->Height + 6;
+  res->ParentColor = false;
+  res->AutoSize = false;
+  res->WordWrap = true;
+  res->Transparent = false;
+  res->Cursor = crArrow;
+  res->Width = 180;
+  res->Height = 120;
   res->Top = Top;
   res->Left = Left;
   res->Tag = ID;
   res->OnClick = ContainerClick;
   res->OnDblClick = ContainerDblClick;
   res->OnMouseEnter = ContainerMouseEnter;
-  res->OnKeyUp = StoryCreator->ContainerKeyUp;
   res->OnMouseDown = StoryCreator->ContainerMouseDown;
   res->OnMouseUp = StoryCreator->ContainerMouseUp;
   res->OnMouseMove = StoryCreator->ContainerMouseMove;
@@ -1294,16 +1293,31 @@ TBitBtn *TDlgBaseText::CreateContainer(TBitmap *pic, TForm *owner)
 }
 //---------------------------------------------------------------------------
 
-void TDlgBaseText::SetContainerImage(TBitmap *pic)
+void TDlgBaseText::SetContainerData()
 {
-  Container->Glyph = pic;
-  Container->Left = Left;
-  Container->Top = Top;
-  Container->Width = Container->Glyph->Width + 6;
-  Container->Height = Container->Glyph->Height + 6;
+  if (Container)
+	{
+      switch (Type)
+		{
+		  case DlgText: Container->Color = (TColor)TEXT_COLOR; break;
+		  case DlgAnsw: Container->Color = (TColor)ANSW_COLOR; break;
+		  case DlgScript: Container->Color = (TColor)SCRIPT_COLOR; break;
+		}
+
+	  Container->Caption = "[Dialog: " + IntToStr(CardOfDialog) + "]\r\n\r\n";
+
+	  String text;
+
+	  if (Text.Length() >= 50)
+		text = Text.SubString(1, 50) + "...";
+	  else
+		text = Text;
+
+	  text = Container->Caption + text;
+	  Container->Caption = text;
+    }
 }
 //---------------------------------------------------------------------------
-
 //---------------------------------------------------------------------------
 const wchar_t *TDlgScreenText::CreateXML()
 {

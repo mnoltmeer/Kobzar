@@ -4,8 +4,8 @@ object EditScriptForm: TEditScriptForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Edit Script'
-  ClientHeight = 384
-  ClientWidth = 598
+  ClientHeight = 375
+  ClientWidth = 594
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText

@@ -1,5 +1,5 @@
 /*!
-Copyright 2023 Maxim Noltmeer (m.noltmeer@gmail.com)
+Copyright 2023-2024 Maxim Noltmeer (m.noltmeer@gmail.com)
 
 This file is part of Kobzar Engine.
 
@@ -536,9 +536,9 @@ void __fastcall TStoryCreator::VisualiseElements()
 	   for (int i = 0; i < items.size(); i++)
 		  {
 			if (!items[i]->Container)
-			  items[i]->Container = items[i]->CreateContainer(Images->GetBitmap(items[i]->Type, 32, 32), this);
-			else
-			  items[i]->SetContainerImage(Images->GetBitmap(items[i]->Type, 32, 32));
+			  items[i]->Container = items[i]->CreateContainer(this);
+
+			items[i]->SetContainerData();
 		  }
 	 }
   catch (Exception &e)
@@ -788,6 +788,7 @@ void __fastcall TStoryCreator::FormClose(TObject *Sender, TCloseAction &Action)
 void __fastcall TStoryCreator::FormPaint(TObject *Sender)
 {
   RedrawLinks();
+  UpdateContainers();
 }
 //---------------------------------------------------------------------------
 
@@ -830,6 +831,7 @@ void __fastcall TStoryCreator::ChangeElement()
 			 Selected->Top = y;
 
 		   UpdateItemsList(ItemList);
+           Selected->SetContainerData();
 		   Repaint();
 		   PropList->Cols[1]->Clear();
 		   Selected->GiveInfo(PropList->Cols[1]);
@@ -902,7 +904,7 @@ void __fastcall TStoryCreator::MPPScrTxtClick(TObject *Sender)
 {
   try
 	 {
-	   AddScreenText(MouseX, MouseY, Images->GetBitmap(DlgText, 32, 32), this);
+	   AddScreenText(MouseX, MouseY, this);
 	   UpdateItemsList(ItemList);
 	 }
   catch (Exception &e)
@@ -916,7 +918,7 @@ void __fastcall TStoryCreator::MPPAnswClick(TObject *Sender)
 {
   try
 	 {
-	   AddAnswer(MouseX, MouseY, Images->GetBitmap(DlgAnsw, 32, 32), this);
+	   AddAnswer(MouseX, MouseY, this);
 	   UpdateItemsList(ItemList);
 	 }
   catch (Exception &e)
@@ -930,7 +932,7 @@ void __fastcall TStoryCreator::MPPScriptClick(TObject *Sender)
 {
   try
 	 {
-	   AddScript(MouseX, MouseY, Images->GetBitmap(DlgScript, 32, 32), this);
+	   AddScript(MouseX, MouseY, this);
 	   UpdateItemsList(ItemList);
 	 }
   catch (Exception &e)
@@ -1037,8 +1039,8 @@ void __fastcall TStoryCreator::MenuAboutClick(TObject *Sender)
 {
   String text = "Version: " + GetVersionInString(Application->ExeName.c_str());
 
-  text += "\r\n\r\nCopyright 2020 Maxim Noltmeer (m.noltmeer@gmail.com)\r\n\r\n\
-This software is a part of StoryTeller Construction Set\r\n\r\n\
+  text += "\r\n\r\nCopyright 2023-2024 Maxim Noltmeer (m.noltmeer@gmail.com)\r\n\r\n\
+Kobzar Story Creator is a part of Kobzar Engine\r\n\r\n\
 Kobzar Story Creator is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License\r\n\
 as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.\r\n\
 Kobzar Story Creator is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty\r\n\
@@ -1142,17 +1144,6 @@ void __fastcall TStoryCreator::MenuPlaceScriptClick(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TStoryCreator::ContainerKeyUp(TObject *Sender, WORD &Key, TShiftState Shift)
-{
-  if (Key == VK_DELETE)
-	MenuDel->Click();
-  else if (Key == VK_RETURN)
-	MenuEdit->Click();
-  else if ((Key == 78) && Shift.Contains(ssCtrl)) //обособити елемент (прибрати LinkedID та LinkedFromID)
-	EPPStandAlone->Click();
-}
-//---------------------------------------------------------------------------
-
 void __fastcall TStoryCreator::ContainerMouseDown(TObject *Sender,
 												   TMouseButton Button,
 												   TShiftState Shift,
@@ -1160,7 +1151,9 @@ void __fastcall TStoryCreator::ContainerMouseDown(TObject *Sender,
 {
   if (Button == mbRight)
 	{
-	  TBitBtn *clicked = dynamic_cast<TBitBtn*>(Sender);
+	  TLabel *clicked = dynamic_cast<TLabel*>(Sender);
+
+	  clicked->Color = clYellow;
 	  Selected = FindElement(clicked->Tag);
 	  TPoint cursor;
 	  GetCursorPos(&cursor);
@@ -1181,9 +1174,7 @@ void __fastcall TStoryCreator::ContainerMouseUp(TObject *Sender,
 												 int X, int Y)
 {
   if (Button == mbLeft)
-	{
-	  drag = false;
-	}
+	drag = false;
 }
 //---------------------------------------------------------------------------
 
@@ -1193,7 +1184,9 @@ void __fastcall TStoryCreator::ContainerMouseMove(TObject *Sender,
 {
   if (drag)
 	{
-	  TBitBtn *clicked = dynamic_cast<TBitBtn*>(Sender);
+	  TLabel *clicked = dynamic_cast<TLabel*>(Sender);
+
+      clicked->Color = clYellow;
 	  TDlgBaseText *elm = FindElement(clicked->Tag);
 	  elm->Left += X - MouseX;
 	  elm->Top += Y - MouseY;
@@ -1224,30 +1217,21 @@ void __fastcall TStoryCreator::FormMouseDown(TObject *Sender, TMouseButton Butto
 			 {
 			   case PlaceText:
 				 {
-				   AddScreenText(X,
-								 Y,
-								 Images->GetBitmap(DlgText, 32, 32),
-								 this);
+				   AddScreenText(X, Y, this);
 				   UpdateItemsList(ItemList);
 
 				   break;
 				 }
 			   case PlaceAnswer:
 				 {
-				   AddAnswer(X,
-							 Y,
-							 Images->GetBitmap(DlgAnsw, 32, 32),
-							 this);
+				   AddAnswer(X, Y, this);
 				   UpdateItemsList(ItemList);
 
 				   break;
 				 }
 			   case PlaceScript:
 				 {
-				   AddScript(X,
-							 Y,
-							 Images->GetBitmap(DlgScript, 32, 32),
-							 this);
+				   AddScript(X, Y, this);
 				   UpdateItemsList(ItemList);
 
 				   break;
@@ -1259,6 +1243,7 @@ void __fastcall TStoryCreator::FormMouseDown(TObject *Sender, TMouseButton Butto
 
        Choice = ActNone;
 	   Selected = NULL;
+	   UpdateContainers();
 	 }
   catch (Exception &e)
 	 {
