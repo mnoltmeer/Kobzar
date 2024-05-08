@@ -4,5 +4,5 @@
 
 [x] додати try-catch в методи з DlgClass
 
-[-] доробити функції Link() та Unlink()
+[+] доробити функції Link() та Unlink()
 

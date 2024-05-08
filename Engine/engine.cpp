@@ -338,7 +338,38 @@ int KobzarEngine::Link(int id, int to_id)
 
   try
 	 {
-	   res = 1;
+	   TDlgBaseText *from = FindElement(id);
+	   TDlgBaseText *to = FindElement(to_id);
+
+	   if (!from)
+		 throw Exception("Element with ID = " + IntToStr(id) + " not found");
+
+	   if (!to)
+		 throw Exception("Element with ID = " + IntToStr(to_id) + " not found");
+
+	   if ((from->Cathegory == DLG_ANSW_LIKE) &&
+		  (to->Cathegory == DLG_TEXT_LIKE)) //перший елемент - Відповідь, другий - Сцена
+		{
+		  if (to->LinkedID > -1) //якщо Сцена вже привязана до іншої Відповіді
+			{
+			  TDlgBaseText *old_answ = FindElement(to->LinkedID);
+
+			  if (old_answ) //видалимо прив'язки у старої Відповіді
+				{
+				  old_answ->NextCardOfDialog = -1;
+				  old_answ->LinkedFromID = -1;
+				}
+			}
+
+		  from->NextCardOfDialog = to->CardOfDialog;
+		  from->LinkedFromID = to->ID;
+		}
+	  else if ((from->Cathegory == DLG_TEXT_LIKE) &&
+			   (to->Cathegory == DLG_ANSW_LIKE)) //перший елемент - Сцена, другий - Відповідь
+		{
+		  to->CardOfDialog = from->CardOfDialog;
+		  to->LinkedID = from->ID;
+		}
 	 }
   catch (Exception &e)
 	 {
@@ -356,7 +387,23 @@ int KobzarEngine::Unlink(int id, int to_id)
 
   try
 	 {
-	   res = 1;
+	   TDlgBaseText *from = FindElement(id);
+	   TDlgBaseText *to = FindElement(to_id);
+
+	   if (!from)
+		 throw Exception("Element with ID = " + IntToStr(id) + " not found");
+
+	   if (!to)
+		 throw Exception("Element with ID = " + IntToStr(to_id) + " not found");
+
+	   if (from->Cathegory == DLG_ANSW_LIKE)
+		 from->NextCardOfDialog = -1;
+
+	   if (to->Cathegory == DLG_ANSW_LIKE)
+		 to->CardOfDialog = -1;
+
+	   from->LinkedFromID = -1;
+	   to->LinkedID = -1;
 	 }
   catch (Exception &e)
 	 {

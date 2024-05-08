@@ -52,6 +52,7 @@ class KobzarEngine: public KE_INTERFACE
 	void CreateLog(const String &method_name, const String &error);
 	void LoadFunctionsToELI(ELI_INTERFACE *FEIface);
 
+  //функції для створення Розповіді
 	int GenDialogID();
 	int GenElementID();
 	void RemoveFromItems(TDlgBaseText *element);
@@ -70,6 +71,8 @@ class KobzarEngine: public KE_INTERFACE
 	int SearchDependeciesDialog(int id);
 	void UpdateLinkedID(int old_id, int new_id);
 	void UpdateCardOfDialog(int old_val, int new_val);
+
+  //функції візуалізації
 
   public:
 	KobzarEngine();
