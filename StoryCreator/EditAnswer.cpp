@@ -78,16 +78,8 @@ void __fastcall TEditAnswerForm::ConfirmClick(TObject *Sender)
 
   TDlgAnswer *itm = dynamic_cast<TDlgAnswer*>(Selected);
 
-  if (!EndDialog->Checked & itm->EndDialog)
-	{
-	  itm->EndDialog = false;
-	  StoryCreator->Repaint();
-	}
-  else if (EndDialog->Checked && !itm->EndDialog)
-    {
-	  itm->EndDialog = true;
-	  StoryCreator->Repaint();
-	}
+  itm->EndDialog = EndDialog->Checked;
+  StoryCreator->Repaint();
 
   Choice = ActNone;
   Close();

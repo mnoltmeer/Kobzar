@@ -198,9 +198,6 @@ class TDlgAnswer : public TDlgBaseText
 	bool end_dlg;
 	int prev_id;
 
-	bool GetEndDialog();
-	void SetEndDialog(bool val);
-
   public:
 	TDlgAnswer(int left, int top): TDlgBaseText(left, top)
 	{
@@ -245,7 +242,7 @@ class TDlgAnswer : public TDlgBaseText
 //для хранения старого id при выборе EndDialog
 	__property int PrevLinkedFromID = {read = prev_id, write = prev_id};
 //отметка о том, что этот элемент закрывает сцену
-	__property bool EndDialog = {read = GetEndDialog, write = SetEndDialog};
+	__property bool EndDialog = {read = end_dlg, write = end_dlg};
 };
 //---------------------------------------------------------------------------
 

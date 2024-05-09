@@ -62,7 +62,7 @@ int GenDialogID()
 
 int GenElementID()
 {
-  int max = -1;
+  int max = 0;
 
   try
 	 {
@@ -75,7 +75,7 @@ int GenElementID()
   catch (Exception &e)
 	 {
 	   SaveLog(LogPath + "\\exceptions.log", "DlgClass::ElementID: " + e.ToString());
-	   max = -2;
+	   max = -1;
 	 }
 
   return max + 1;
@@ -1201,8 +1201,7 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 {
   if (Selected && (Selected != this))
 	{
-	  if ((Selected->Cathegory == DLG_ANSW_LIKE) &&
-		  (this->Cathegory == DLG_TEXT_LIKE))
+	  if ((Selected->Cathegory == DLG_ANSW_LIKE) && (this->Cathegory == DLG_TEXT_LIKE))
 		{
 		  if (this->LinkedID > -1) //если ScreenText уже привязан к Answer'у
 			{
@@ -1213,15 +1212,15 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 				  old_answ->NextCardOfDialog = -1;
 				  old_answ->LinkedFromID = -1;
 				}
-			  else
-			    throw Exception("Неверный ID в стеке items!");
 			}
 
 		  Selected->NextCardOfDialog = this->CardOfDialog;
 		  Selected->LinkedFromID = this->ID;
+
+		  if (reinterpret_cast<TDlgAnswer*>(Selected)->EndDialog)
+            reinterpret_cast<TDlgAnswer*>(Selected)->EndDialog = false;
 		}
-	  else if ((Selected->Cathegory == DLG_TEXT_LIKE) &&
-			   (this->Cathegory == DLG_ANSW_LIKE))
+	  else if ((Selected->Cathegory == DLG_TEXT_LIKE) && (this->Cathegory == DLG_ANSW_LIKE))
 		{
 		  this->CardOfDialog = Selected->CardOfDialog;
 		  this->LinkedID = Selected->ID;
@@ -1304,7 +1303,10 @@ void TDlgBaseText::SetContainerData()
 		  case DlgScript: Container->Color = (TColor)SCRIPT_COLOR; break;
 		}
 
-	  Container->Caption = "[Dialog: " + IntToStr(CardOfDialog) + "]\r\n\r\n";
+	  if ((Type == DlgAnsw) && reinterpret_cast<TDlgAnswer*>(this)->EndDialog)
+		Container->Caption = "[Dialog: " + IntToStr(CardOfDialog) + " (END)]\r\n\r\n";
+	  else
+		Container->Caption = "[Dialog: " + IntToStr(CardOfDialog) + "]\r\n\r\n";
 
 	  String text;
 
@@ -1341,51 +1343,6 @@ const wchar_t *TDlgAnswer::CreateXML()
   XMLText = XMLText + "\t\t\t</Answer>";
 
   return XMLText.c_str();
-}
-//---------------------------------------------------------------------------
-
-bool TDlgAnswer::GetEndDialog()
-{
-  return end_dlg;
-}
-//---------------------------------------------------------------------------
-
-void TDlgAnswer::SetEndDialog(bool val)
-{
-  end_dlg = val;
-
-  if (end_dlg)
-	{
-	  if (LinkedFromID > -1)
-		{
-		  TDlgBaseText *lnk = FindElement(LinkedFromID);
-
-		  if (lnk)
-		  	lnk->LinkedID = -1;
-		}
-
-	  PrevLinkedFromID = LinkedFromID;
-	  LinkedFromID = FindTextElementID(0);
-	  NextCardOfDialog = 0;
-	}
-  else
-	{
-	  if (PrevLinkedFromID == -1)
-        return;
-
-	  TDlgBaseText *lnk = FindElement(PrevLinkedFromID);
-
-	  if (lnk && (lnk->Cathegory == DLG_TEXT_LIKE))
-		{
-		  NextCardOfDialog = lnk->CardOfDialog;
-		  LinkedFromID = lnk->ID;
-		}
-	  else
-		{
-		  NextCardOfDialog = -1;
-		  LinkedFromID = -1;
-		}
-	}
 }
 //---------------------------------------------------------------------------
 

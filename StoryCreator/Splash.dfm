@@ -7160,7 +7160,7 @@ object SplashForm: TSplashForm
     ParentFont = False
   end
   object SplashCloseTimer: TTimer
-    Interval = 3000
+    Interval = 2500
     OnTimer = SplashCloseTimerTimer
     Left = 344
     Top = 24

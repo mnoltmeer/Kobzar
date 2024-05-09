@@ -30,9 +30,9 @@ object StoryCreator: TStoryCreator
     Width = 40
     Height = 152
     BevelOuter = bvNone
-    Color = clGradientActiveCaption
     DoubleBuffered = True
     ParentBackground = False
+    ParentColor = True
     ParentDoubleBuffered = False
     TabOrder = 0
     object BtUnselect: TBitBtn
@@ -92,8 +92,8 @@ object StoryCreator: TStoryCreator
     Width = 773
     Height = 28
     Align = alTop
-    Color = clWindow
     ParentBackground = False
+    ParentColor = True
     TabOrder = 1
     object QBtNew: TBitBtn
       Left = 1
@@ -162,8 +162,7 @@ object StoryCreator: TStoryCreator
     Width = 169
     Height = 446
     Caption = 'PropsPanel'
-    Color = clMoneyGreen
-    ParentBackground = False
+    Color = clWindow
     TabOrder = 2
     object ItemList: TListBox
       Left = 4

@@ -252,8 +252,8 @@ void __fastcall TStoryCreator::FormShow(TObject *Sender)
 		   Palette->Top = 0;
 		 }
 
-	   PropList->ColWidths[0] = 110;
-	   PropList->ColWidths[1] = 50;
+	   PropList->ColWidths[0] = 120;
+	   PropList->ColWidths[1] = 70;
 	   PropList->Cols[0]->Add("ID");
 	   PropList->Cols[0]->Add("LinkedID");
 	   PropList->Cols[0]->Add("LinkedFromID");
@@ -277,7 +277,7 @@ void __fastcall TStoryCreator::ReadSettings()
 
 	   reg->RootKey = HKEY_CURRENT_USER;
 
-	   if (reg->OpenKey("Software\\Kobzar\\TextSceneCreator\\Editor", false))
+	   if (reg->OpenKey("Software\\Kobzar\\StoryCreator\\Editor", false))
 		 {
 		   if (reg->ValueExists("FontName"))
 			 FontName = reg->ReadString("FontName");
@@ -312,37 +312,37 @@ void __fastcall TStoryCreator::ReadSettings()
 			 FullScreen = reg->ReadBool("FullScreen");
 
 		   if (reg->ValueExists("ShowToolPalette"))
-				  MenuToolPalette->Checked = reg->ReadBool("ShowToolPalette");
+			 MenuToolPalette->Checked = reg->ReadBool("ShowToolPalette");
 
 		   if (reg->ValueExists("ShowItems"))
-				  MenuShowItems->Checked = reg->ReadBool("ShowItems");
+			 MenuShowItems->Checked = reg->ReadBool("ShowItems");
 
 		   if (reg->ValueExists("ShowQuickButtonsPanel"))
-				  MenuButtonPanel->Checked = reg->ReadBool("ShowQuickButtonsPanel");
+			 MenuButtonPanel->Checked = reg->ReadBool("ShowQuickButtonsPanel");
 
 		   if (reg->ValueExists("LastFiles"))
-				  ReadLastFilesList();
-				else
-				  reg->WriteString("LastFiles", "");
+			 ReadLastFilesList();
+		   else
+			 reg->WriteString("LastFiles", "");
 
 		   if (reg->ValueExists("FormHeight"))
-				  ClientHeight = reg->ReadInteger("FormHeight");
-				else
-				  {
-					ClientHeight = 600;
-					reg->WriteInteger("FormHeight", 600);
-				  }
+			 ClientHeight = reg->ReadInteger("FormHeight");
+		   else
+			 {
+			   ClientHeight = 600;
+			   reg->WriteInteger("FormHeight", 600);
+			 }
 
-				if (reg->ValueExists("FormWidth"))
-				  ClientWidth = reg->ReadInteger("FormWidth");
-				else
-				  {
-                    ClientWidth = 800;
-					reg->WriteInteger("FormWidth", 800);
-				  }
+		   if (reg->ValueExists("FormWidth"))
+			 ClientWidth = reg->ReadInteger("FormWidth");
+		   else
+			 {
+			   ClientWidth = 800;
+			   reg->WriteInteger("FormWidth", 800);
+			 }
 
-                reg->CloseKey();
-			  }
+		   reg->CloseKey();
+		 }
 	 }
   catch (Exception &e)
 	 {
@@ -355,15 +355,15 @@ void __fastcall TStoryCreator::WriteSettings()
 {
   try
 	 {
-	   std::unique_ptr<TRegistry> reg(new TRegistry());
+	   std::unique_ptr<TRegistry> reg(new TRegistry(KEY_WRITE));
 
 	   reg->RootKey = HKEY_CURRENT_USER;
 
 	   if (!reg->KeyExists("Software\\Kobzar\\StoryCreator\\Editor"))
 		 reg->CreateKey("Software\\Kobzar\\StoryCreator\\Editor");
 
-	   if (!reg->KeyExists("Software\\StoryTeller\\StoryCreator\\UI"))
-		 reg->CreateKey("Software\\StoryTeller\\StoryCreator\\UI");
+	   if (!reg->KeyExists("Software\\Kobzar\\StoryCreator\\UI"))
+		 reg->CreateKey("Software\\Kobzar\\StoryCreator\\UI");
 
 	   if (reg->OpenKey("Software\\Kobzar\\StoryCreator\\Editor", false))
 		 {
@@ -413,7 +413,7 @@ void __fastcall TStoryCreator::CreateMenuLastFiles()
 
 void __fastcall TStoryCreator::WriteLastFilesList()
 {
-  std::unique_ptr<TRegistry> reg(new TRegistry());
+  std::unique_ptr<TRegistry> reg(new TRegistry(KEY_WRITE));
 
   try
 	 {
@@ -440,7 +440,7 @@ void __fastcall TStoryCreator::ReadLastFilesList()
 {
   try
 	 {
-	   std::unique_ptr<TRegistry> reg(new TRegistry());
+	   std::unique_ptr<TRegistry> reg(new TRegistry(KEY_READ));
 
 	   reg->RootKey = HKEY_CURRENT_USER;
 
