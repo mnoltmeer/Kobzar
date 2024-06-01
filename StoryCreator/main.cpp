@@ -876,7 +876,7 @@ void __fastcall TStoryCreator::ChangeNextCardOfDialog(int new_val)
 
 void __fastcall TStoryCreator::ChangeLinkedID(int new_val)
 {
-  if (Selected->Cathegory == DLG_TEXT_LIKE)
+  if (Selected->Type == DlgText)
 	return;
 
   if (Selected->LinkedID != new_val)
@@ -889,7 +889,7 @@ void __fastcall TStoryCreator::ChangeLinkedID(int new_val)
 
 void __fastcall TStoryCreator::ChangeLinkedFromID(int new_val)
 {
-  if (Selected->Cathegory == DLG_TEXT_LIKE)
+  if (Selected->Type == DlgText)
 	return;
 
   if (Selected->LinkedFromID != new_val)

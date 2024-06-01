@@ -145,7 +145,7 @@ int FindAnswersByDialog(int dlg_id, std::vector<TDlgBaseText*> *el_list)
 	   for (int i = 0; i < items.size(); i++)
 		 {
 		   if ((items[i]->CardOfDialog == dlg_id) &&
-			   (items[i]->Cathegory != DLG_TEXT_LIKE))
+			   (items[i]->Type != DlgText))
 			 {
 			   cnt++;
 			   el_list->push_back(items[i]);
@@ -172,7 +172,7 @@ int FindTextElementID(int crd_dlg)
 	   for (int i = 0; i < items.size(); i++)
 		 {
 		   if ((items[i]->CardOfDialog == crd_dlg) &&
-			   (items[i]->Cathegory == DLG_TEXT_LIKE))
+			   (items[i]->Type == DlgText))
 			 {
 			   res = items[i]->ID;
              }
@@ -469,6 +469,9 @@ bool LoadDlgSchema(const wchar_t *file)
 												   top,
 												   id,
 												   card_of_dialog,
+												   next_card_of_dialog,
+												   linked_id,
+												   linked_from_id,
 												   StoryCreator);
 
 				   if (text_len > 0)
@@ -611,7 +614,6 @@ void XMLImport(String xml_file)
 
 	   _di_IXMLNode DialogFile = ixml->DocumentElement;
 	   _di_IXMLNode CardOfDialog;
-	   _di_IXMLNode ScreenTextMassive;
 	   _di_IXMLNode ScreenText;
 	   _di_IXMLNode AnswerMassive;
 	   _di_IXMLNode Answer;
@@ -627,29 +629,16 @@ void XMLImport(String xml_file)
 
 			for (int j = 0; j < CardOfDialog->ChildNodes->Count; j++)
 			   {
-				 if (CardOfDialog->ChildNodes->Nodes[j]->GetNodeName() == "ScreenTextMassive")
+				 if (CardOfDialog->ChildNodes->Nodes[j]->GetNodeName() == "ScreenText")
 				   {
-					 ScreenTextMassive = CardOfDialog->ChildNodes->Nodes[j];
-					 ScreenText = ScreenTextMassive->ChildNodes->Nodes[0];
+					 ScreenText = CardOfDialog->ChildNodes->Nodes[j];
 					 curr_card = StrToInt(CardOfDialog->GetAttribute("id"));
 
-					 if (ScreenText->HasAttribute("Params")) //Script
-					   {
-						 TDlgScript *lnk = new TDlgScript(scene_left, top, StoryCreator);
+					 TDlgScreenText *lnk = new TDlgScreenText(scene_left, top, StoryCreator);
 
 						 lnk->CardOfDialog = curr_card;
-						 lnk->Params = ScreenText->GetAttribute("Params");
-						 lnk->Text = ScreenText->ChildNodes->Nodes[0]->Text;
+						 lnk->Text = ScreenText->Text;
 						 items.push_back(lnk);
-					   }
-					 else  //ScreenText
-					   {
-						 TDlgScreenText *lnk = new TDlgScreenText(scene_left, top, StoryCreator);
-
-						 lnk->CardOfDialog = curr_card;
-						 lnk->Text = ScreenText->ChildNodes->Nodes[0]->Text;
-						 items.push_back(lnk);
-					   }
 
 					 left += 55;
 				   }
@@ -668,7 +657,7 @@ void XMLImport(String xml_file)
 						  if (Answer->HasAttribute("NextCardOfDialog"))
 							ncd = StrToInt(Answer->GetAttribute("NextCardOfDialog"));
 
-						  ind = Answer->ChildNodes->IndexOf("TextOfAnswer");
+						  ind = Answer->ChildNodes->IndexOf("Text");
 
 						  if (ind >= 0)
 							text = Answer->ChildNodes->Nodes[ind]->Text;
@@ -682,13 +671,26 @@ void XMLImport(String xml_file)
 						  else
 							end = false;
 
-						  TDlgAnswer *answ = new TDlgAnswer(left, top, StoryCreator);
+						  if (Answer->HasAttribute("Params")) //Script
+							{
+							  TDlgScript *lnk = new TDlgScript(left, top, StoryCreator);
 
-						  answ->CardOfDialog = curr_card;
-						  answ->NextCardOfDialog = ncd;
-						  answ->Text = text;
-						  answ->EndDialog = end;
-						  items.push_back(answ);
+							  lnk->CardOfDialog = curr_card;
+							  lnk->Params = Answer->GetAttribute("Params");
+                              lnk->NextCardOfDialog = -1;
+							  lnk->Text = text;
+							  items.push_back(lnk);
+							}
+						  else //Answer
+							{
+							  TDlgAnswer *answ = new TDlgAnswer(left, top, StoryCreator);
+
+							  answ->CardOfDialog = curr_card;
+							  answ->NextCardOfDialog = ncd;
+							  answ->Text = text;
+							  answ->EndDialog = end;
+							  items.push_back(answ);
+							}
 
 //приблизительные отступы по высоте и ширине
 						  left += 55;
@@ -725,7 +727,7 @@ void XMLExport(const wchar_t *path)
 
 			for (int i = 0; i < items.size(); i++)
 			   {
-				 if (items[i]->Cathegory == DLG_TEXT_LIKE)
+				 if (items[i]->Type == DlgText)
 				   {
 					 xml_exp += "\t<CardOfDialog id = '" +
 								IntToStr(items[i]->CardOfDialog) +
@@ -785,7 +787,7 @@ void BuildLinksAfterXMLImport()
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		  {
-			if (items[i]->Cathegory != DLG_TEXT_LIKE)
+			if (items[i]->Type != DlgText)
 			  {
 				items[i]->LinkedID = FindTextElementID(items[i]->CardOfDialog);
 				items[i]->LinkedFromID = FindTextElementID(items[i]->NextCardOfDialog);
@@ -988,17 +990,17 @@ int TDlgBaseText::GetLinkedID()
 
 void TDlgBaseText::SetLinkedID(int val)
 {
-  if (Cathegory == DLG_TEXT_LIKE)
+  if (Type == DlgText)
 	return;
 
   TDlgBaseText *lnk = FindElement(val);
 
-  if (lnk && (lnk->Cathegory == DLG_TEXT_LIKE))
+  if (lnk && (lnk->Type == DlgText))
 	{
 	  l_id = val;
 	  cd = lnk->CardOfDialog;
 	}
-  else if (lnk && (lnk->Cathegory != DLG_TEXT_LIKE))
+  else if (lnk && (lnk->Type != DlgText))
 	{
 	  MessageBox(Application->Handle,
 				 String("No TEXT_LIKE element with ID = LinkedID (" +
@@ -1030,17 +1032,17 @@ int TDlgBaseText::GetLinkedFromID()
 
 void TDlgBaseText::SetLinkedFromID(int val)
 {
-  if (Cathegory == DLG_TEXT_LIKE)
+  if (Type == DlgText)
 	return;
 
   TDlgBaseText *lnk = FindElement(val);
 
-  if (lnk && (lnk->Cathegory == DLG_TEXT_LIKE))
+  if (lnk && (lnk->Type == DlgText))
 	{
 	  l_fr_id = val;
 	  ncd = lnk->CardOfDialog;
 	}
-  else if (lnk && (lnk->Cathegory != DLG_TEXT_LIKE))
+  else if (lnk && (lnk->Type != DlgText))
 	{
 	  MessageBox(Application->Handle,
 				 String("Element with ID = LinkedFromID (" +
@@ -1074,7 +1076,7 @@ void TDlgBaseText::SetCardOfDialog(int val)
 {
   int old = cd;
 
-  if (Cathegory != DLG_TEXT_LIKE)
+  if (Type != DlgText)
 	{
 	  cd = val;
 	  LinkedID = FindTextElementID(val);
@@ -1124,7 +1126,7 @@ int TDlgBaseText::GetNextCardOfDialog()
 
 void TDlgBaseText::SetNextCardOfDialog(int val)
 {
-  if (Cathegory != DLG_TEXT_LIKE)
+  if (Type != DlgText)
 	{
 	  ncd = val;
 	  int new_dlg_id = FindTextElementID(ncd);
@@ -1175,21 +1177,6 @@ void TDlgBaseText::GiveInfo(TStrings *lst)
 }
 //---------------------------------------------------------------------------
 
-int TDlgBaseText::GetCathegory()
-{
-  int res;
-
-  switch (Type)
-	{
-	  case DlgText: res = DLG_TEXT_LIKE; break;
-	  case DlgScript: res = DLG_TEXT_LIKE; break;
-	  case DlgAnsw: res = DLG_ANSW_LIKE; break;
-	}
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
 void __fastcall TDlgBaseText::ContainerDblClick(TObject *Sender)
 {
   Selected = this;
@@ -1201,7 +1188,7 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 {
   if (Selected && (Selected != this))
 	{
-	  if ((Selected->Cathegory == DLG_ANSW_LIKE) && (this->Cathegory == DLG_TEXT_LIKE))
+	  if ((Selected->Type == DlgAnsw) && (this->Type == DlgText))
 		{
 		  if (this->LinkedID > -1) //если ScreenText уже привязан к Answer'у
 			{
@@ -1220,7 +1207,7 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 		  if (reinterpret_cast<TDlgAnswer*>(Selected)->EndDialog)
             reinterpret_cast<TDlgAnswer*>(Selected)->EndDialog = false;
 		}
-	  else if ((Selected->Cathegory == DLG_TEXT_LIKE) && (this->Cathegory == DLG_ANSW_LIKE))
+	  else if ((Selected->Type == DlgText) && ((this->Type == DlgAnsw) || (this->Type == DlgScript)))
 		{
 		  this->CardOfDialog = Selected->CardOfDialog;
 		  this->LinkedID = Selected->ID;
@@ -1323,9 +1310,7 @@ void TDlgBaseText::SetContainerData()
 //---------------------------------------------------------------------------
 const wchar_t *TDlgScreenText::CreateXML()
 {
-  XMLText = "\t\t<ScreenTextMassive>\r\n\t\t\t<ScreenText>\r\n";
-  XMLText = XMLText + "\t\t\t\t<Text>" + Text + "</Text>\r\n";
-  XMLText = XMLText + "\t\t\t</ScreenText>\r\n\t\t</ScreenTextMassive>\r\n";
+  XMLText = "\t\t<ScreenText>" + Text + "</ScreenText>\r\n";
 
   return XMLText.c_str();
 }
@@ -1335,7 +1320,7 @@ const wchar_t *TDlgScreenText::CreateXML()
 const wchar_t *TDlgAnswer::CreateXML()
 {
   XMLText = "\t\t\t<Answer NextCardOfDialog = '" + String(NextCardOfDialog) + "'>\r\n";
-  XMLText = XMLText + "\t\t\t\t<TextOfAnswer>" + Text + "</TextOfAnswer>\r\n";
+  XMLText = XMLText + "\t\t\t\t<Text>" + Text + "</Text>\r\n";
 
   if (EndDialog)
 	XMLText = XMLText + "\t\t\t\t<EndDialog>True</EndDialog>\r\n";
@@ -1349,11 +1334,9 @@ const wchar_t *TDlgAnswer::CreateXML()
 //---------------------------------------------------------------------------
 const wchar_t *TDlgScript::CreateXML()
 {
-  XMLText = "\t\t<ScreenTextMassive>\r\n";
-  XMLText = XMLText + "\t\t\t<Script Params = '" + Params + "'>\r\n";
+  XMLText = "\t\t\t<Script Params = '" + Params + "'>\r\n";
   XMLText = XMLText + "\t\t\t\t<Text>" + Text + "</Text>\r\n";
-  XMLText = XMLText + "\t\t\t</Script>\r\n";
-  XMLText = XMLText + "\t\t</ScreenTextMassive>\r\n";
+  XMLText = XMLText + "\t\t\t</Script>";
 
   return XMLText.c_str();
 }

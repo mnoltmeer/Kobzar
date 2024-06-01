@@ -36,9 +36,6 @@ This file is part of Kobzar Engine.
 #include <vector>
 //---------------------------------------------------------------------------
 
-#define DLG_TEXT_LIKE 0
-#define DLG_ANSW_LIKE 1
-
 #define TEXT_COLOR 0x3393FF
 #define ANSW_COLOR 0xFFC133
 #define SCRIPT_COLOR 0x33FF3C
@@ -76,7 +73,6 @@ class TDlgBaseText
 	TLabel *cont;
 	int left;
 	int top;
-	int cath;
 
 	int GetID();
 	void SetID(int val);
@@ -101,8 +97,6 @@ class TDlgBaseText
 
 	int GetTop();
 	void SetTop(int val);
-
-	int GetCathegory();
 
   public:
 	TDlgBaseText();
@@ -157,8 +151,6 @@ class TDlgBaseText
 //позиции элемента на форме
 	__property int Left = {read = GetLeft, write = SetLeft};
 	__property int Top = {read = GetTop, write = SetTop};
-//категория сцена или ответ
-	__property int Cathegory = {read = GetCathegory};
 };
 //---------------------------------------------------------------------------
 
@@ -256,14 +248,12 @@ class TDlgScript : public TDlgBaseText
 	TDlgScript(int left, int top) : TDlgBaseText(left, top)
 	{
 	  Type = DlgScript;
-	  CardOfDialog = GenDialogID();
 	}
 
 	TDlgScript(int left, int top, TForm *ContainerOwner)
 	: TDlgBaseText(left, top, ContainerOwner)
 	{
 	  Type = DlgScript;
-	  CardOfDialog = GenDialogID();
 	  SetContainerData();
 	}
 
@@ -272,6 +262,15 @@ class TDlgScript : public TDlgBaseText
 	{
 	  Type = DlgScript;
       SetContainerData();
+	}
+
+	TDlgScript(int left, int top, int el_id, int dlg_id, int next_dlg_id,
+				   int link_id, int link_fr_id, TForm *ContainerOwner)
+	: TDlgBaseText(left, top, el_id, dlg_id, next_dlg_id,
+				   link_id, link_fr_id, ContainerOwner)
+	{
+	  Type = DlgScript;
+	  SetContainerData();
 	}
 
 	virtual ~TDlgScript(){};
