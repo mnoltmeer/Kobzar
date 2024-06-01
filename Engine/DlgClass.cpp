@@ -93,27 +93,10 @@ void TDlgBaseText::GiveInfo(TStrings *lst)
 }
 //---------------------------------------------------------------------------
 
-int TDlgBaseText::GetCathegory()
-{
-  int res;
-
-  switch (Type)
-	{
-	  case DlgText: res = DLG_TEXT_LIKE; break;
-	  case DlgScript: res = DLG_TEXT_LIKE; break;
-	  case DlgAnsw: res = DLG_ANSW_LIKE; break;
-	}
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
 //---------------------------------------------------------------------------
 const wchar_t *TDlgScreenText::CreateXML()
 {
-  XMLText = "\t\t<ScreenTextMassive>\r\n\t\t\t<ScreenText>\r\n";
-  XMLText = XMLText + "\t\t\t\t<Text>" + Text + "</Text>\r\n";
-  XMLText = XMLText + "\t\t\t</ScreenText>\r\n\t\t</ScreenTextMassive>\r\n";
+  XMLText = "\t\t<ScreenText>" + Text + "</ScreenText>\r\n";
 
   return XMLText.c_str();
 }
@@ -123,7 +106,7 @@ const wchar_t *TDlgScreenText::CreateXML()
 const wchar_t *TDlgAnswer::CreateXML()
 {
   XMLText = "\t\t\t<Answer NextCardOfDialog = '" + String(NextCardOfDialog) + "'>\r\n";
-  XMLText = XMLText + "\t\t\t\t<TextOfAnswer>" + Text + "</TextOfAnswer>\r\n";
+  XMLText = XMLText + "\t\t\t\t<Text>" + Text + "</Text>\r\n";
 
   if (EndDialog)
 	XMLText = XMLText + "\t\t\t\t<EndDialog>True</EndDialog>\r\n";
@@ -137,12 +120,10 @@ const wchar_t *TDlgAnswer::CreateXML()
 //---------------------------------------------------------------------------
 const wchar_t *TDlgScript::CreateXML()
 {
-  XMLText = "\t\t<ScreenTextMassive>\r\n";
-  XMLText = XMLText + "\t\t\t<Script Params = '" + Params + "'>\r\n";
+  XMLText = "\t\t\t<Script Params = '" + Params + "'>\r\n";
   XMLText = XMLText + "\t\t\t\t<Text>" + Text + "</Text>\r\n";
   //XMLText = XMLText + "\t\t\t\t<Return>" + Result + "</Return>\r\n";
-  XMLText = XMLText + "\t\t\t</Script>\r\n";
-  XMLText = XMLText + "\t\t</ScreenTextMassive>\r\n";
+  XMLText = XMLText + "\t\t\t</Script>";
 
   return XMLText.c_str();
 }

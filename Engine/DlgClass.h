@@ -24,9 +24,6 @@ This file is part of Kobzar Engine.
 #include <System.Classes.hpp>
 //---------------------------------------------------------------------------
 
-#define DLG_TEXT_LIKE 0
-#define DLG_ANSW_LIKE 1
-
 enum DlgType {DlgText = 1,
 			  DlgAnsw = 2,
 			  DlgScript = 3};
@@ -42,9 +39,6 @@ class TDlgBaseText
 	int ncd;
 	String xml;
 	String txt;
-	int cath;
-
-	int GetCathegory();
 
     int GenDialogID();
 	int GenElementID();
@@ -75,8 +69,6 @@ class TDlgBaseText
 	__property String XMLText = {read = xml, write = xml};
 //контейнер для текста, который содержит элемент
 	__property String Text = {read = txt, write = txt};
-//категория сцена или ответ
-	__property int Cathegory = {read = GetCathegory};
 };
 //---------------------------------------------------------------------------
 
@@ -136,6 +128,10 @@ class TDlgScript : public TDlgBaseText
 	{Type = DlgScript;}
 
 	TDlgScript(int el_id, int dlg_id): TDlgBaseText(el_id, dlg_id)
+	{Type = DlgScript;}
+
+	TDlgScript(int el_id, int dlg_id, int next_dlg_id, int link_id, int link_fr_id)
+	: TDlgBaseText(el_id, dlg_id, next_dlg_id, link_id, link_fr_id)
 	{Type = DlgScript;}
 
 	inline virtual ~TDlgScript(){};
