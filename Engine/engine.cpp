@@ -688,7 +688,6 @@ bool KobzarEngine::LoadDlgSchema(String file)
 	   fs->Position = 0;
 	   int id, linked_id, linked_from_id, left, top, card_of_dialog,
 		   dlg_type, next_card_of_dialog;
-	   int text_len;
 	   bool end_dlg;
 	   TDlgBaseText *lnk;
 
@@ -702,7 +701,6 @@ bool KobzarEngine::LoadDlgSchema(String file)
 		   fs->Position += fs->Read(&next_card_of_dialog, sizeof(int));
 		   fs->Position += fs->Read(&left, sizeof(int));
 		   fs->Position += fs->Read(&top, sizeof(int));
-		   fs->Position += fs->Read(&text_len, sizeof(int));
 
 		   switch (dlg_type)
 			 {
@@ -711,7 +709,7 @@ bool KobzarEngine::LoadDlgSchema(String file)
 				   TDlgScreenText *dl = new TDlgScreenText(id, card_of_dialog);
 
 				   if (text_len > 0)
-					 dl->Text = ReadStringFromBinaryStream(fs.get(), text_len);
+					 dl->Text = ReadStringFromBinaryStream(fs.get());
 
 				   lnk = dl;
 
@@ -726,7 +724,7 @@ bool KobzarEngine::LoadDlgSchema(String file)
 												   linked_from_id);
 
 				   if (text_len > 0)
-					 dl->Text = ReadStringFromBinaryStream(fs.get(), text_len);
+					 dl->Text = ReadStringFromBinaryStream(fs.get());
 
 				   fs->Position += fs->Read(&end_dlg, sizeof(bool));
 				   dl->EndDialog = end_dlg;
@@ -743,18 +741,8 @@ bool KobzarEngine::LoadDlgSchema(String file)
 												   linked_id,
 												   linked_from_id);
 
-				   if (text_len > 0)
-					 dl->Text = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   fs->Position += fs->Read(&text_len, sizeof(int));
-
-				   if (text_len > 0)
-					 dl->Params = ReadStringFromBinaryStream(fs.get(), text_len);
-
-				   fs->Position += fs->Read(&text_len, sizeof(int));
-
-				   //if (text_len > 0)
-					 //dl->Result = ReadStringFromBinaryStream(fs.get(), text_len);
+				   dl->Text = ReadStringFromBinaryStream(fs.get());
+				   dl->Params = ReadStringFromBinaryStream(fs.get(), text_len);
 
 				   lnk = dl;
 
