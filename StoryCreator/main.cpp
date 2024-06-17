@@ -1377,7 +1377,7 @@ void __fastcall TStoryCreator::ApplicationEventsMessage(tagMSG &Msg, bool &Handl
 			  break;
 			}
 
-		  case '5': //3 - PlaceScript
+		  case '3': //3 - PlaceScript
 			{
 			  Choice = PlaceScript;
 			  break;
@@ -1388,7 +1388,7 @@ void __fastcall TStoryCreator::ApplicationEventsMessage(tagMSG &Msg, bool &Handl
 		  	  break;
 			}
 		}
-    }
+	}
 }
 //---------------------------------------------------------------------------
 

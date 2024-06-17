@@ -631,7 +631,7 @@ void XMLImport(String xml_file)
 						 lnk->Text = ScreenText->Text;
 						 items.push_back(lnk);
 
-					 left += 55;
+					 left = left + CONTAINER_WIDTH + 10;
 				   }
 				 else
 				   {
@@ -684,13 +684,15 @@ void XMLImport(String xml_file)
 							}
 
 //приблизительные отступы по высоте и ширине
-						  left += 55;
+						  left = left + CONTAINER_WIDTH + 10;
 						  step = 60;
 						}
 
-					 top += 60;
-					 scene_left += 80;
+					 top = top + CONTAINER_HEIGHT + 10;
+					 //scene_left += 80;
 				  }
+
+				 left = scene_left + CONTAINER_WIDTH + 10;
 			   }
 		  }
 
@@ -811,6 +813,37 @@ void RemoveLimboLinks()
 	   SaveLog(LogPath + "\\exceptions.log",
 			   "DlgClass::RemoveLimboLinks: " + e.ToString());
 	 }
+}
+//---------------------------------------------------------------------------
+
+String CreateContainerCaption(TDlgBaseText *element)
+{
+  String res = "";
+
+  try
+	 {
+	   res += "{" + IntToStr(element->ID) + "}";
+
+	   switch (element->Type)
+		 {
+		   case DlgText: res += " <Scene>"; break;
+		   case DlgAnsw: res += " <Answer>"; break;
+		   case DlgScript: res += " <Script>"; break;
+		   default: res = "<unknown>";
+		 }
+
+	   res += " [Dialog: " + IntToStr(element->CardOfDialog) + "]";
+
+	   if ((element->Type == DlgAnsw) && reinterpret_cast<TDlgAnswer*>(element)->EndDialog)
+		 res += " (END)";
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLog(LogPath + "\\exceptions.log",
+			   "DlgClass::CreateContainerCaption: " + e.ToString());
+	 }
+
+  return res;
 }
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -1252,8 +1285,8 @@ TLabel *TDlgBaseText::CreateContainer(TForm *owner)
   res->WordWrap = true;
   res->Transparent = false;
   res->Cursor = crArrow;
-  res->Width = 180;
-  res->Height = 120;
+  res->Width = CONTAINER_WIDTH;
+  res->Height = CONTAINER_HEIGHT;
   res->Top = Top;
   res->Left = Left;
   res->Tag = ID;
@@ -1281,11 +1314,6 @@ void TDlgBaseText::SetContainerData()
 		  case DlgScript: Container->Color = (TColor)SCRIPT_COLOR; break;
 		}
 
-	  if ((Type == DlgAnsw) && reinterpret_cast<TDlgAnswer*>(this)->EndDialog)
-		Container->Caption = "[Dialog: " + IntToStr(CardOfDialog) + " (END)]\r\n\r\n";
-	  else
-		Container->Caption = "[Dialog: " + IntToStr(CardOfDialog) + "]\r\n\r\n";
-
 	  String text;
 
 	  if (Text.Length() >= 50)
@@ -1293,9 +1321,8 @@ void TDlgBaseText::SetContainerData()
 	  else
 		text = Text;
 
-	  text = Container->Caption + text;
-	  Container->Caption = text;
-    }
+	  Container->Caption = CreateContainerCaption(this) + "\r\n\r\n" + text;
+	}
 }
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------

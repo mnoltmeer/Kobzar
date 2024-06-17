@@ -40,6 +40,9 @@ This file is part of Kobzar Engine.
 #define ANSW_COLOR 0xFFC133
 #define SCRIPT_COLOR 0x33FF3C
 
+#define CONTAINER_WIDTH 220
+#define CONTAINER_HEIGHT 150
+
 enum DlgActions
 	 {ActNone = 0,
 	  PlaceText = 1,
@@ -305,5 +308,6 @@ void XMLExport(const wchar_t *path);
 void ClearItems();
 void BuildLinksAfterXMLImport();
 void RemoveLimboLinks();
+String CreateContainerCaption(TDlgBaseText *element);
 
 #endif
