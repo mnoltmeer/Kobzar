@@ -34,13 +34,15 @@ __published:	// IDE-managed Components
 	TMemo *Text;
 	TEdit *CardOfDialog;
 	TLabel *Label1;
-	TBitBtn *Confirm;
-	TBitBtn *Discard;
 	TLabel *Label3;
 	TEdit *ID;
-	void __fastcall DiscardClick(TObject *Sender);
-	void __fastcall ConfirmClick(TObject *Sender);
 	void __fastcall FormShow(TObject *Sender);
+	void __fastcall IDChange(TObject *Sender);
+	void __fastcall CardOfDialogChange(TObject *Sender);
+    void __fastcall EditExit(TObject *Sender);
+	void __fastcall EditKeyUp(TObject *Sender, WORD &Key, TShiftState Shift);
+	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
+	void __fastcall TextChange(TObject *Sender);
 private:	// User declarations
 public:		// User declarations
 	__fastcall TEditTextForm(TComponent* Owner);

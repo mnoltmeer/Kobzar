@@ -4,8 +4,8 @@ object EditTextForm: TEditTextForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Edit ScreenText'
-  ClientHeight = 298
-  ClientWidth = 435
+  ClientHeight = 368
+  ClientWidth = 499
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13,6 +13,7 @@ object EditTextForm: TEditTextForm
   Font.Name = 'Tahoma'
   Font.Style = []
   Position = poOwnerFormCenter
+  OnClose = FormClose
   OnShow = FormShow
   TextHeight = 13
   object Label1: TLabel
@@ -44,44 +45,35 @@ object EditTextForm: TEditTextForm
   object Text: TMemo
     Left = 2
     Top = 34
-    Width = 425
-    Height = 223
+    Width = 495
+    Height = 326
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -17
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
     TabOrder = 0
+    OnChange = TextChange
   end
   object CardOfDialog: TEdit
-    Left = 164
+    Left = 166
     Top = 7
     Width = 39
     Height = 21
     TabOrder = 1
-  end
-  object Confirm: TBitBtn
-    Left = 260
-    Top = 263
-    Width = 75
-    Height = 25
-    Caption = 'Confirm'
-    Kind = bkOK
-    NumGlyphs = 2
-    TabOrder = 2
-    OnClick = ConfirmClick
-  end
-  object Discard: TBitBtn
-    Left = 352
-    Top = 263
-    Width = 75
-    Height = 25
-    Caption = 'Discard'
-    Kind = bkNo
-    NumGlyphs = 2
-    TabOrder = 3
-    OnClick = DiscardClick
+    OnChange = CardOfDialogChange
+    OnExit = EditExit
+    OnKeyUp = EditKeyUp
   end
   object ID: TEdit
     Left = 22
     Top = 7
     Width = 41
     Height = 21
-    TabOrder = 4
+    TabOrder = 2
+    OnChange = IDChange
+    OnExit = EditExit
+    OnKeyUp = EditKeyUp
   end
 end

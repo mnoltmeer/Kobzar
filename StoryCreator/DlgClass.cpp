@@ -33,7 +33,7 @@ extern TPopupMenu *pp;
 extern bool changed;
 extern TStringGrid *pl;
 extern String LogPath;
-extern String QuestLibFile;
+extern bool NoWarningsAtImport;
 
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
@@ -402,6 +402,8 @@ bool LoadDlgSchema(const wchar_t *file)
 
   try
 	 {
+	   NoWarningsAtImport = true;
+
 	   std::unique_ptr<TFileStream> fs(new TFileStream(file, fmOpenRead));
 
 	   ClearItems();
@@ -484,6 +486,7 @@ bool LoadDlgSchema(const wchar_t *file)
 
 	   StoryCreator->VisualiseElements();
 	   StoryCreator->Repaint();
+	   NoWarningsAtImport = false;
 
 	   res = true;
 	 }
@@ -593,6 +596,8 @@ void XMLImport(String xml_file)
 {
   try
 	 {
+	   NoWarningsAtImport = true;
+
 	   std::unique_ptr<TXMLDocument> ixml(new TXMLDocument(Application));
 
 	   ClearItems();
@@ -699,6 +704,7 @@ void XMLImport(String xml_file)
 		StoryCreator->VisualiseElements();
 		BuildLinksAfterXMLImport();
 		StoryCreator->Repaint();
+		NoWarningsAtImport = false;
 	 }
   catch (Exception &e)
 	 {
@@ -995,10 +1001,11 @@ void TDlgBaseText::SetID(int val)
 
   if (SearchDependeciesID(old_id) > 0)
 	{
-	  if (MessageBox(Application->Handle,
+	  if (NoWarningsAtImport ||
+		  (MessageBox(Application->Handle,
 					 L"Founded linked elements.\nRebuild links?",
 					 String("Element ID: " + IntToStr(ID) + " report").c_str(),
-					 MB_YESNO | MB_ICONWARNING) == mrYes)
+					 MB_YESNO | MB_ICONWARNING) == mrYes))
 		{
 		  UpdateLinkedID(old_id, id);
 		}
@@ -1034,12 +1041,13 @@ void TDlgBaseText::SetLinkedID(int val)
 	}
   else
 	{
-	  if (MessageBox(Application->Handle,
+	  if (NoWarningsAtImport ||
+		  (MessageBox(Application->Handle,
 					 String("No TEXT_LIKE element with ID = LinkedID (" +
 					 IntToStr(val) +
 					 ").\nSet value anyway?").c_str(),
 					 String("Element ID: " + IntToStr(ID) + " report").c_str(),
-					 MB_YESNO | MB_ICONWARNING) == mrYes)
+					 MB_YESNO | MB_ICONWARNING) == mrYes))
 		{
 		  l_id = val;
           cd = -1;
@@ -1076,12 +1084,13 @@ void TDlgBaseText::SetLinkedFromID(int val)
 	}
   else
 	{
-	  if (MessageBox(Application->Handle,
+	  if (NoWarningsAtImport ||
+		  (MessageBox(Application->Handle,
 					 String("No TEXT_LIKE element with ID = LinkedFromID (" +
 							IntToStr(val) +
 							").\nSet value anyway?").c_str(),
 					 String("Element ID: " + IntToStr(ID) + " report").c_str(),
-					 MB_YESNO | MB_ICONWARNING) == mrYes)
+					 MB_YESNO | MB_ICONWARNING) == mrYes))
 		{
 		  l_fr_id = val;
           ncd = -1;
@@ -1112,12 +1121,13 @@ void TDlgBaseText::SetCardOfDialog(int val)
 
 	  if (FindAnswersByDialog(cd, &lnks) > 0)
 		{
-		  if (MessageBox(Application->Handle,
+		  if (NoWarningsAtImport ||
+			  (MessageBox(Application->Handle,
 						 String("Founded ANSW_LIKE elements with CardOfDialog = " +
 								IntToStr(cd) +
 								".\nCreate links?").c_str(),
 						 String("Element ID: " + IntToStr(ID) + " report").c_str(),
-						 MB_YESNO | MB_ICONASTERISK) == mrYes)
+						 MB_YESNO | MB_ICONASTERISK) == mrYes))
 			{
 			  for (int i = 0; i < lnks.size(); i++)
 				 lnks[i]->LinkedID = ID;
@@ -1126,10 +1136,11 @@ void TDlgBaseText::SetCardOfDialog(int val)
 
 	  if ((old != cd) && (SearchDependeciesDialog(old) > 0))
 		{
-          if (MessageBox(Application->Handle,
+		  if (NoWarningsAtImport ||
+			  (MessageBox(Application->Handle,
 						 String("Founded links of old ANSW_LIKE elements.\nRebuild this links?").c_str(),
 						 String("Element ID: " + IntToStr(ID) + " report").c_str(),
-						 MB_YESNO | MB_ICONASTERISK) == mrYes)
+						 MB_YESNO | MB_ICONASTERISK) == mrYes))
 			{
 			  UpdateCardOfDialog(old, CardOfDialog);
 			}

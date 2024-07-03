@@ -50,25 +50,56 @@ void __fastcall TEditTextForm::FormShow(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TEditTextForm::DiscardClick(TObject *Sender)
+void __fastcall TEditTextForm::IDChange(TObject *Sender)
 {
-  Choice = ActNone;
-  Close();
+  changed = true;
+
+  StoryCreator->PropList->Cells[1][0] = ID->Text;
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TEditTextForm::ConfirmClick(TObject *Sender)
+void __fastcall TEditTextForm::CardOfDialogChange(TObject *Sender)
 {
-  StoryCreator->PropList->Cells[1][0] = ID->Text;
-  StoryCreator->PropList->Cells[1][3] = CardOfDialog->Text;
+  changed = true;
 
-  if (Selected->Text != Text->Text)
-	changed = true;
+  StoryCreator->PropList->Cells[1][3] = CardOfDialog->Text;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditTextForm::EditExit(TObject *Sender)
+{
+  TEdit *edit = dynamic_cast<TEdit*>(Sender);
+
+  if (edit->Name == "ID")
+	StoryCreator->ChangeID(edit->Text.ToInt());
+  else if (edit->Name == "CardOfDialog")
+	StoryCreator->ChangeCardOfDialog(edit->Text.ToInt());
+
+  UpdateItemsList(StoryCreator->ItemList);
+  StoryCreator->Repaint();
+  Selected->SetContainerData();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditTextForm::EditKeyUp(TObject *Sender, WORD &Key, TShiftState Shift)
+
+{
+  if (Key == 13)
+	dynamic_cast<TEdit*>(Sender)->OnExit(Sender);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditTextForm::FormClose(TObject *Sender, TCloseAction &Action)
+{
+  Choice = ActNone;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditTextForm::TextChange(TObject *Sender)
+{
+  changed = true;
 
   Selected->Text = Text->Text;
-
-  StoryCreator->ChangeElement();
-  Choice = ActNone;
-  Close();
+  Selected->SetContainerData();
 }
 //---------------------------------------------------------------------------

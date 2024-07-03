@@ -4,7 +4,7 @@ object EditScriptForm: TEditScriptForm
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Edit Script'
-  ClientHeight = 375
+  ClientHeight = 345
   ClientWidth = 594
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -13,6 +13,7 @@ object EditScriptForm: TEditScriptForm
   Font.Name = 'Tahoma'
   Font.Style = []
   Position = poOwnerFormCenter
+  OnClose = FormClose
   OnShow = FormShow
   TextHeight = 13
   object Label1: TLabel
@@ -60,54 +61,27 @@ object EditScriptForm: TEditScriptForm
     Width = 39
     Height = 21
     TabOrder = 0
-  end
-  object Confirm: TBitBtn
-    Left = 422
-    Top = 343
-    Width = 75
-    Height = 25
-    Caption = 'Confirm'
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -11
-    Font.Name = 'Tahoma'
-    Font.Style = []
-    Kind = bkOK
-    NumGlyphs = 2
-    ParentFont = False
-    TabOrder = 1
-    OnClick = ConfirmClick
-  end
-  object Discard: TBitBtn
-    Left = 514
-    Top = 343
-    Width = 75
-    Height = 25
-    Caption = 'Discard'
-    Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -11
-    Font.Name = 'Tahoma'
-    Font.Style = []
-    Kind = bkNo
-    NumGlyphs = 2
-    ParentFont = False
-    TabOrder = 2
-    OnClick = DiscardClick
+    OnChange = CardOfDialogChange
+    OnExit = EditExit
+    OnKeyUp = EditKeyUp
   end
   object ID: TEdit
-    Left = 24
-    Top = 7
+    Left = 27
+    Top = 8
     Width = 41
     Height = 21
-    TabOrder = 3
+    TabOrder = 1
+    OnChange = IDChange
+    OnExit = EditExit
+    OnKeyUp = EditKeyUp
   end
   object Params: TEdit
-    Left = 285
+    Left = 282
     Top = 8
     Width = 304
     Height = 21
-    TabOrder = 4
+    TabOrder = 2
+    OnChange = ParamsChange
   end
   object Text: TRichEdit
     Left = 3
@@ -116,13 +90,14 @@ object EditScriptForm: TEditScriptForm
     Height = 302
     Font.Charset = RUSSIAN_CHARSET
     Font.Color = clWindowText
-    Font.Height = -11
+    Font.Height = -17
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
     ScrollBars = ssBoth
-    TabOrder = 5
+    TabOrder = 3
     WantTabs = True
+    OnChange = TextChange
     OnKeyPress = TextKeyPress
     OnKeyUp = TextKeyUp
   end

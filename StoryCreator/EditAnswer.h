@@ -33,8 +33,6 @@ __published:	// IDE-managed Components
 	TLabel *Label1;
 	TEdit *CardOfDialog;
 	TMemo *Text;
-	TBitBtn *Confirm;
-	TBitBtn *Discard;
 	TLabel *Label2;
 	TEdit *NextCardOfDialog;
 	TLabel *Label3;
@@ -45,14 +43,22 @@ __published:	// IDE-managed Components
 	TEdit *LinkedFromID;
 	TCheckBox *EndDialog;
 	void __fastcall FormShow(TObject *Sender);
-	void __fastcall ConfirmClick(TObject *Sender);
-	void __fastcall DiscardClick(TObject *Sender);
+	void __fastcall TextChange(TObject *Sender);
+	void __fastcall IDChange(TObject *Sender);
+	void __fastcall CardOfDialogChange(TObject *Sender);
+	void __fastcall NextCardOfDialogChange(TObject *Sender);
+	void __fastcall LinkedIDChange(TObject *Sender);
+	void __fastcall LinkedFromIDChange(TObject *Sender);
+	void __fastcall EndDialogClick(TObject *Sender);
+	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
+
+	void __fastcall EditExit(TObject *Sender);
+	void __fastcall EditKeyUp(TObject *Sender, WORD &Key, TShiftState Shift);
 private:	// User declarations
-    void __fastcall ApplyThemeOnGUI();
+	void __fastcall ApplyThemeOnGUI();
+
 public:		// User declarations
 	__fastcall TEditAnswerForm(TComponent* Owner);
-
-	void __fastcall UpdateInfo();
 };
 //---------------------------------------------------------------------------
 extern PACKAGE TEditAnswerForm *EditAnswerForm;

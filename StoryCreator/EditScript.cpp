@@ -58,39 +58,6 @@ void __fastcall TEditScriptForm::FormShow(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TEditScriptForm::DiscardClick(TObject *Sender)
-{
-  Choice = ActNone;
-  Close();
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TEditScriptForm::ConfirmClick(TObject *Sender)
-{
-  StoryCreator->PropList->Cells[1][0] = ID->Text;
-  StoryCreator->PropList->Cells[1][3] = CardOfDialog->Text;
-
-  TDlgScript *tmp = dynamic_cast<TDlgScript*>(Selected);
-
-  Text->PlainText = true;
-
-  if (Selected->Text != Text->Text)
-	changed = true;
-  else if (tmp->Params != Params->Text)
-	changed = true;
-
-  tmp->Params = Params->Text;
-  Selected->Text = Text->Text;
-  Text->PlainText = false;
-
-  dynamic_cast<TDlgScript*>(Selected)->Params = Params->Text;
-
-  StoryCreator->ChangeElement();
-  Choice = ActNone;
-  Close();
-}
-//---------------------------------------------------------------------------
-
 void __fastcall TEditScriptForm::TextKeyUp(TObject *Sender, WORD &Key, TShiftState Shift)
 {
   if (Key == 120)
@@ -148,5 +115,66 @@ void __fastcall TEditScriptForm::TextKeyPress(TObject *Sender, System::WideChar 
 		}
 	  default:break;
 	}
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditScriptForm::EditExit(TObject *Sender)
+{
+  TEdit *edit = dynamic_cast<TEdit*>(Sender);
+
+  if (edit->Name == "ID")
+	StoryCreator->ChangeID(edit->Text.ToInt());
+  else if (edit->Name == "CardOfDialog")
+	StoryCreator->ChangeCardOfDialog(edit->Text.ToInt());
+
+  UpdateItemsList(StoryCreator->ItemList);
+  StoryCreator->Repaint();
+  Selected->SetContainerData();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditScriptForm::EditKeyUp(TObject *Sender, WORD &Key, TShiftState Shift)
+{
+  if (Key == 13)
+	dynamic_cast<TEdit*>(Sender)->OnExit(Sender);
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditScriptForm::ParamsChange(TObject *Sender)
+{
+  changed = true;
+
+  dynamic_cast<TDlgScript*>(Selected)->Params = Params->Text;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditScriptForm::TextChange(TObject *Sender)
+{
+  changed = true;
+
+  Selected->Text = Text->Text;
+  Selected->SetContainerData();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditScriptForm::IDChange(TObject *Sender)
+{
+  changed = true;
+
+  StoryCreator->PropList->Cells[1][0] = ID->Text;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditScriptForm::CardOfDialogChange(TObject *Sender)
+{
+  changed = true;
+
+  StoryCreator->PropList->Cells[1][3] = CardOfDialog->Text;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditScriptForm::FormClose(TObject *Sender, TCloseAction &Action)
+{
+  Choice = ActNone;
 }
 //---------------------------------------------------------------------------

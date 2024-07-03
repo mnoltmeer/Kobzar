@@ -59,6 +59,8 @@ TXMLDocument *ixml;
 
 int MouseX, MouseY;
 bool drag;
+bool NoWarningsAtImport; //прапорець, що відключає підтвердження встановлення невалідних
+						 //значень для елементів, використовується під час імпорту з файлу
 //---------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------
@@ -95,6 +97,8 @@ __fastcall TStoryCreator::TStoryCreator(TComponent* Owner)
 	WindowState = wsMaximized;
   else
 	WindowState = wsNormal;
+
+  NoWarningsAtImport = false;
 }
 //---------------------------------------------------------------------------
 
@@ -550,7 +554,7 @@ void __fastcall TStoryCreator::VisualiseElements()
 
 void __fastcall TStoryCreator::SaveCurrentProject(bool confirm)
 {
-  if (confirm)
+  if (confirm && changed)
 	{
 	  if (MessageDlg("Save current project?",
 					 mtWarning,
@@ -559,7 +563,7 @@ void __fastcall TStoryCreator::SaveCurrentProject(bool confirm)
 		  MenuSave->Click();
 		}
 	}
-  else
+  else if (changed)
     MenuSave->Click();
 }
 //---------------------------------------------------------------------------
@@ -801,46 +805,6 @@ void __fastcall TStoryCreator::FormResize(TObject *Sender)
 void __fastcall TStoryCreator::PreparePalette()
 {
   Palette->Left = ClientWidth - Palette->Width;
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TStoryCreator::ChangeElement()
-{
-  try
-	 {
-	   if (Selected)
-		 {
-		   int cd = PropList->Cells[1][3].ToInt(),
-			   ncd = PropList->Cells[1][4].ToInt(),
-			   l_id = PropList->Cells[1][1].ToInt(),
-			   l_fr_id = PropList->Cells[1][2].ToInt(),
-			   id = PropList->Cells[1][0].ToInt(),
-			   x = PropList->Cells[1][5].ToInt(),
-			   y = PropList->Cells[1][6].ToInt();
-
-		   ChangeID(id); //ID
-           ChangeCardOfDialog(cd); //CardOfDialog
-		   ChangeNextCardOfDialog(ncd); //NextCardOfDialog
-           ChangeLinkedID(l_id); //LinkedID
-		   ChangeLinkedFromID(l_fr_id); //LinkedFromID
-
-		   if (Selected->InLink.X != x) //Pos X
-			 Selected->Left = x;
-
-		   if (Selected->InLink.Y != y) //Pos Y
-			 Selected->Top = y;
-
-		   UpdateItemsList(ItemList);
-           Selected->SetContainerData();
-		   Repaint();
-		   PropList->Cols[1]->Clear();
-		   Selected->GiveInfo(PropList->Cols[1]);
-		 }
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLog(LogPath + "\\exceptions.log", "ChangeElements: " + e.ToString());
-	 }
 }
 //---------------------------------------------------------------------------
 

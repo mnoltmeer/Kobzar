@@ -45,12 +45,6 @@ __fastcall TEditAnswerForm::TEditAnswerForm(TComponent* Owner)
 
 void __fastcall TEditAnswerForm::FormShow(TObject *Sender)
 {
-  UpdateInfo();
-}
-//---------------------------------------------------------------------------
-
-void __fastcall TEditAnswerForm::UpdateInfo()
-{
   Text->Text = Selected->Text;
   CardOfDialog->Text = IntToStr(Selected->CardOfDialog);
   NextCardOfDialog->Text = IntToStr(Selected->NextCardOfDialog);
@@ -61,36 +55,98 @@ void __fastcall TEditAnswerForm::UpdateInfo()
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TEditAnswerForm::ConfirmClick(TObject *Sender)
+void __fastcall TEditAnswerForm::TextChange(TObject *Sender)
 {
-  StoryCreator->PropList->Cells[1][0] = ID->Text;
-  StoryCreator->PropList->Cells[1][3] = CardOfDialog->Text;
-  StoryCreator->PropList->Cells[1][4] = NextCardOfDialog->Text;
-  StoryCreator->PropList->Cells[1][1] = LinkedID->Text;
-  StoryCreator->PropList->Cells[1][2] = LinkedFromID->Text;
-
-  if (Selected->Text != Text->Text)
-	changed = true;
+  changed = true;
 
   Selected->Text = Text->Text;
+  Selected->SetContainerData();
+}
+//---------------------------------------------------------------------------
 
-  StoryCreator->ChangeElement();
+void __fastcall TEditAnswerForm::IDChange(TObject *Sender)
+{
+  changed = true;
+
+  StoryCreator->PropList->Cells[1][0] = ID->Text;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditAnswerForm::CardOfDialogChange(TObject *Sender)
+{
+  changed = true;
+
+  StoryCreator->PropList->Cells[1][3] = CardOfDialog->Text;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditAnswerForm::NextCardOfDialogChange(TObject *Sender)
+{
+  changed = true;
+
+  StoryCreator->PropList->Cells[1][4] = NextCardOfDialog->Text;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditAnswerForm::LinkedIDChange(TObject *Sender)
+{
+  changed = true;
+
+  StoryCreator->PropList->Cells[1][1] = LinkedID->Text;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditAnswerForm::LinkedFromIDChange(TObject *Sender)
+{
+  changed = true;
+
+  StoryCreator->PropList->Cells[1][2] = LinkedFromID->Text;
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditAnswerForm::EndDialogClick(TObject *Sender)
+{
+  changed = true;
 
   TDlgAnswer *itm = dynamic_cast<TDlgAnswer*>(Selected);
 
   itm->EndDialog = EndDialog->Checked;
-  StoryCreator->Repaint();
-
-  Choice = ActNone;
-  Close();
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TEditAnswerForm::DiscardClick(TObject *Sender)
+void __fastcall TEditAnswerForm::FormClose(TObject *Sender, TCloseAction &Action)
 {
   Choice = ActNone;
-  Close();
 }
 //---------------------------------------------------------------------------
 
+void __fastcall TEditAnswerForm::EditExit(TObject *Sender)
+{
+  TEdit *edit = dynamic_cast<TEdit*>(Sender);
 
+  if (edit->Name == "ID")
+	StoryCreator->ChangeID(edit->Text.ToInt());
+  else if (edit->Name == "CardOfDialog")
+	StoryCreator->ChangeCardOfDialog(edit->Text.ToInt());
+  else if (edit->Name == "NextCardOfDialog")
+	StoryCreator->ChangeNextCardOfDialog(edit->Text.ToInt());
+  else if (edit->Name == "LinkedID")
+	StoryCreator->ChangeLinkedID(edit->Text.ToInt());
+  else if (edit->Name == "LinkedFromID")
+	StoryCreator->ChangeLinkedFromID(edit->Text.ToInt());
+
+  LinkedID->Text = IntToStr(Selected->LinkedID);
+  LinkedFromID->Text = IntToStr(Selected->LinkedFromID);
+  UpdateItemsList(StoryCreator->ItemList);
+  StoryCreator->Repaint();
+  Selected->SetContainerData();
+}
+//---------------------------------------------------------------------------
+
+void __fastcall TEditAnswerForm::EditKeyUp(TObject *Sender, WORD &Key, TShiftState Shift)
+
+{
+  if (Key == 13)
+	dynamic_cast<TEdit*>(Sender)->OnExit(Sender);
+}
+//---------------------------------------------------------------------------

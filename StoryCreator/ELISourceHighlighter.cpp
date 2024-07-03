@@ -315,11 +315,7 @@ bool LexemeExists(const wchar_t *text)
   for (int i = 0; i < ExpColors.size(); i++)
 	 {
 	   if (_wcscmpi(ExpColors[i].Expression, text) == 0)
-		 {
-		   MessageBox(NULL, ExpColors[i].Expression, L"", MB_OK);
-		   return true;
-
-         }
+		 return true;
 	 }
 
   return false;

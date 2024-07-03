@@ -185,8 +185,6 @@ public:		// User declarations
 									   TShiftState Shift,
 									   int X, int Y);
 
-	void __fastcall ChangeElement(); //используется после изменения свойств елемента
-									 //проверяет и перестраивает связи
 	void __fastcall ChangeID(int new_val);
 	void __fastcall ChangeCardOfDialog(int new_val);
 	void __fastcall ChangeNextCardOfDialog(int new_val);

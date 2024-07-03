@@ -33,18 +33,21 @@ class TEditScriptForm : public TForm
 __published:	// IDE-managed Components
 	TLabel *Label1;
 	TEdit *CardOfDialog;
-	TBitBtn *Confirm;
-	TBitBtn *Discard;
 	TEdit *ID;
 	TLabel *Label3;
 	TEdit *Params;
 	TLabel *Label2;
 	TRichEdit *Text;
 	void __fastcall FormShow(TObject *Sender);
-	void __fastcall DiscardClick(TObject *Sender);
-	void __fastcall ConfirmClick(TObject *Sender);
 	void __fastcall TextKeyUp(TObject *Sender, WORD &Key, TShiftState Shift);
 	void __fastcall TextKeyPress(TObject *Sender, System::WideChar &Key);
+    void __fastcall EditExit(TObject *Sender);
+	void __fastcall EditKeyUp(TObject *Sender, WORD &Key, TShiftState Shift);
+	void __fastcall ParamsChange(TObject *Sender);
+	void __fastcall TextChange(TObject *Sender);
+	void __fastcall IDChange(TObject *Sender);
+	void __fastcall CardOfDialogChange(TObject *Sender);
+	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
 private:	// User declarations
 public:		// User declarations
 	__fastcall TEditScriptForm(TComponent* Owner);
