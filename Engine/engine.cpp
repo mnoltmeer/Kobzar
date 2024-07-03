@@ -708,8 +708,7 @@ bool KobzarEngine::LoadDlgSchema(String file)
 				 {
 				   TDlgScreenText *dl = new TDlgScreenText(id, card_of_dialog);
 
-				   if (text_len > 0)
-					 dl->Text = ReadStringFromBinaryStream(fs.get());
+				   dl->Text = ReadStringFromBinaryStream(fs.get());
 
 				   lnk = dl;
 
@@ -723,8 +722,7 @@ bool KobzarEngine::LoadDlgSchema(String file)
 												   linked_id,
 												   linked_from_id);
 
-				   if (text_len > 0)
-					 dl->Text = ReadStringFromBinaryStream(fs.get());
+				   dl->Text = ReadStringFromBinaryStream(fs.get());
 
 				   fs->Position += fs->Read(&end_dlg, sizeof(bool));
 				   dl->EndDialog = end_dlg;
@@ -742,7 +740,7 @@ bool KobzarEngine::LoadDlgSchema(String file)
 												   linked_from_id);
 
 				   dl->Text = ReadStringFromBinaryStream(fs.get());
-				   dl->Params = ReadStringFromBinaryStream(fs.get(), text_len);
+				   dl->Params = ReadStringFromBinaryStream(fs.get());
 
 				   lnk = dl;
 
@@ -1478,6 +1476,120 @@ const wchar_t *KobzarEngine::GetResult()
 	 }
 
   return res;
+}
+//---------------------------------------------------------------------------
+
+int KobzarEngine::TellStory(const wchar_t *story_file)
+{
+  int res = -1;
+
+  try
+	 {
+	   if (!LoadStory(story_file))
+		 throw Exception("Can't load story");
+	   else if (!Activate(1))
+		 throw Exception("Missing first element");
+	   else if (GetType() != 1)
+		 throw Exception("First element isn't a Scene");
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::TellStory", e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+const wchar_t *KobzarEngine::GetScene()
+{
+  const wchar_t *res = nullptr;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active Scene!");
+	   else
+         res = ActiveItem->Text.c_str();
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetScene", e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int KobzarEngine::GetAnswerCount()
+{
+  int res = -1;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active Scene!");
+	   else
+		 {
+		   std::vector<TDlgBaseText*> answers;
+
+		   res = FindAnswersByDialog(ActiveItem->ID, &answers);
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetAnswerCount", e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+const wchar_t *KobzarEngine::GetAnswer(int index)
+{
+  const wchar_t *res = nullptr;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active Scene!");
+	   else
+		 {
+		   std::vector<TDlgBaseText*> answers;
+
+		   FindAnswersByDialog(ActiveItem->ID, &answers);
+
+		   res = answers[index]->Text.c_str();
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetAnswer", e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+void KobzarEngine::SelectAnswer(int index)
+{
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active Scene!");
+       else
+		 {
+		   std::vector<TDlgBaseText*> answers;
+
+		   FindAnswersByDialog(ActiveItem->ID, &answers);
+
+		   Activate(answers[index]->LinkedFromID); //робимо активною Сцену яка йде після обраної Відповіді
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::SelectAnswer", e.ToString());
+	 }
 }
 //---------------------------------------------------------------------------
 

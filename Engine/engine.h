@@ -80,7 +80,7 @@ class KobzarEngine: public KE_INTERFACE
 
 	virtual const wchar_t * __stdcall GetVersion();
     virtual const wchar_t* __stdcall GetLastError();
-    virtual int __stdcall CreateStory(const wchar_t *story_file);
+	virtual int __stdcall CreateStory(const wchar_t *story_file);
 	virtual int __stdcall LoadStory(const wchar_t *story_file);
 	virtual int __stdcall SaveStory();
 	virtual void __stdcall CloseStory();
@@ -111,6 +111,12 @@ class KobzarEngine: public KE_INTERFACE
 	virtual const wchar_t* __stdcall GetParams();
 	virtual void __stdcall SetParams(const wchar_t *val);
 	virtual const wchar_t* __stdcall GetResult();
+
+	virtual int __stdcall TellStory(const wchar_t *story_file);
+	virtual const wchar_t *__stdcall GetScene();
+	virtual int __stdcall GetAnswerCount();
+	virtual const wchar_t *__stdcall GetAnswer(int index);
+    virtual void __stdcall SelectAnswer(int index);
 
     static void __stdcall eFoo(void *p);
 };
