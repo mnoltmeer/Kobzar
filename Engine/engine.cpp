@@ -122,7 +122,7 @@ int KobzarEngine::LoadStory(const wchar_t *story_file)
 	 {
 	   String file = ParseString(String(story_file), "\\\\", GetDirPathFromFilePath(String(path)));
 
-	   if (UpperCase(file) == "SCS")
+	   if (UpperCase(GetFileExtensionFromFileName(file)) == "SCS")
 		 LoadDlgSchema(file);
 	   else
 		 XMLImport(file);
@@ -281,23 +281,8 @@ int KobzarEngine::RunScript(int id)
 
 	   if (!itm)
 		 throw Exception("Element with ID = " + IntToStr(id) + " not found");
-	   else if (itm->Type != DlgScript)
-		 throw Exception("Element with ID = " + IntToStr(itm->ID) + ", is not a Script");
 	   else
-		 {
-		   std::unique_ptr<ELIScript> script(new ELIScript(GetDirPathFromFilePath(String(path)) + "\\ELI.dll"));
-		   String header = "#begin Script_" + IntToStr(itm->ID) + ";\r\n#protect\r\n{\r\n";
-		   String footer = "\r\n}\r\n#end;";
-
-		   LoadFunctionsToELI(script->Interpreter);
-		   script->Text = header + itm->Text + footer;
-		   script->Params = itm->Params;
-
-		   if (!script->Run())
-			 throw Exception(script->Log);
-		   else
-			 itm->Result = script->Result;
-         }
+		 res = RunScript(itm);
 	 }
   catch (Exception &e)
 	 {
@@ -529,7 +514,7 @@ int KobzarEngine::FindLinkedElements(int id, std::vector<TDlgBaseText*> *el_list
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::FindAnswersByDialog(int dlg_id, std::vector<TDlgBaseText*> *el_list)
+int KobzarEngine::FindAnswersByDialog(int dlg_id, std::vector<TDlgAnswer*> *el_list)
 {
   int cnt = 0;
 
@@ -540,11 +525,10 @@ int KobzarEngine::FindAnswersByDialog(int dlg_id, std::vector<TDlgBaseText*> *el
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		 {
-		   if ((items[i]->CardOfDialog == dlg_id) &&
-			   (items[i]->Type != DlgText))
+		   if ((items[i]->CardOfDialog == dlg_id) && (items[i]->Type == DlgAnsw))
 			 {
 			   cnt++;
-			   el_list->push_back(items[i]);
+			   el_list->push_back(reinterpret_cast<TDlgAnswer*>(items[i]));
 			 }
 		 }
 	 }
@@ -558,7 +542,35 @@ int KobzarEngine::FindAnswersByDialog(int dlg_id, std::vector<TDlgBaseText*> *el
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::FindTextElementID(int crd_dlg)
+int KobzarEngine::FindScriptsByDialog(int dlg_id, std::vector<TDlgScript*> *el_list)
+{
+  int cnt = 0;
+
+  if (dlg_id == -1)
+	return 0;
+
+  try
+	 {
+	   for (int i = 0; i < items.size(); i++)
+		 {
+		   if ((items[i]->CardOfDialog == dlg_id) && (items[i]->Type == DlgScript))
+			 {
+			   cnt++;
+			   el_list->push_back(reinterpret_cast<TDlgScript*>(items[i]));
+			 }
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::FindScriptsByDialog", e.ToString());
+	   cnt = -1;
+	 }
+
+  return cnt;
+}
+//---------------------------------------------------------------------------
+
+int KobzarEngine::FindTextElementID(int dlg_id)
 {
   int res = -1;
 
@@ -566,7 +578,7 @@ int KobzarEngine::FindTextElementID(int crd_dlg)
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		 {
-		   if ((items[i]->CardOfDialog == crd_dlg) &&
+		   if ((items[i]->CardOfDialog == dlg_id) &&
 			   (items[i]->Type == DlgText))
 			 {
 			   res = items[i]->ID;
@@ -847,6 +859,46 @@ void KobzarEngine::UpdateCardOfDialog(int old_val, int new_val)
 	 {
 	   CreateLog("KobzarEngine::UpdateCardOfDialog", e.ToString());
 	 }
+}
+//---------------------------------------------------------------------------
+
+int KobzarEngine::RunScript(TDlgScript *el)
+{
+  int res = 1;
+
+  try
+	 {
+	   if (!el)
+		 throw Exception("Element not found");
+	   else if (el->Type != DlgScript)
+		 throw Exception("Element with ID = " + IntToStr(el->ID) + ", is not a Script");
+	   else
+		 {
+		   std::unique_ptr<ELIScript> script(new ELIScript(GetDirPathFromFilePath(String(path)) + "\\ELI.dll"));
+
+		   if (!script->Initialised)
+			 throw Exception("Script object not initialised!");
+
+		   String header = "#begin Script_" + IntToStr(el->ID) + ";\r\n#protect\r\n{\r\n";
+		   String footer = "\r\n}\r\n#end;";
+
+		   LoadFunctionsToELI(script->Interpreter);
+		   script->Text = header + el->Text + footer;
+		   script->Params = el->Params;
+
+		   if (!script->Run())
+			 throw Exception(script->Log);
+		   else
+			 el->Result = script->Result;
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   res = 0;
+	   CreateLog("Story::RunScript", e.ToString());
+	 }
+
+  return res;
 }
 //---------------------------------------------------------------------------
 
@@ -1229,7 +1281,7 @@ void KobzarEngine::SetDialog(int val)
 		   else
 			 {
 			   ActiveItem->CardOfDialog = val;
-			   std::vector<TDlgBaseText*> lnks;
+			   std::vector<TDlgAnswer*> lnks;
 
 			   if (FindAnswersByDialog(ActiveItem->CardOfDialog, &lnks) > 0)
 				 {
@@ -1481,16 +1533,14 @@ const wchar_t *KobzarEngine::GetResult()
 
 int KobzarEngine::TellStory(const wchar_t *story_file)
 {
-  int res = -1;
+  int res = 0;
 
   try
 	 {
 	   if (!LoadStory(story_file))
 		 throw Exception("Can't load story");
-	   else if (!Activate(1))
-		 throw Exception("Missing first element");
-	   else if (GetType() != 1)
-		 throw Exception("First element isn't a Scene");
+	   else
+		 res = LoadDialog(0);
 	 }
   catch (Exception &e)
 	 {
@@ -1501,6 +1551,33 @@ int KobzarEngine::TellStory(const wchar_t *story_file)
 }
 //---------------------------------------------------------------------------
 
+int KobzarEngine::LoadDialog(int dlg_id)
+{
+  int res = 0;
+
+  try
+	 {
+	   if (Activate(FindTextElementID(dlg_id)))
+		 {
+		   std::vector<TDlgScript*> scripts;
+
+		   FindScriptsByDialog(dlg_id, &scripts);
+
+		   for (int i = 0; i < scripts.size(); i++)
+			  RunScript(scripts[i]);
+
+           res = 1;
+		 }
+	   else
+         throw Exception("No Scene in dialog with ID = " + IntToStr(dlg_id));
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::LoadScene", e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
 const wchar_t *KobzarEngine::GetScene()
 {
   const wchar_t *res = nullptr;
@@ -1508,9 +1585,11 @@ const wchar_t *KobzarEngine::GetScene()
   try
 	 {
 	   if (!ActiveItem)
-		 throw Exception("No active Scene!");
+		 throw Exception("No active element!");
+	   else if (ActiveItem->Type != DlgText)
+		 throw Exception("Active element isn't a Scene");
 	   else
-         res = ActiveItem->Text.c_str();
+		 res = ActiveItem->Text.c_str();
 	 }
   catch (Exception &e)
 	 {
@@ -1528,12 +1607,14 @@ int KobzarEngine::GetAnswerCount()
   try
 	 {
 	   if (!ActiveItem)
-		 throw Exception("No active Scene!");
+		 throw Exception("No active element!");
+	   else if (ActiveItem->Type != DlgText)
+		 throw Exception("Active element isn't a Scene");
 	   else
 		 {
-		   std::vector<TDlgBaseText*> answers;
+		   std::vector<TDlgAnswer*> answers;
 
-		   res = FindAnswersByDialog(ActiveItem->ID, &answers);
+		   res = FindAnswersByDialog(ActiveItem->CardOfDialog, &answers);
 		 }
 	 }
   catch (Exception &e)
@@ -1552,10 +1633,10 @@ const wchar_t *KobzarEngine::GetAnswer(int index)
   try
 	 {
 	   if (!ActiveItem)
-		 throw Exception("No active Scene!");
+		 throw Exception("No active element!");
 	   else
 		 {
-		   std::vector<TDlgBaseText*> answers;
+		   std::vector<TDlgAnswer*> answers;
 
 		   FindAnswersByDialog(ActiveItem->ID, &answers);
 
@@ -1577,13 +1658,15 @@ void KobzarEngine::SelectAnswer(int index)
 	 {
 	   if (!ActiveItem)
 		 throw Exception("No active Scene!");
+       else if (ActiveItem->Type != DlgText)
+		 throw Exception("Active element isn't a Scene");
        else
 		 {
-		   std::vector<TDlgBaseText*> answers;
+		   std::vector<TDlgAnswer*> answers;
 
-		   FindAnswersByDialog(ActiveItem->ID, &answers);
+		   FindAnswersByDialog(ActiveItem->CardOfDialog, &answers);
 
-		   Activate(answers[index]->LinkedFromID); //робимо активною Сцену яка йде після обраної Відповіді
+		   LoadDialog(answers[index]->NextCardOfDialog);
 		 }
 	 }
   catch (Exception &e)

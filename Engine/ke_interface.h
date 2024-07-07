@@ -23,6 +23,7 @@ This file is part of Kobzar Engine.
 
 struct KE_INTERFACE
 {
+//functions for creating and managing stories
   virtual const wchar_t* __stdcall GetVersion() = 0;
   virtual const wchar_t* __stdcall GetLastError() = 0;
   virtual int __stdcall CreateStory(const wchar_t *story_file) = 0;
@@ -55,6 +56,14 @@ struct KE_INTERFACE
   virtual const wchar_t* __stdcall GetParams() = 0;
   virtual void __stdcall SetParams(const wchar_t *params) = 0;
   virtual const wchar_t* __stdcall GetResult() = 0;
+
+//functions for telling stories
+  virtual int __stdcall TellStory(const wchar_t *story_file) = 0;
+  virtual int __stdcall LoadDialog(int dlg_id) = 0;
+  virtual const wchar_t *__stdcall GetScene() = 0;
+  virtual int __stdcall GetAnswerCount() = 0;
+  virtual const wchar_t *__stdcall GetAnswer(int index) = 0;
+  virtual void __stdcall SelectAnswer(int index) = 0;
 };
 //-------------------------------------------------------------------------------
 

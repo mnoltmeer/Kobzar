@@ -65,12 +65,14 @@ class KobzarEngine: public KE_INTERFACE
 	void RemoveLimboLinks();
 	TDlgBaseText *FindElement(int id);
 	int FindLinkedElements(int id, std::vector<TDlgBaseText*> *el_list);
-	int FindAnswersByDialog(int id, std::vector<TDlgBaseText*> *el_list);
-	int FindTextElementID(int crd_dlg);
+	int FindAnswersByDialog(int dlg_id, std::vector<TDlgAnswer*> *el_list);
+	int FindScriptsByDialog(int dlg_id, std::vector<TDlgScript*> *el_list);
+	int FindTextElementID(int dlg_id);
     int SearchDependeciesID(int id);
 	int SearchDependeciesDialog(int id);
 	void UpdateLinkedID(int old_id, int new_id);
 	void UpdateCardOfDialog(int old_val, int new_val);
+	int RunScript(TDlgScript *el);
 
   //функції візуалізації
 
@@ -113,6 +115,7 @@ class KobzarEngine: public KE_INTERFACE
 	virtual const wchar_t* __stdcall GetResult();
 
 	virtual int __stdcall TellStory(const wchar_t *story_file);
+	virtual int __stdcall LoadDialog(int dlg_id);
 	virtual const wchar_t *__stdcall GetScene();
 	virtual int __stdcall GetAnswerCount();
 	virtual const wchar_t *__stdcall GetAnswer(int index);
