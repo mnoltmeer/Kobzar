@@ -184,7 +184,7 @@ void KobzarEngine::ClearStory()
   try
 	 {
 	   ClearItems();
-       ActiveElement = nullptr;
+	   ActiveItem = nullptr;
 	 }
   catch (Exception &e)
 	 {
@@ -342,18 +342,18 @@ int KobzarEngine::Link(int id, int to_id)
 
 			  if (old_answ) //видалимо прив'язки у старої Відповіді
 				{
-				  old_answ->NextCardOfDialog = -1;
+				  old_answ->NextDialog = -1;
 				  old_answ->LinkedFromID = -1;
 				}
 			}
 
-		  from->NextCardOfDialog = to->CardOfDialog;
+		  from->NextDialog = to->Dialog;
 		  from->LinkedFromID = to->ID;
 		}
 	  else if ((from->Type == DlgText) &&
 			   ((to->Type == DlgAnsw) || (to->Type == DlgScript))) //перший елемент - Сцена, другий - Відповідь
 		{
-		  to->CardOfDialog = from->CardOfDialog;
+		  to->Dialog = from->Dialog;
 		  to->LinkedID = from->ID;
 		}
 	 }
@@ -383,10 +383,10 @@ int KobzarEngine::Unlink(int id, int to_id)
 		 throw Exception("Element with ID = " + IntToStr(to_id) + " not found");
 
 	   if (from->Type == DlgAnsw)
-		 from->NextCardOfDialog = -1;
+		 from->NextDialog = -1;
 
 	   if ((to->Type == DlgAnsw) || (to->Type == DlgScript))
-		 to->CardOfDialog = -1;
+		 to->Dialog = -1;
 
 	   from->LinkedFromID = -1;
 	   to->LinkedID = -1;
@@ -429,8 +429,8 @@ int KobzarEngine::GenDialogID()
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		 {
-		   if (items[i]->CardOfDialog > max)
-			 max = items[i]->CardOfDialog;
+		   if (items[i]->Dialog > max)
+			 max = items[i]->Dialog;
 		 }
 	 }
   catch (Exception &e)
@@ -528,7 +528,7 @@ int KobzarEngine::FindAnswersByDialog(int dlg_id, std::vector<TDlgAnswer*> *el_l
 
 	   for (int i = 0; i < items.size(); i++)
 		 {
-		   if ((items[i]->CardOfDialog == dlg_id) && (items[i]->Type == DlgAnsw))
+		   if ((items[i]->Dialog == dlg_id) && (items[i]->Type == DlgAnsw))
 			 {
 			   cnt++;
 			   el_list->push_back(reinterpret_cast<TDlgAnswer*>(items[i]));
@@ -556,7 +556,7 @@ int KobzarEngine::FindScriptsByDialog(int dlg_id, std::vector<TDlgScript*> *el_l
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		 {
-		   if ((items[i]->CardOfDialog == dlg_id) && (items[i]->Type == DlgScript))
+		   if ((items[i]->Dialog == dlg_id) && (items[i]->Type == DlgScript))
 			 {
 			   cnt++;
 			   el_list->push_back(reinterpret_cast<TDlgScript*>(items[i]));
@@ -581,7 +581,7 @@ int KobzarEngine::FindTextElementID(int dlg_id)
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		 {
-		   if ((items[i]->CardOfDialog == dlg_id) &&
+		   if ((items[i]->Dialog == dlg_id) &&
 			   (items[i]->Type == DlgText))
 			 {
 			   res = items[i]->ID;
@@ -648,10 +648,10 @@ bool KobzarEngine::SaveDlgSchema(String file)
 			val = items[i]->LinkedFromID;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->CardOfDialog;
+			val = items[i]->Dialog;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->NextCardOfDialog;
+			val = items[i]->NextDialog;
 			fs->Position += fs->Write(&val, sizeof(int));
 
 			val = 0;
@@ -814,7 +814,7 @@ int KobzarEngine::SearchDependeciesDialog(int id)
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		  {
-			if (items[i]->CardOfDialog == id)
+			if (items[i]->Dialog == id)
 			  dpnd++;
 		  }
 	 }
@@ -848,19 +848,19 @@ void KobzarEngine::UpdateLinkedID(int old_id, int new_id)
 }
 //---------------------------------------------------------------------------
 
-void KobzarEngine::UpdateCardOfDialog(int old_val, int new_val)
+void KobzarEngine::UpdateDialog(int old_val, int new_val)
 {
   try
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		  {
-			if (items[i]->CardOfDialog == old_val)
-			  items[i]->CardOfDialog = new_val;
+			if (items[i]->Dialog == old_val)
+			  items[i]->Dialog = new_val;
 		  }
 	 }
   catch (Exception &e)
 	 {
-	   CreateLog("KobzarEngine::UpdateCardOfDialog", e.ToString());
+	   CreateLog("KobzarEngine::UpdateDialog", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -920,7 +920,7 @@ void KobzarEngine::XMLImport(String xml_file)
 	   ixml->Options = ixml->Options << doNodeAutoIndent;
 
 	   _di_IXMLNode DialogFile = ixml->DocumentElement;
-	   _di_IXMLNode CardOfDialog;
+	   _di_IXMLNode Dialog;
 	   _di_IXMLNode ScreenText;
 	   _di_IXMLNode AnswerMassive;
 	   _di_IXMLNode Answer;
@@ -931,24 +931,24 @@ void KobzarEngine::XMLImport(String xml_file)
 
 	   for (int i = 0; i < DialogFile->ChildNodes->Count; i++)
 		  {
-			CardOfDialog = DialogFile->ChildNodes->Nodes[i];
+			Dialog = DialogFile->ChildNodes->Nodes[i];
 
-			for (int j = 0; j < CardOfDialog->ChildNodes->Count; j++)
+			for (int j = 0; j < Dialog->ChildNodes->Count; j++)
 			   {
-				 if (CardOfDialog->ChildNodes->Nodes[j]->GetNodeName() == "ScreenText")
+				 if (Dialog->ChildNodes->Nodes[j]->GetNodeName() == "ScreenText")
 				   {
-					 ScreenText = CardOfDialog->ChildNodes->Nodes[j];
-					 curr_card = StrToInt(CardOfDialog->GetAttribute("id"));
+					 ScreenText = Dialog->ChildNodes->Nodes[j];
+					 curr_card = StrToInt(Dialog->GetAttribute("id"));
 
 					 TDlgScreenText *lnk = new TDlgScreenText(GenElementID());
 
-					 lnk->CardOfDialog = curr_card;
+					 lnk->Dialog = curr_card;
 					 lnk->Text = ScreenText->Text;
 					 items.push_back(lnk);
 				   }
 				 else
 				   {
-					 AnswerMassive = CardOfDialog->ChildNodes->Nodes[j];
+					 AnswerMassive = Dialog->ChildNodes->Nodes[j];
 
 					 for (int k = 0; k < AnswerMassive->ChildNodes->Count; k++)
 						{
@@ -958,8 +958,8 @@ void KobzarEngine::XMLImport(String xml_file)
 						  bool end;
 						  String text;
 
-						  if (Answer->HasAttribute("NextCardOfDialog"))
-							ncd = StrToInt(Answer->GetAttribute("NextCardOfDialog"));
+						  if (Answer->HasAttribute("NextDialog"))
+							ncd = StrToInt(Answer->GetAttribute("NextDialog"));
 
 						  ind = Answer->ChildNodes->IndexOf("TextOfAnswer");
 
@@ -979,8 +979,8 @@ void KobzarEngine::XMLImport(String xml_file)
 							{
 							  TDlgScript *lnk = new TDlgScript(GenElementID());
 
-							  lnk->CardOfDialog = curr_card;
-							  lnk->NextCardOfDialog = -1;
+							  lnk->Dialog = curr_card;
+							  lnk->NextDialog = -1;
 							  lnk->Params = Answer->GetAttribute("Params");
 							  lnk->Text = text;
 							  items.push_back(lnk);
@@ -989,8 +989,8 @@ void KobzarEngine::XMLImport(String xml_file)
 							{
 							  TDlgAnswer *answ = new TDlgAnswer(GenElementID());
 
-							  answ->CardOfDialog = curr_card;
-							  answ->NextCardOfDialog = ncd;
+							  answ->Dialog = curr_card;
+							  answ->NextDialog = ncd;
 							  answ->Text = text;
 							  answ->EndDialog = end;
 							  items.push_back(answ);
@@ -1021,8 +1021,8 @@ void KobzarEngine::XMLExport(String xml_file)
 		  {
 			if (items[i]->Type == DlgText)
 			  {
-				xml_exp += "\t<CardOfDialog id = '" +
-						   IntToStr(items[i]->CardOfDialog) +
+				xml_exp += "\t<Dialog id = '" +
+						   IntToStr(items[i]->Dialog) +
 						   "'>\r\n";
 				xml_exp += items[i]->CreateXML();
 				xml_exp += "\t\t<AnswersMassive>\r\n";
@@ -1037,7 +1037,7 @@ void KobzarEngine::XMLExport(String xml_file)
 				   }
 
 				xml_exp += "\t\t</AnswersMassive>\r\n";
-				xml_exp += "\t</CardOfDialog>\r\n";
+				xml_exp += "\t</Dialog>\r\n";
 			  }
 		  }
 
@@ -1077,8 +1077,8 @@ void KobzarEngine::BuildLinksAfterXMLImport()
 		  {
 			if (items[i]->Type != DlgText)
 			  {
-				items[i]->LinkedID = FindTextElementID(items[i]->CardOfDialog);
-				items[i]->LinkedFromID = FindTextElementID(items[i]->NextCardOfDialog);
+				items[i]->LinkedID = FindTextElementID(items[i]->Dialog);
+				items[i]->LinkedFromID = FindTextElementID(items[i]->NextDialog);
 			  }
 		  }
 	 }
@@ -1180,7 +1180,7 @@ void KobzarEngine::SetLinkedID(int val)
 		   if (lnk && (lnk->Type == DlgText))
 			 {
 			   ActiveItem->LinkedID = val;
-			   ActiveItem->CardOfDialog = lnk->CardOfDialog;
+			   ActiveItem->Dialog = lnk->Dialog;
 			 }
 		   else if (lnk && (lnk->Type != DlgText))
 			 throw Exception("Element with ID = LinkedID (" + IntToStr(val) + ") is not TEXT element");
@@ -1231,7 +1231,7 @@ void KobzarEngine::SetLinkedFromID(int val)
 		   if (lnk && (lnk->Type == DlgText))
 			 {
 			   ActiveItem->LinkedFromID = val;
-			   ActiveItem->NextCardOfDialog = lnk->CardOfDialog;
+			   ActiveItem->NextDialog = lnk->Dialog;
 			 }
 		   else if (lnk && (lnk->Type != DlgText))
 			 throw Exception("Element with ID = LinkedFromID (" + IntToStr(val) + ") is not a TEXT");
@@ -1255,7 +1255,7 @@ int KobzarEngine::GetDialog()
 	   if (!ActiveItem)
 		 throw Exception("No active element!");
 	   else
-		 res = ActiveItem->CardOfDialog;
+		 res = ActiveItem->Dialog;
 	 }
   catch (Exception &e)
 	 {
@@ -1274,30 +1274,30 @@ void KobzarEngine::SetDialog(int val)
 		 throw Exception("No active element!");
 	   else
 		 {
-		   int old = ActiveItem->CardOfDialog;
+		   int old = ActiveItem->Dialog;
 
 		   if (ActiveItem->Type != DlgText)
 			 {
-			   ActiveItem->CardOfDialog = val;
+			   ActiveItem->Dialog = val;
 			   ActiveItem->LinkedID = FindTextElementID(val);
 			 }
 		   else
 			 {
-			   ActiveItem->CardOfDialog = val;
+			   ActiveItem->Dialog = val;
 			   std::vector<TDlgAnswer*> lnks;
 
-			   if (FindAnswersByDialog(ActiveItem->CardOfDialog, &lnks) > 0)
+			   if (FindAnswersByDialog(ActiveItem->Dialog, &lnks) > 0)
 				 {
-				   CreateLog("KobzarEngine::SetDialog", "Founded elements with CardOfDialog. Creating links");
+				   CreateLog("KobzarEngine::SetDialog", "Founded elements with Dialog. Creating links");
 
 				   for (int i = 0; i < lnks.size(); i++)
 					 lnks[i]->LinkedID = ActiveItem->ID;
 				 }
 
-			   if ((old != ActiveItem->CardOfDialog) && (SearchDependeciesDialog(old) > 0))
+			   if ((old != ActiveItem->Dialog) && (SearchDependeciesDialog(old) > 0))
 				 {
 				   CreateLog("KobzarEngine::SetDialog", "Founded links of old elements. Rebuilding links");
-				   UpdateCardOfDialog(old, ActiveItem->CardOfDialog);
+				   UpdateDialog(old, ActiveItem->Dialog);
 				 }
 			 }
 		 }
@@ -1318,7 +1318,7 @@ int KobzarEngine::GetNextDialog()
 	   if (!ActiveItem)
 		 throw Exception("No active element!");
 	   else
-		 res = ActiveItem->NextCardOfDialog;
+		 res = ActiveItem->NextDialog;
 	 }
   catch (Exception &e)
 	 {
@@ -1339,8 +1339,8 @@ void KobzarEngine::SetNextDialog(int val)
 		 {
 		   if (ActiveItem->Type != DlgText)
 			 {
-			   ActiveItem->NextCardOfDialog = val;
-			   int new_dlg_id = FindTextElementID(ActiveItem->NextCardOfDialog);
+			   ActiveItem->NextDialog = val;
+			   int new_dlg_id = FindTextElementID(ActiveItem->NextDialog);
 
 			   if (new_dlg_id > -1)
 				 {
@@ -1452,7 +1452,7 @@ void KobzarEngine::SetEndDialog(bool val)
 			 {
 			   itm->PrevLinkedFromID = itm->LinkedFromID;
 			   itm->LinkedFromID = -1;
-			   itm->NextCardOfDialog = -1;
+			   itm->NextDialog = -1;
 			 }
 		   else if (itm->PrevLinkedFromID > 0)
 			 {
@@ -1619,7 +1619,7 @@ int KobzarEngine::GetAnswerCount()
 		 {
 		   std::vector<TDlgAnswer*> answers;
 
-		   res = FindAnswersByDialog(ActiveItem->CardOfDialog, &answers);
+		   res = FindAnswersByDialog(ActiveItem->Dialog, &answers);
 		 }
 	 }
   catch (Exception &e)
@@ -1643,7 +1643,7 @@ const wchar_t *KobzarEngine::GetAnswer(int index)
 		 {
 		   std::vector<TDlgAnswer*> answers;
 
-		   FindAnswersByDialog(ActiveItem->CardOfDialog, &answers);
+		   FindAnswersByDialog(ActiveItem->Dialog, &answers);
 
 		   res = answers[index]->Text.c_str();
 		 }
@@ -1669,12 +1669,12 @@ void KobzarEngine::SelectAnswer(int index)
 		 {
 		   std::vector<TDlgAnswer*> answers;
 
-		   FindAnswersByDialog(ActiveItem->CardOfDialog, &answers);
+		   FindAnswersByDialog(ActiveItem->Dialog, &answers);
 		   TDlgAnswer *itm = answers[index];
-		   int ncd = itm->NextCardOfDialog;
+		   int ncd = itm->NextDialog;
 
 		   if (ncd >= 0)
-			 LoadDialog(answers[index]->NextCardOfDialog);
+			 LoadDialog(answers[index]->NextDialog);
 		   else
              CloseStory();
 		 }

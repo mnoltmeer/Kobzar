@@ -71,7 +71,7 @@ class KobzarEngine: public KE_INTERFACE
     int SearchDependeciesID(int id);
 	int SearchDependeciesDialog(int id);
 	void UpdateLinkedID(int old_id, int new_id);
-	void UpdateCardOfDialog(int old_val, int new_val);
+	void UpdateDialog(int old_val, int new_val);
 	int RunScript(TDlgScript *el);
 
   //функції візуалізації

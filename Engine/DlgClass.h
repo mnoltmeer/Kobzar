@@ -62,9 +62,9 @@ class TDlgBaseText
 //id привязанного объекта SreenText
 	__property int LinkedFromID = {read = l_fr_id, write = l_fr_id};
 //номер диалога (сцены) к которому относится элемент
-	__property int CardOfDialog = {read = cd, write = cd};
+	__property int Dialog = {read = cd, write = cd};
 //номер следующего диалога (сцены)
-	__property int NextCardOfDialog = {read = ncd, write = ncd};
+	__property int NextDialog = {read = ncd, write = ncd};
 //контейнер для хранения xml-структуры для экспорта элемента
 	__property String XMLText = {read = xml, write = xml};
 //контейнер для текста, который содержит элемент

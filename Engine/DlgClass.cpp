@@ -72,8 +72,8 @@ const wchar_t *TDlgBaseText::GetInfo()
   lst->Add("ID = " + String(ID));
   lst->Add("LinkedID = " + String(LinkedID));
   lst->Add("LinkedFromID = " + String(LinkedFromID));
-  lst->Add("CardOfDialog = " + String(CardOfDialog));
-  lst->Add("NextCardOfDialog = " + String(NextCardOfDialog));
+  lst->Add("Dialog = " + String(Dialog));
+  lst->Add("NextDialog = " + String(NextDialog));
 
   res = lst->Text;
 
@@ -88,8 +88,8 @@ void TDlgBaseText::GiveInfo(TStrings *lst)
   lst->Add(String(ID));
   lst->Add(String(LinkedID));
   lst->Add(String(LinkedFromID));
-  lst->Add(String(CardOfDialog));
-  lst->Add(String(NextCardOfDialog));
+  lst->Add(String(Dialog));
+  lst->Add(String(NextDialog));
 }
 //---------------------------------------------------------------------------
 
@@ -105,7 +105,7 @@ const wchar_t *TDlgScreenText::CreateXML()
 //---------------------------------------------------------------------------
 const wchar_t *TDlgAnswer::CreateXML()
 {
-  XMLText = "\t\t\t<Answer NextCardOfDialog = '" + String(NextCardOfDialog) + "'>\r\n";
+  XMLText = "\t\t\t<Answer NextDialog = '" + String(NextDialog) + "'>\r\n";
   XMLText = XMLText + "\t\t\t\t<Text>" + Text + "</Text>\r\n";
 
   if (EndDialog)
