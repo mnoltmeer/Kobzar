@@ -32,7 +32,7 @@ class TEditScriptForm : public TForm
 {
 __published:	// IDE-managed Components
 	TLabel *Label1;
-	TEdit *CardOfDialog;
+	TEdit *Dialog;
 	TEdit *ID;
 	TLabel *Label3;
 	TEdit *Params;
@@ -46,7 +46,7 @@ __published:	// IDE-managed Components
 	void __fastcall ParamsChange(TObject *Sender);
 	void __fastcall TextChange(TObject *Sender);
 	void __fastcall IDChange(TObject *Sender);
-	void __fastcall CardOfDialogChange(TObject *Sender);
+	void __fastcall DialogChange(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
 private:	// User declarations
 public:		// User declarations

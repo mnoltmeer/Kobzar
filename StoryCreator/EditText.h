@@ -32,13 +32,13 @@ class TEditTextForm : public TForm
 {
 __published:	// IDE-managed Components
 	TMemo *Text;
-	TEdit *CardOfDialog;
+	TEdit *Dialog;
 	TLabel *Label1;
 	TLabel *Label3;
 	TEdit *ID;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall IDChange(TObject *Sender);
-	void __fastcall CardOfDialogChange(TObject *Sender);
+	void __fastcall DialogChange(TObject *Sender);
     void __fastcall EditExit(TObject *Sender);
 	void __fastcall EditKeyUp(TObject *Sender, WORD &Key, TShiftState Shift);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);

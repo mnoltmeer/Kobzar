@@ -48,7 +48,7 @@ void __fastcall TEditScriptForm::FormShow(TObject *Sender)
 {
   Text->Text = Selected->Text;
 
-  CardOfDialog->Text = IntToStr(Selected->CardOfDialog);
+  Dialog->Text = IntToStr(Selected->Dialog);
   ID->Text = IntToStr(Selected->ID);
   Params->Text = dynamic_cast<TDlgScript*>(Selected)->Params;
 
@@ -124,8 +124,8 @@ void __fastcall TEditScriptForm::EditExit(TObject *Sender)
 
   if (edit->Name == "ID")
 	StoryCreator->ChangeID(edit->Text.ToInt());
-  else if (edit->Name == "CardOfDialog")
-	StoryCreator->ChangeCardOfDialog(edit->Text.ToInt());
+  else if (edit->Name == "Dialog")
+	StoryCreator->ChangeDialog(edit->Text.ToInt());
 
   UpdateItemsList(StoryCreator->ItemList);
   StoryCreator->Repaint();
@@ -165,11 +165,11 @@ void __fastcall TEditScriptForm::IDChange(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TEditScriptForm::CardOfDialogChange(TObject *Sender)
+void __fastcall TEditScriptForm::DialogChange(TObject *Sender)
 {
   changed = true;
 
-  StoryCreator->PropList->Cells[1][3] = CardOfDialog->Text;
+  StoryCreator->PropList->Cells[1][3] = Dialog->Text;
 }
 //---------------------------------------------------------------------------
 

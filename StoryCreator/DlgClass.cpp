@@ -46,8 +46,8 @@ int GenDialogID()
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		 {
-		   if (items[i]->CardOfDialog > max)
-			 max = items[i]->CardOfDialog;
+		   if (items[i]->Dialog > max)
+			 max = items[i]->Dialog;
 		 }
 	 }
   catch (Exception &e)
@@ -144,7 +144,7 @@ int FindAnswersByDialog(int dlg_id, std::vector<TDlgBaseText*> *el_list)
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		 {
-		   if ((items[i]->CardOfDialog == dlg_id) &&
+		   if ((items[i]->Dialog == dlg_id) &&
 			   (items[i]->Type != DlgText))
 			 {
 			   cnt++;
@@ -171,7 +171,7 @@ int FindTextElementID(int crd_dlg)
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		 {
-		   if ((items[i]->CardOfDialog == crd_dlg) &&
+		   if ((items[i]->Dialog == crd_dlg) &&
 			   (items[i]->Type == DlgText))
 			 {
 			   res = items[i]->ID;
@@ -354,10 +354,10 @@ bool SaveDlgSchema(const wchar_t *file)
 			val = items[i]->LinkedFromID;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->CardOfDialog;
+			val = items[i]->Dialog;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->NextCardOfDialog;
+			val = items[i]->NextDialog;
 			fs->Position += fs->Write(&val, sizeof(int));
 
 			val = items[i]->Left;
@@ -538,7 +538,7 @@ int SearchDependeciesDialog(int id)
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		  {
-			if (items[i]->CardOfDialog == id)
+			if (items[i]->Dialog == id)
 			  dpnd++;
 		  }
 	 }
@@ -574,20 +574,20 @@ void UpdateLinkedID(int old_id, int new_id)
 }
 //---------------------------------------------------------------------------
 
-void UpdateCardOfDialog(int old_val, int new_val)
+void UpdateDialog(int old_val, int new_val)
 {
   try
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		  {
-			if (items[i]->CardOfDialog == old_val)
-			  items[i]->CardOfDialog = new_val;
+			if (items[i]->Dialog == old_val)
+			  items[i]->Dialog = new_val;
 		  }
 	 }
   catch (Exception &e)
 	 {
 	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::UpdateCardOfDialog: " + e.ToString());
+			   "DlgClass::UpdateDialog: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -609,7 +609,7 @@ void XMLImport(String xml_file)
 	   ixml->Options = ixml->Options << doNodeAutoIndent;
 
 	   _di_IXMLNode DialogFile = ixml->DocumentElement;
-	   _di_IXMLNode CardOfDialog;
+	   _di_IXMLNode Dialog;
 	   _di_IXMLNode ScreenText;
 	   _di_IXMLNode AnswerMassive;
 	   _di_IXMLNode Answer;
@@ -621,18 +621,18 @@ void XMLImport(String xml_file)
 
 	   for (int i = 0; i < DialogFile->ChildNodes->Count; i++)
 		  {
-			CardOfDialog = DialogFile->ChildNodes->Nodes[i];
+			Dialog = DialogFile->ChildNodes->Nodes[i];
 
-			for (int j = 0; j < CardOfDialog->ChildNodes->Count; j++)
+			for (int j = 0; j < Dialog->ChildNodes->Count; j++)
 			   {
-				 if (CardOfDialog->ChildNodes->Nodes[j]->GetNodeName() == "ScreenText")
+				 if (Dialog->ChildNodes->Nodes[j]->GetNodeName() == "ScreenText")
 				   {
-					 ScreenText = CardOfDialog->ChildNodes->Nodes[j];
-					 curr_card = StrToInt(CardOfDialog->GetAttribute("id"));
+					 ScreenText = Dialog->ChildNodes->Nodes[j];
+					 curr_card = StrToInt(Dialog->GetAttribute("id"));
 
 					 TDlgScreenText *lnk = new TDlgScreenText(scene_left, top, StoryCreator);
 
-						 lnk->CardOfDialog = curr_card;
+						 lnk->Dialog = curr_card;
 						 lnk->Text = ScreenText->Text;
 						 items.push_back(lnk);
 
@@ -640,7 +640,7 @@ void XMLImport(String xml_file)
 				   }
 				 else
 				   {
-					 AnswerMassive = CardOfDialog->ChildNodes->Nodes[j];
+					 AnswerMassive = Dialog->ChildNodes->Nodes[j];
 
 					 for (int k = 0; k < AnswerMassive->ChildNodes->Count; k++)
 						{
@@ -650,8 +650,8 @@ void XMLImport(String xml_file)
 						  bool end;
 						  String text;
 
-						  if (Answer->HasAttribute("NextCardOfDialog"))
-							ncd = StrToInt(Answer->GetAttribute("NextCardOfDialog"));
+						  if (Answer->HasAttribute("NextDialog"))
+							ncd = StrToInt(Answer->GetAttribute("NextDialog"));
 
 						  ind = Answer->ChildNodes->IndexOf("Text");
 
@@ -671,9 +671,9 @@ void XMLImport(String xml_file)
 							{
 							  TDlgScript *lnk = new TDlgScript(left, top, StoryCreator);
 
-							  lnk->CardOfDialog = curr_card;
+							  lnk->Dialog = curr_card;
 							  lnk->Params = Answer->GetAttribute("Params");
-                              lnk->NextCardOfDialog = -1;
+                              lnk->NextDialog = -1;
 							  lnk->Text = text;
 							  items.push_back(lnk);
 							}
@@ -681,8 +681,8 @@ void XMLImport(String xml_file)
 							{
 							  TDlgAnswer *answ = new TDlgAnswer(left, top, StoryCreator);
 
-							  answ->CardOfDialog = curr_card;
-							  answ->NextCardOfDialog = ncd;
+							  answ->Dialog = curr_card;
+							  answ->NextDialog = ncd;
 							  answ->Text = text;
 							  answ->EndDialog = end;
 							  items.push_back(answ);
@@ -728,8 +728,8 @@ void XMLExport(const wchar_t *path)
 			   {
 				 if (items[i]->Type == DlgText)
 				   {
-					 xml_exp += "\t<CardOfDialog id = '" +
-								IntToStr(items[i]->CardOfDialog) +
+					 xml_exp += "\t<Dialog id = '" +
+								IntToStr(items[i]->Dialog) +
 								"'>\r\n";
 					 xml_exp += items[i]->CreateXML();
 					 xml_exp += "\t\t<AnswersMassive>\r\n";
@@ -744,7 +744,7 @@ void XMLExport(const wchar_t *path)
 						}
 
 					 xml_exp += "\t\t</AnswersMassive>\r\n";
-					 xml_exp += "\t</CardOfDialog>\r\n";
+					 xml_exp += "\t</Dialog>\r\n";
 				   }
 			   }
 
@@ -788,8 +788,8 @@ void BuildLinksAfterXMLImport()
 		  {
 			if (items[i]->Type != DlgText)
 			  {
-				items[i]->LinkedID = FindTextElementID(items[i]->CardOfDialog);
-				items[i]->LinkedFromID = FindTextElementID(items[i]->NextCardOfDialog);
+				items[i]->LinkedID = FindTextElementID(items[i]->Dialog);
+				items[i]->LinkedFromID = FindTextElementID(items[i]->NextDialog);
 			  }
 		  }
 	 }
@@ -838,7 +838,7 @@ String CreateContainerCaption(TDlgBaseText *element)
 		   default: res = "<unknown>";
 		 }
 
-	   res += " [Dialog: " + IntToStr(element->CardOfDialog) + "]";
+	   res += " [Dialog: " + IntToStr(element->Dialog) + "]";
 
 	   if ((element->Type == DlgAnsw) && reinterpret_cast<TDlgAnswer*>(element)->EndDialog)
 		 res += " (END)";
@@ -1029,7 +1029,7 @@ void TDlgBaseText::SetLinkedID(int val)
   if (lnk && (lnk->Type == DlgText))
 	{
 	  l_id = val;
-	  cd = lnk->CardOfDialog;
+	  cd = lnk->Dialog;
 	}
   else if (lnk && (lnk->Type != DlgText))
 	{
@@ -1072,7 +1072,7 @@ void TDlgBaseText::SetLinkedFromID(int val)
   if (lnk && (lnk->Type == DlgText))
 	{
 	  l_fr_id = val;
-	  ncd = lnk->CardOfDialog;
+	  ncd = lnk->Dialog;
 	}
   else if (lnk && (lnk->Type != DlgText))
 	{
@@ -1099,13 +1099,13 @@ void TDlgBaseText::SetLinkedFromID(int val)
 }
 //---------------------------------------------------------------------------
 
-int TDlgBaseText::GetCardOfDialog()
+int TDlgBaseText::GetDialog()
 {
   return cd;
 }
 //---------------------------------------------------------------------------
 
-void TDlgBaseText::SetCardOfDialog(int val)
+void TDlgBaseText::SetDialog(int val)
 {
   int old = cd;
 
@@ -1123,7 +1123,7 @@ void TDlgBaseText::SetCardOfDialog(int val)
 		{
 		  if (NoWarningsAtImport ||
 			  (MessageBox(Application->Handle,
-						 String("Founded ANSW_LIKE elements with CardOfDialog = " +
+						 String("Founded ANSW_LIKE elements with Dialog = " +
 								IntToStr(cd) +
 								".\nCreate links?").c_str(),
 						 String("Element ID: " + IntToStr(ID) + " report").c_str(),
@@ -1142,7 +1142,7 @@ void TDlgBaseText::SetCardOfDialog(int val)
 						 String("Element ID: " + IntToStr(ID) + " report").c_str(),
 						 MB_YESNO | MB_ICONASTERISK) == mrYes))
 			{
-			  UpdateCardOfDialog(old, CardOfDialog);
+			  UpdateDialog(old, Dialog);
 			}
 		  else
 			{
@@ -1153,13 +1153,13 @@ void TDlgBaseText::SetCardOfDialog(int val)
 }
 //---------------------------------------------------------------------------
 
-int TDlgBaseText::GetNextCardOfDialog()
+int TDlgBaseText::GetNextDialog()
 {
   return ncd;
 }
 //---------------------------------------------------------------------------
 
-void TDlgBaseText::SetNextCardOfDialog(int val)
+void TDlgBaseText::SetNextDialog(int val)
 {
   if (Type != DlgText)
 	{
@@ -1187,8 +1187,8 @@ const wchar_t *TDlgBaseText::GetInfo()
 	   lst->Add("ID = " + String(ID));
 	   lst->Add("LinkedID = " + String(LinkedID));
 	   lst->Add("LinkedFromID = " + String(LinkedFromID));
-	   lst->Add("CardOfDialog = " + String(CardOfDialog));
-	   lst->Add("NextCardOfDialog = " + String(NextCardOfDialog));
+	   lst->Add("Dialog = " + String(Dialog));
+	   lst->Add("NextDialog = " + String(NextDialog));
 
 	   res = lst->Text;
 	 }
@@ -1205,8 +1205,8 @@ void TDlgBaseText::GiveInfo(TStrings *lst)
   lst->Add(String(ID));
   lst->Add(String(LinkedID));
   lst->Add(String(LinkedFromID));
-  lst->Add(String(CardOfDialog));
-  lst->Add(String(NextCardOfDialog));
+  lst->Add(String(Dialog));
+  lst->Add(String(NextDialog));
   lst->Add(String(Left));
   lst->Add(String(Top));
 }
@@ -1231,12 +1231,12 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 
 			  if (old_answ) //найдем Answer и изменим привязки
 				{
-				  old_answ->NextCardOfDialog = -1;
+				  old_answ->NextDialog = -1;
 				  old_answ->LinkedFromID = -1;
 				}
 			}
 
-		  Selected->NextCardOfDialog = this->CardOfDialog;
+		  Selected->NextDialog = this->Dialog;
 		  Selected->LinkedFromID = this->ID;
 
 		  if (reinterpret_cast<TDlgAnswer*>(Selected)->EndDialog)
@@ -1244,7 +1244,7 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 		}
 	  else if ((Selected->Type == DlgText) && ((this->Type == DlgAnsw) || (this->Type == DlgScript)))
 		{
-		  this->CardOfDialog = Selected->CardOfDialog;
+		  this->Dialog = Selected->Dialog;
 		  this->LinkedID = Selected->ID;
 		}
 
@@ -1348,7 +1348,7 @@ const wchar_t *TDlgScreenText::CreateXML()
 //---------------------------------------------------------------------------
 const wchar_t *TDlgAnswer::CreateXML()
 {
-  XMLText = "\t\t\t<Answer NextCardOfDialog = '" + String(NextCardOfDialog) + "'>\r\n";
+  XMLText = "\t\t\t<Answer NextDialog = '" + String(NextDialog) + "'>\r\n";
   XMLText = XMLText + "\t\t\t\t<Text>" + Text + "</Text>\r\n";
 
   if (EndDialog)

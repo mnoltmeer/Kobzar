@@ -818,21 +818,21 @@ void __fastcall TStoryCreator::ChangeID(int new_val)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TStoryCreator::ChangeCardOfDialog(int new_val)
+void __fastcall TStoryCreator::ChangeDialog(int new_val)
 {
-  if (Selected->CardOfDialog != new_val)
+  if (Selected->Dialog != new_val)
 	{
-	  Selected->CardOfDialog = new_val;
+	  Selected->Dialog = new_val;
 	  changed = true;
 	}
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TStoryCreator::ChangeNextCardOfDialog(int new_val)
+void __fastcall TStoryCreator::ChangeNextDialog(int new_val)
 {
-  if (Selected->NextCardOfDialog != new_val)
+  if (Selected->NextDialog != new_val)
 	{
-	  Selected->NextCardOfDialog = new_val;
+	  Selected->NextDialog = new_val;
 	  changed = true;
 	}
 }

@@ -86,11 +86,11 @@ class TDlgBaseText
 	int GetLinkedFromID();
 	void SetLinkedFromID(int val);
 
-	int GetCardOfDialog();
-	void SetCardOfDialog(int val);
+	int GetDialog();
+	void SetDialog(int val);
 
-	int GetNextCardOfDialog();
-	void SetNextCardOfDialog(int val);
+	int GetNextDialog();
+	void SetNextDialog(int val);
 
 	TLabel *GetContainer(){return cont;}
 	void SetContainer(TLabel *val){cont = val;}
@@ -142,9 +142,9 @@ class TDlgBaseText
 //точка для исходящего линка (нижн. пр. угол)
 	__property TPoint OutLink = {read = ol, write = ol};
 //номер диалога (сцены) к которому относится элемент
-	__property int CardOfDialog = {read = GetCardOfDialog, write = SetCardOfDialog};
+	__property int Dialog = {read = GetDialog, write = SetDialog};
 //номер следующего диалога (сцены)
-	__property int NextCardOfDialog = {read = GetNextCardOfDialog, write = SetNextCardOfDialog};
+	__property int NextDialog = {read = GetNextDialog, write = SetNextDialog};
 //контейнер для хранения xml-структуры для экспорта элемента
 	__property String XMLText = {read = xml, write = xml};
 //контейнер для текста, который содержит элемент
@@ -163,14 +163,14 @@ class TDlgScreenText : public TDlgBaseText
 	TDlgScreenText(int left, int top) : TDlgBaseText(left, top)
 	{
 	  Type = DlgText;
-	  CardOfDialog = GenDialogID();
+	  Dialog = GenDialogID();
 	}
 
 	TDlgScreenText(int left, int top, TForm *ContainerOwner)
 	: TDlgBaseText(left, top, ContainerOwner)
 	{
 	  Type = DlgText;
-	  CardOfDialog = GenDialogID();
+	  Dialog = GenDialogID();
 	  SetContainerData();
 	}
 
@@ -299,7 +299,7 @@ bool LoadDlgSchema(const wchar_t *file);
 int SearchDependeciesID(int id);
 int SearchDependeciesDialog(int id);
 void UpdateLinkedID(int old_id, int new_id);
-void UpdateCardOfDialog(int old_val, int new_val);
+void UpdateDialog(int old_val, int new_val);
 void AddScreenText(int left, int top, TForm *IconOwner);
 void AddAnswer(int left, int top, TForm *IconOwner);
 void AddScript(int left, int top, TForm *IconOwner);

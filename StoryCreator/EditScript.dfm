@@ -19,9 +19,9 @@ object EditScriptForm: TEditScriptForm
   object Label1: TLabel
     Left = 82
     Top = 8
-    Width = 80
+    Width = 40
     Height = 16
-    Caption = 'CardOfDialog:'
+    Caption = 'Dialog:'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
@@ -43,7 +43,7 @@ object EditScriptForm: TEditScriptForm
     ParentFont = False
   end
   object Label2: TLabel
-    Left = 211
+    Left = 187
     Top = 8
     Width = 71
     Height = 16
@@ -55,13 +55,13 @@ object EditScriptForm: TEditScriptForm
     Font.Style = []
     ParentFont = False
   end
-  object CardOfDialog: TEdit
-    Left = 166
-    Top = 7
+  object Dialog: TEdit
+    Left = 128
+    Top = 8
     Width = 39
     Height = 21
     TabOrder = 0
-    OnChange = CardOfDialogChange
+    OnChange = DialogChange
     OnExit = EditExit
     OnKeyUp = EditKeyUp
   end
@@ -76,9 +76,9 @@ object EditScriptForm: TEditScriptForm
     OnKeyUp = EditKeyUp
   end
   object Params: TEdit
-    Left = 282
+    Left = 264
     Top = 8
-    Width = 304
+    Width = 322
     Height = 21
     TabOrder = 2
     OnChange = ParamsChange

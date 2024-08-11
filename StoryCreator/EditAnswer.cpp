@@ -46,8 +46,8 @@ __fastcall TEditAnswerForm::TEditAnswerForm(TComponent* Owner)
 void __fastcall TEditAnswerForm::FormShow(TObject *Sender)
 {
   Text->Text = Selected->Text;
-  CardOfDialog->Text = IntToStr(Selected->CardOfDialog);
-  NextCardOfDialog->Text = IntToStr(Selected->NextCardOfDialog);
+  Dialog->Text = IntToStr(Selected->Dialog);
+  NextDialog->Text = IntToStr(Selected->NextDialog);
   LinkedID->Text = IntToStr(Selected->LinkedID);
   LinkedFromID->Text = IntToStr(Selected->LinkedFromID);
   EndDialog->Checked = dynamic_cast<TDlgAnswer*>(Selected)->EndDialog;
@@ -72,19 +72,19 @@ void __fastcall TEditAnswerForm::IDChange(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TEditAnswerForm::CardOfDialogChange(TObject *Sender)
+void __fastcall TEditAnswerForm::DialogChange(TObject *Sender)
 {
   changed = true;
 
-  StoryCreator->PropList->Cells[1][3] = CardOfDialog->Text;
+  StoryCreator->PropList->Cells[1][3] = Dialog->Text;
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TEditAnswerForm::NextCardOfDialogChange(TObject *Sender)
+void __fastcall TEditAnswerForm::NextDialogChange(TObject *Sender)
 {
   changed = true;
 
-  StoryCreator->PropList->Cells[1][4] = NextCardOfDialog->Text;
+  StoryCreator->PropList->Cells[1][4] = NextDialog->Text;
 }
 //---------------------------------------------------------------------------
 
@@ -126,10 +126,10 @@ void __fastcall TEditAnswerForm::EditExit(TObject *Sender)
 
   if (edit->Name == "ID")
 	StoryCreator->ChangeID(edit->Text.ToInt());
-  else if (edit->Name == "CardOfDialog")
-	StoryCreator->ChangeCardOfDialog(edit->Text.ToInt());
-  else if (edit->Name == "NextCardOfDialog")
-	StoryCreator->ChangeNextCardOfDialog(edit->Text.ToInt());
+  else if (edit->Name == "Dialog")
+	StoryCreator->ChangeDialog(edit->Text.ToInt());
+  else if (edit->Name == "NextDialog")
+	StoryCreator->ChangeNextDialog(edit->Text.ToInt());
   else if (edit->Name == "LinkedID")
 	StoryCreator->ChangeLinkedID(edit->Text.ToInt());
   else if (edit->Name == "LinkedFromID")

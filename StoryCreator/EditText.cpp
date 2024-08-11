@@ -45,7 +45,7 @@ __fastcall TEditTextForm::TEditTextForm(TComponent* Owner)
 void __fastcall TEditTextForm::FormShow(TObject *Sender)
 {
   Text->Text = Selected->Text;
-  CardOfDialog->Text = IntToStr(Selected->CardOfDialog);
+  Dialog->Text = IntToStr(Selected->Dialog);
   ID->Text = IntToStr(Selected->ID);
 }
 //---------------------------------------------------------------------------
@@ -58,11 +58,11 @@ void __fastcall TEditTextForm::IDChange(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TEditTextForm::CardOfDialogChange(TObject *Sender)
+void __fastcall TEditTextForm::DialogChange(TObject *Sender)
 {
   changed = true;
 
-  StoryCreator->PropList->Cells[1][3] = CardOfDialog->Text;
+  StoryCreator->PropList->Cells[1][3] = Dialog->Text;
 }
 //---------------------------------------------------------------------------
 
@@ -72,8 +72,8 @@ void __fastcall TEditTextForm::EditExit(TObject *Sender)
 
   if (edit->Name == "ID")
 	StoryCreator->ChangeID(edit->Text.ToInt());
-  else if (edit->Name == "CardOfDialog")
-	StoryCreator->ChangeCardOfDialog(edit->Text.ToInt());
+  else if (edit->Name == "Dialog")
+	StoryCreator->ChangeDialog(edit->Text.ToInt());
 
   UpdateItemsList(StoryCreator->ItemList);
   StoryCreator->Repaint();

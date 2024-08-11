@@ -19,9 +19,9 @@ object EditTextForm: TEditTextForm
   object Label1: TLabel
     Left = 80
     Top = 8
-    Width = 80
+    Width = 40
     Height = 16
-    Caption = 'CardOfDialog:'
+    Caption = 'Dialog:'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
@@ -56,13 +56,13 @@ object EditTextForm: TEditTextForm
     TabOrder = 0
     OnChange = TextChange
   end
-  object CardOfDialog: TEdit
-    Left = 166
-    Top = 7
+  object Dialog: TEdit
+    Left = 126
+    Top = 8
     Width = 39
     Height = 21
     TabOrder = 1
-    OnChange = CardOfDialogChange
+    OnChange = DialogChange
     OnExit = EditExit
     OnKeyUp = EditKeyUp
   end

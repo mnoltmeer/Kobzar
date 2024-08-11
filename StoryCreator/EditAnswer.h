@@ -31,10 +31,10 @@ class TEditAnswerForm : public TForm
 {
 __published:	// IDE-managed Components
 	TLabel *Label1;
-	TEdit *CardOfDialog;
+	TEdit *Dialog;
 	TMemo *Text;
 	TLabel *Label2;
-	TEdit *NextCardOfDialog;
+	TEdit *NextDialog;
 	TLabel *Label3;
 	TEdit *ID;
 	TLabel *Label4;
@@ -45,8 +45,8 @@ __published:	// IDE-managed Components
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall TextChange(TObject *Sender);
 	void __fastcall IDChange(TObject *Sender);
-	void __fastcall CardOfDialogChange(TObject *Sender);
-	void __fastcall NextCardOfDialogChange(TObject *Sender);
+	void __fastcall DialogChange(TObject *Sender);
+	void __fastcall NextDialogChange(TObject *Sender);
 	void __fastcall LinkedIDChange(TObject *Sender);
 	void __fastcall LinkedFromIDChange(TObject *Sender);
 	void __fastcall EndDialogClick(TObject *Sender);

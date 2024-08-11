@@ -19,9 +19,9 @@ object EditAnswerForm: TEditAnswerForm
   object Label1: TLabel
     Left = 127
     Top = 8
-    Width = 80
+    Width = 40
     Height = 16
-    Caption = 'CardOfDialog:'
+    Caption = 'Dialog:'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
@@ -32,9 +32,9 @@ object EditAnswerForm: TEditAnswerForm
   object Label2: TLabel
     Left = 270
     Top = 8
-    Width = 105
+    Width = 65
     Height = 16
-    Caption = 'NextCardOfDialog:'
+    Caption = 'NextDialog:'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
@@ -81,13 +81,13 @@ object EditAnswerForm: TEditAnswerForm
     Font.Style = []
     ParentFont = False
   end
-  object CardOfDialog: TEdit
-    Left = 213
+  object Dialog: TEdit
+    Left = 186
     Top = 7
     Width = 41
     Height = 21
     TabOrder = 0
-    OnChange = CardOfDialogChange
+    OnChange = DialogChange
     OnExit = EditExit
     OnKeyUp = EditKeyUp
   end
@@ -105,13 +105,13 @@ object EditAnswerForm: TEditAnswerForm
     TabOrder = 1
     OnChange = TextChange
   end
-  object NextCardOfDialog: TEdit
+  object NextDialog: TEdit
     Left = 381
     Top = 6
     Width = 41
     Height = 21
     TabOrder = 2
-    OnChange = NextCardOfDialogChange
+    OnChange = NextDialogChange
     OnExit = EditExit
     OnKeyUp = EditKeyUp
   end
@@ -126,7 +126,7 @@ object EditAnswerForm: TEditAnswerForm
     OnKeyUp = EditKeyUp
   end
   object LinkedID: TEdit
-    Left = 213
+    Left = 186
     Top = 34
     Width = 41
     Height = 21

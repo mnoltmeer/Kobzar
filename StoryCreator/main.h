@@ -186,8 +186,8 @@ public:		// User declarations
 									   int X, int Y);
 
 	void __fastcall ChangeID(int new_val);
-	void __fastcall ChangeCardOfDialog(int new_val);
-	void __fastcall ChangeNextCardOfDialog(int new_val);
+	void __fastcall ChangeDialog(int new_val);
+	void __fastcall ChangeNextDialog(int new_val);
 	void __fastcall ChangeLinkedID(int new_val);
 	void __fastcall ChangeLinkedFromID(int new_val);
 	void __fastcall VisualiseElements();
