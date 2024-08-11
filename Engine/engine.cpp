@@ -184,6 +184,7 @@ void KobzarEngine::ClearStory()
   try
 	 {
 	   ClearItems();
+       ActiveElement = nullptr;
 	 }
   catch (Exception &e)
 	 {
@@ -523,6 +524,8 @@ int KobzarEngine::FindAnswersByDialog(int dlg_id, std::vector<TDlgAnswer*> *el_l
 
   try
 	 {
+       el_list->clear();
+
 	   for (int i = 0; i < items.size(); i++)
 		 {
 		   if ((items[i]->CardOfDialog == dlg_id) && (items[i]->Type == DlgAnsw))
@@ -1573,8 +1576,10 @@ int KobzarEngine::LoadDialog(int dlg_id)
 	 }
   catch (Exception &e)
 	 {
-	   CreateLog("KobzarEngine::LoadScene", e.ToString());
+	   CreateLog("KobzarEngine::LoadDialog", e.ToString());
 	 }
+
+  return res;
 }
 //---------------------------------------------------------------------------
 
@@ -1638,7 +1643,7 @@ const wchar_t *KobzarEngine::GetAnswer(int index)
 		 {
 		   std::vector<TDlgAnswer*> answers;
 
-		   FindAnswersByDialog(ActiveItem->ID, &answers);
+		   FindAnswersByDialog(ActiveItem->CardOfDialog, &answers);
 
 		   res = answers[index]->Text.c_str();
 		 }
@@ -1665,8 +1670,13 @@ void KobzarEngine::SelectAnswer(int index)
 		   std::vector<TDlgAnswer*> answers;
 
 		   FindAnswersByDialog(ActiveItem->CardOfDialog, &answers);
+		   TDlgAnswer *itm = answers[index];
+		   int ncd = itm->NextCardOfDialog;
 
-		   LoadDialog(answers[index]->NextCardOfDialog);
+		   if (ncd >= 0)
+			 LoadDialog(answers[index]->NextCardOfDialog);
+		   else
+             CloseStory();
 		 }
 	 }
   catch (Exception &e)
