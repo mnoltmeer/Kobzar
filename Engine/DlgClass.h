@@ -24,6 +24,9 @@ This file is part of Kobzar Engine.
 #include <System.Classes.hpp>
 //---------------------------------------------------------------------------
 
+#define CONTAINER_WIDTH 220
+#define CONTAINER_HEIGHT 150
+
 enum DlgType {DlgText = 1,
 			  DlgAnsw = 2,
 			  DlgScript = 3};

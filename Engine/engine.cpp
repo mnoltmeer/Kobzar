@@ -97,16 +97,22 @@ void KobzarEngine::LoadFunctionsToELI(ELI_INTERFACE *FEIface)
 
 int KobzarEngine::CreateStory(const wchar_t *story_file)
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
-	   String file = ParseString(String(story_file), "\\\\", GetDirPathFromFilePath(String(path)));
-	   SaveToFile(file, "");
+	   String file = ParseString(String(story_file), ".\\", GetDirPathFromFilePath(String(path)) + "\\");
+	   std::unique_ptr<TStringStream> ms(new TStringStream("", TEncoding::UTF8, true));
+
+       ms->Position = 0;
+	   ms->SaveToFile(file);
+
+	   CurrentFile = String(file);
+
+       res = 1;
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::CreateStory", e.ToString());
 	 }
 
@@ -116,22 +122,23 @@ int KobzarEngine::CreateStory(const wchar_t *story_file)
 
 int KobzarEngine::LoadStory(const wchar_t *story_file)
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
-	   String file = ParseString(String(story_file), "\\\\", GetDirPathFromFilePath(String(path)));
+	   String file = ParseString(String(story_file), ".\\", GetDirPathFromFilePath(String(path)) + "\\");
 
 	   if (UpperCase(GetFileExtensionFromFileName(file)) == "SCS")
 		 LoadDlgSchema(file);
 	   else
 		 XMLImport(file);
 
-       CurrentFile = String(story_file);
+	   CurrentFile = String(file);
+
+	   res = 1;
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::LoadStory", e.ToString());
 	 }
 
@@ -141,18 +148,17 @@ int KobzarEngine::LoadStory(const wchar_t *story_file)
 
 int KobzarEngine::SaveStory()
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
 	   if (UpperCase(GetFileExtensionFromFileName(CurrentFile)) == "SCS")
-		 SaveDlgSchema(CurrentFile);
+		 res = SaveDlgSchema(CurrentFile);
 	   else
-		 XMLExport(CurrentFile);
+		 res = XMLExport(CurrentFile);
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::SaveStory", e.ToString());
 	 }
 
@@ -162,16 +168,17 @@ int KobzarEngine::SaveStory()
 
 void KobzarEngine::CloseStory()
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
 	   ClearStory();
-       CurrentFile = "";
+	   CurrentFile = "";
+
+	   res = 1;
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::CloseStory", e.ToString());
 	 }
 }
@@ -179,16 +186,17 @@ void KobzarEngine::CloseStory()
 
 void KobzarEngine::ClearStory()
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
 	   ClearItems();
 	   ActiveItem = nullptr;
+
+	   res = 1;
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::ClearStory", e.ToString());
 	 }
 }
@@ -196,16 +204,17 @@ void KobzarEngine::ClearStory()
 
 int KobzarEngine::AddScene()
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
 	   TDlgScreenText *tmp = new TDlgScreenText(GenElementID(), GenDialogID());
 	   items.push_back(tmp);
+
+	   res = tmp->ID;
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::AddScene", e.ToString());
 	 }
 
@@ -215,16 +224,17 @@ int KobzarEngine::AddScene()
 
 int KobzarEngine::AddAnswer()
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
 	   TDlgAnswer *tmp = new TDlgAnswer(GenElementID());
 	   items.push_back(tmp);
+
+	   res = tmp->ID;
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::AddAnswer", e.ToString());
 	 }
 
@@ -234,16 +244,17 @@ int KobzarEngine::AddAnswer()
 
 int KobzarEngine::AddScript()
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
 	   TDlgScript *tmp = new TDlgScript(GenElementID());
 	   items.push_back(tmp);
+
+       res = tmp->ID;
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::AddScript", e.ToString());
 	 }
 
@@ -253,7 +264,7 @@ int KobzarEngine::AddScript()
 
 int KobzarEngine::Activate(int id)
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
@@ -261,10 +272,11 @@ int KobzarEngine::Activate(int id)
 
        if (!ActiveItem)
 		 throw Exception("No active element!");
+
+	   res = 1;
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::Activate", e.ToString());
 	 }
 
@@ -274,7 +286,7 @@ int KobzarEngine::Activate(int id)
 
 int KobzarEngine::RunScript(int id)
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
@@ -284,10 +296,11 @@ int KobzarEngine::RunScript(int id)
 		 throw Exception("Element with ID = " + IntToStr(id) + " not found");
 	   else
 		 res = RunScript(itm);
+
+	   res = 1;
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::RunScript", e.ToString());
 	 }
 
@@ -297,7 +310,7 @@ int KobzarEngine::RunScript(int id)
 
 int KobzarEngine::Remove(int id)
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
@@ -306,11 +319,12 @@ int KobzarEngine::Remove(int id)
 	   if (!itm)
 		 throw Exception("Element with ID = " + IntToStr(id) + " not found");
 	   else
-         RemoveFromItems(itm);
+		 RemoveFromItems(itm);
+
+	   res = 1;
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::Remove", e.ToString());
 	 }
 
@@ -320,7 +334,7 @@ int KobzarEngine::Remove(int id)
 
 int KobzarEngine::Link(int id, int to_id)
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
@@ -335,31 +349,32 @@ int KobzarEngine::Link(int id, int to_id)
 
 	   if ((from->Type == DlgAnsw) &&
 		  (to->Type == DlgText)) //перший елемент - Відповідь, другий - Сцена
-		{
-		  if (to->LinkedID > -1) //якщо Сцена вже привязана до іншої Відповіді
-			{
-			  TDlgBaseText *old_answ = FindElement(to->LinkedID);
+		 {
+		   if (to->LinkedID > -1) //якщо Сцена вже привязана до іншої Відповіді
+			 {
+			   TDlgBaseText *old_answ = FindElement(to->LinkedID);
 
-			  if (old_answ) //видалимо прив'язки у старої Відповіді
-				{
-				  old_answ->NextDialog = -1;
-				  old_answ->LinkedFromID = -1;
-				}
-			}
+			   if (old_answ) //видалимо прив'язки у старої Відповіді
+				 {
+				   old_answ->NextDialog = -1;
+				   old_answ->LinkedFromID = -1;
+				 }
+			 }
 
 		  from->NextDialog = to->Dialog;
 		  from->LinkedFromID = to->ID;
-		}
-	  else if ((from->Type == DlgText) &&
+		 }
+	   else if ((from->Type == DlgText) &&
 			   ((to->Type == DlgAnsw) || (to->Type == DlgScript))) //перший елемент - Сцена, другий - Відповідь
-		{
-		  to->Dialog = from->Dialog;
-		  to->LinkedID = from->ID;
-		}
+		 {
+		   to->Dialog = from->Dialog;
+		   to->LinkedID = from->ID;
+		 }
+
+	   res = 1;
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::Link", e.ToString());
 	 }
 
@@ -369,7 +384,7 @@ int KobzarEngine::Link(int id, int to_id)
 
 int KobzarEngine::Unlink(int id, int to_id)
 {
-  int res = 1;
+  int res = 0;
 
   try
 	 {
@@ -390,10 +405,11 @@ int KobzarEngine::Unlink(int id, int to_id)
 
 	   from->LinkedFromID = -1;
 	   to->LinkedID = -1;
+
+	   res = 1;
 	 }
   catch (Exception &e)
 	 {
-	   res = 0;
 	   CreateLog("Story::Unlink", e.ToString());
 	 }
 
@@ -630,7 +646,8 @@ bool KobzarEngine::SaveDlgSchema(String file)
 	   std::unique_ptr<TFileStream> fs(new TFileStream(file.c_str(), fmOpenWrite|fmCreate));
 
 	   fs->Position = 0;
-	   int val = 0;
+
+	   int val = 0, left = 0, top = 0;
 
 	   for (int i = 0; i < items.size(); i++)
 		  {
@@ -654,11 +671,10 @@ bool KobzarEngine::SaveDlgSchema(String file)
 			val = items[i]->NextDialog;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = 0;
-			fs->Position += fs->Write(0, sizeof(int));
-
-			val = 0;
-			fs->Position += fs->Write(0, sizeof(int));
+//тут має бути запис згенерованих координат для візуального редактора
+			val = 100;
+			fs->Position += fs->Write(&val, sizeof(int));
+			fs->Position += fs->Write(&val, sizeof(int));
 
 			WriteStringIntoBinaryStream(fs.get(), items[i]->Text);
 
@@ -683,7 +699,6 @@ bool KobzarEngine::SaveDlgSchema(String file)
   catch (Exception &e)
 	 {
 	   CreateLog("KobzarEngine::SaveDlgSchema", e.ToString());
-	   res = false;
 	 }
 
   return res;
@@ -701,6 +716,7 @@ bool KobzarEngine::LoadDlgSchema(String file)
 	   ClearItems();
 
 	   fs->Position = 0;
+
 	   int id, linked_id, linked_from_id, left, top, card_of_dialog,
 		   dlg_type, next_card_of_dialog;
 	   bool end_dlg;
@@ -771,7 +787,6 @@ bool KobzarEngine::LoadDlgSchema(String file)
   catch (Exception &e)
 	 {
 	   CreateLog("KobzarEngine::LoadDlgSchema", e.ToString());
-	   res = false;
 	 }
 
   return res;
@@ -905,8 +920,10 @@ int KobzarEngine::RunScript(TDlgScript *el)
 }
 //---------------------------------------------------------------------------
 
-void KobzarEngine::XMLImport(String xml_file)
+bool KobzarEngine::XMLImport(String xml_file)
 {
+  bool res = false;
+
   try
 	 {
 	   std::unique_ptr<TXMLDocument> ixml(new TXMLDocument(Application));
@@ -1001,16 +1018,22 @@ void KobzarEngine::XMLImport(String xml_file)
 		  }
 
 		BuildLinksAfterXMLImport();
+
+		res = true;
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("KobzarEngine::XMLImport", e.ToString());
 	 }
+
+  return res;
 }
 //---------------------------------------------------------------------------
 
-void KobzarEngine::XMLExport(String xml_file)
+bool KobzarEngine::XMLExport(String xml_file)
 {
+  bool res = false;
+
   try
 	 {
 	   std::unique_ptr<TStringList> list(new TStringList());
@@ -1025,7 +1048,7 @@ void KobzarEngine::XMLExport(String xml_file)
 						   IntToStr(items[i]->Dialog) +
 						   "'>\r\n";
 				xml_exp += items[i]->CreateXML();
-				xml_exp += "\t\t<AnswersMassive>\r\n";
+				xml_exp += "\t\t<Answers>\r\n";
 
 				for (int j = 0; j < items.size(); j++)
 				   {
@@ -1036,7 +1059,7 @@ void KobzarEngine::XMLExport(String xml_file)
 					   }
 				   }
 
-				xml_exp += "\t\t</AnswersMassive>\r\n";
+				xml_exp += "\t\t</Answers>\r\n";
 				xml_exp += "\t</Dialog>\r\n";
 			  }
 		  }
@@ -1045,11 +1068,15 @@ void KobzarEngine::XMLExport(String xml_file)
 
 	   list->Text = xml_exp;
 	   list->SaveToFile(xml_file, TEncoding::UTF8);
+
+	   res = true;
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("KobzarEngine::XMLExport", e.ToString());
 	 }
+
+  return res;
 }
 //---------------------------------------------------------------------------
 

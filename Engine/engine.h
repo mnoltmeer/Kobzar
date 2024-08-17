@@ -58,8 +58,8 @@ class KobzarEngine: public KE_INTERFACE
 	void RemoveFromItems(TDlgBaseText *element);
 	bool SaveDlgSchema(String file);
 	bool LoadDlgSchema(String file);
-	void XMLImport(String xml_file);
-	void XMLExport(String xml_file);
+	bool XMLImport(String xml_file);
+	bool XMLExport(String xml_file);
 	void ClearItems();
 	void BuildLinksAfterXMLImport();
 	void RemoveLimboLinks();
