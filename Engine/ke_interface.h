@@ -44,10 +44,10 @@ struct KE_INTERFACE
   virtual void __stdcall SetDialog(int val) = 0;
   virtual int __stdcall GetNextDialog() = 0;
   virtual void __stdcall SetNextDialog(int val) = 0;
-  virtual int __stdcall GetLinkedID() = 0;
-  virtual void __stdcall SetLinkedID(int val) = 0;
-  virtual int __stdcall GetLinkedFromID() = 0;
-  virtual void __stdcall SetLinkedFromID(int val) = 0;
+  virtual int __stdcall GetPrevID() = 0;
+  virtual void __stdcall SetPrevID(int val) = 0;
+  virtual int __stdcall GetNextID() = 0;
+  virtual void __stdcall SetNextID(int val) = 0;
   virtual int __stdcall GetType() = 0;
   virtual const wchar_t *__stdcall GetText() = 0;
   virtual void __stdcall SetText(const wchar_t *new_text) = 0;

@@ -70,8 +70,8 @@ const wchar_t *TDlgBaseText::GetInfo()
   std::unique_ptr<TStringList> lst(new TStringList());
 
   lst->Add("ID = " + String(ID));
-  lst->Add("LinkedID = " + String(LinkedID));
-  lst->Add("LinkedFromID = " + String(LinkedFromID));
+  lst->Add("PrevID = " + String(PrevID));
+  lst->Add("NextID = " + String(NextID));
   lst->Add("Dialog = " + String(Dialog));
   lst->Add("NextDialog = " + String(NextDialog));
 
@@ -86,8 +86,8 @@ const wchar_t *TDlgBaseText::GetInfo()
 void TDlgBaseText::GiveInfo(TStrings *lst)
 {
   lst->Add(String(ID));
-  lst->Add(String(LinkedID));
-  lst->Add(String(LinkedFromID));
+  lst->Add(String(PrevID));
+  lst->Add(String(NextID));
   lst->Add(String(Dialog));
   lst->Add(String(NextDialog));
 }

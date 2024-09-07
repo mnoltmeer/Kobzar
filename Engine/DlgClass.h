@@ -61,9 +61,9 @@ class TDlgBaseText
 //ид элемента
 	__property int ID = {read = id, write = id};
 //ид элемента к которому есть привязка
-	__property int LinkedID = {read = l_id, write = l_id};
+	__property int PrevID = {read = l_id, write = l_id};
 //id привязанного объекта SreenText
-	__property int LinkedFromID = {read = l_fr_id, write = l_fr_id};
+	__property int NextID = {read = l_fr_id, write = l_fr_id};
 //номер диалога (сцены) к которому относится элемент
 	__property int Dialog = {read = cd, write = cd};
 //номер следующего диалога (сцены)
@@ -114,7 +114,7 @@ class TDlgAnswer : public TDlgBaseText
 	const wchar_t *CreateXML();
 
 //для хранения старого id при выборе EndDialog
-	__property int PrevLinkedFromID = {read = prev_id, write = prev_id};
+	__property int PrevNextID = {read = prev_id, write = prev_id};
 //отметка о том, что этот элемент закрывает сцену
 	__property bool EndDialog = {read = end_dlg, write = end_dlg};
 };

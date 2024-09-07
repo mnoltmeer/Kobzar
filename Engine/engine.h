@@ -70,7 +70,7 @@ class KobzarEngine: public KE_INTERFACE
 	int FindTextElementID(int dlg_id);
     int SearchDependeciesID(int id);
 	int SearchDependeciesDialog(int id);
-	void UpdateLinkedID(int old_id, int new_id);
+	void UpdatePrevID(int old_id, int new_id);
 	void UpdateDialog(int old_val, int new_val);
 	int RunScript(TDlgScript *el);
 
@@ -101,10 +101,10 @@ class KobzarEngine: public KE_INTERFACE
 	virtual void __stdcall SetDialog(int val);
 	virtual int __stdcall GetNextDialog();
 	virtual void __stdcall SetNextDialog(int val);
-	virtual int __stdcall GetLinkedID();
-	virtual void __stdcall SetLinkedID(int val);
-	virtual int __stdcall GetLinkedFromID();
-	virtual void __stdcall SetLinkedFromID(int val);
+	virtual int __stdcall GetPrevID();
+	virtual void __stdcall SetPrevID(int val);
+	virtual int __stdcall GetNextID();
+	virtual void __stdcall SetNextID(int val);
 	virtual int __stdcall GetType();
 	virtual const wchar_t *__stdcall GetText();
 	virtual void __stdcall SetText(const wchar_t *val);

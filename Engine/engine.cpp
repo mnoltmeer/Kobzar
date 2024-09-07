@@ -350,25 +350,25 @@ int KobzarEngine::Link(int id, int to_id)
 	   if ((from->Type == DlgAnsw) &&
 		  (to->Type == DlgText)) //перший елемент - Відповідь, другий - Сцена
 		 {
-		   if (to->LinkedID > -1) //якщо Сцена вже привязана до іншої Відповіді
+		   if (to->PrevID > -1) //якщо Сцена вже привязана до іншої Відповіді
 			 {
-			   TDlgBaseText *old_answ = FindElement(to->LinkedID);
+			   TDlgBaseText *old_answ = FindElement(to->PrevID);
 
 			   if (old_answ) //видалимо прив'язки у старої Відповіді
 				 {
 				   old_answ->NextDialog = -1;
-				   old_answ->LinkedFromID = -1;
+				   old_answ->NextID = -1;
 				 }
 			 }
 
 		  from->NextDialog = to->Dialog;
-		  from->LinkedFromID = to->ID;
+		  from->NextID = to->ID;
 		 }
 	   else if ((from->Type == DlgText) &&
 			   ((to->Type == DlgAnsw) || (to->Type == DlgScript))) //перший елемент - Сцена, другий - Відповідь
 		 {
 		   to->Dialog = from->Dialog;
-		   to->LinkedID = from->ID;
+		   to->PrevID = from->ID;
 		 }
 
 	   res = 1;
@@ -403,8 +403,8 @@ int KobzarEngine::Unlink(int id, int to_id)
 	   if ((to->Type == DlgAnsw) || (to->Type == DlgScript))
 		 to->Dialog = -1;
 
-	   from->LinkedFromID = -1;
-	   to->LinkedID = -1;
+	   from->NextID = -1;
+	   to->PrevID = -1;
 
 	   res = 1;
 	 }
@@ -514,7 +514,7 @@ int KobzarEngine::FindLinkedElements(int id, std::vector<TDlgBaseText*> *el_list
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		 {
-		   if (items[i]->LinkedID == id)
+		   if (items[i]->PrevID == id)
 			 {
 			   cnt++;
 			   el_list->push_back(items[i]);
@@ -659,10 +659,10 @@ bool KobzarEngine::SaveDlgSchema(String file)
 			val = items[i]->Type;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->LinkedID;
+			val = items[i]->PrevID;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->LinkedFromID;
+			val = items[i]->NextID;
 			fs->Position += fs->Write(&val, sizeof(int));
 
 			val = items[i]->Dialog;
@@ -804,7 +804,7 @@ int KobzarEngine::SearchDependeciesID(int id)
 	 {
        for (int i = 0; i < items.size(); i++)
 		  {
-			if ((items[i]->LinkedID == id) || (items[i]->LinkedFromID == id))
+			if ((items[i]->PrevID == id) || (items[i]->NextID == id))
 			  dpnd++;
           }
 	 }
@@ -843,22 +843,22 @@ int KobzarEngine::SearchDependeciesDialog(int id)
 }
 //---------------------------------------------------------------------------
 
-void KobzarEngine::UpdateLinkedID(int old_id, int new_id)
+void KobzarEngine::UpdatePrevID(int old_id, int new_id)
 {
   try
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		  {
-			if (items[i]->LinkedID == old_id)
-			  items[i]->LinkedID = new_id;
+			if (items[i]->PrevID == old_id)
+			  items[i]->PrevID = new_id;
 
-			if (items[i]->LinkedFromID == old_id)
-			  items[i]->LinkedFromID = new_id;
+			if (items[i]->NextID == old_id)
+			  items[i]->NextID = new_id;
 		  }
 	 }
   catch (Exception &e)
 	 {
-	   CreateLog("KobzarEngine::UpdateLinkedID", e.ToString());
+	   CreateLog("KobzarEngine::UpdatePrevID", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -1052,7 +1052,7 @@ bool KobzarEngine::XMLExport(String xml_file)
 
 				for (int j = 0; j < items.size(); j++)
 				   {
-					 if (items[j]->LinkedID == items[i]->ID)
+					 if (items[j]->PrevID == items[i]->ID)
 					   {
 						 xml_exp += items[j]->CreateXML();
 						 xml_exp += "\r\n";
@@ -1104,8 +1104,8 @@ void KobzarEngine::BuildLinksAfterXMLImport()
 		  {
 			if (items[i]->Type != DlgText)
 			  {
-				items[i]->LinkedID = FindTextElementID(items[i]->Dialog);
-				items[i]->LinkedFromID = FindTextElementID(items[i]->NextDialog);
+				items[i]->PrevID = FindTextElementID(items[i]->Dialog);
+				items[i]->NextID = FindTextElementID(items[i]->NextDialog);
 			  }
 		  }
 	 }
@@ -1122,11 +1122,11 @@ void KobzarEngine::RemoveLimboLinks()
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		  {
-			if ((items[i]->LinkedID > -1) && (!FindElement(items[i]->LinkedID)))
-			  items[i]->LinkedID = -1;
+			if ((items[i]->PrevID > -1) && (!FindElement(items[i]->PrevID)))
+			  items[i]->PrevID = -1;
 
-			if ((items[i]->LinkedFromID > -1) && (!FindElement(items[i]->LinkedFromID)))
-			  items[i]->LinkedFromID = -1;
+			if ((items[i]->NextID > -1) && (!FindElement(items[i]->NextID)))
+			  items[i]->NextID = -1;
 		  }
 	 }
   catch (Exception &e)
@@ -1163,7 +1163,10 @@ void KobzarEngine::SetID(int val)
 	   if (!ActiveItem)
 		 throw Exception("No active element!");
 	   else
-		 UpdateLinkedID(ActiveItem->ID, val);
+		 {
+		   UpdatePrevID(ActiveItem->ID, val);
+           ActiveItem->ID = val;
+		 }
 	 }
   catch (Exception &e)
 	 {
@@ -1172,7 +1175,7 @@ void KobzarEngine::SetID(int val)
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::GetLinkedID()
+int KobzarEngine::GetPrevID()
 {
   int res = 0;
 
@@ -1181,48 +1184,48 @@ int KobzarEngine::GetLinkedID()
 	   if (!ActiveItem)
 		 throw Exception("No active element!");
 	   else
-		 res = ActiveItem->LinkedID;
+		 res = ActiveItem->PrevID;
 	 }
   catch (Exception &e)
 	 {
-	   CreateLog("KobzarEngine::GetLinkedID", e.ToString());
+	   CreateLog("KobzarEngine::GetPrevID", e.ToString());
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-void KobzarEngine::SetLinkedID(int val)
+void KobzarEngine::SetPrevID(int val)
 {
   try
 	 {
 	   if (!ActiveItem)
 		 throw Exception("No active element!");
 	   else if (ActiveItem->Type == DlgText)
-		 CreateLog("KobzarEngine::SetLinkedID", "Can't change LinkedID property of TEXT element");
+		 CreateLog("KobzarEngine::SetPrevID", "Can't change PrevID property of TEXT element");
 	   else
 		 {
 		   TDlgBaseText *lnk = FindElement(val);
 
 		   if (lnk && (lnk->Type == DlgText))
 			 {
-			   ActiveItem->LinkedID = val;
+			   ActiveItem->PrevID = val;
 			   ActiveItem->Dialog = lnk->Dialog;
 			 }
 		   else if (lnk && (lnk->Type != DlgText))
-			 throw Exception("Element with ID = LinkedID (" + IntToStr(val) + ") is not TEXT element");
+			 throw Exception("Element with ID = PrevID (" + IntToStr(val) + ") is not TEXT element");
 		   else
-			 throw Exception("No TEXT_LIKE element with ID = LinkedID (" + IntToStr(val) + ")");
+			 throw Exception("No TEXT_LIKE element with ID = PrevID (" + IntToStr(val) + ")");
 		 }
 	 }
   catch (Exception &e)
 	 {
-	   CreateLog("KobzarEngine::SetLinkedID", e.ToString());
+	   CreateLog("KobzarEngine::SetPrevID", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::GetLinkedFromID()
+int KobzarEngine::GetNextID()
 {
   int res = 0;
 
@@ -1231,18 +1234,18 @@ int KobzarEngine::GetLinkedFromID()
 	   if (!ActiveItem)
 		 throw Exception("No active element!");
 	   else
-		 res = ActiveItem->LinkedFromID;
+		 res = ActiveItem->NextID;
 	 }
   catch (Exception &e)
 	 {
-	   CreateLog("KobzarEngine::GetLinkedFromID", e.ToString());
+	   CreateLog("KobzarEngine::GetNextID", e.ToString());
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-void KobzarEngine::SetLinkedFromID(int val)
+void KobzarEngine::SetNextID(int val)
 {
   try
 	 {
@@ -1251,24 +1254,24 @@ void KobzarEngine::SetLinkedFromID(int val)
 	   else
 		 {
 		   if (ActiveItem->Type == DlgText)
-			 throw Exception("Can't change LinkedFromID property of TEXT element");
+			 throw Exception("Can't change NextID property of TEXT element");
 
 		   TDlgBaseText *lnk = FindElement(val);
 
 		   if (lnk && (lnk->Type == DlgText))
 			 {
-			   ActiveItem->LinkedFromID = val;
+			   ActiveItem->NextID = val;
 			   ActiveItem->NextDialog = lnk->Dialog;
 			 }
 		   else if (lnk && (lnk->Type != DlgText))
-			 throw Exception("Element with ID = LinkedFromID (" + IntToStr(val) + ") is not a TEXT");
+			 throw Exception("Element with ID = NextID (" + IntToStr(val) + ") is not a TEXT");
 		   else
-			 throw Exception("No TEXT element with ID = LinkedFromID (" + IntToStr(val) + ")");
+			 throw Exception("No TEXT element with ID = NextID (" + IntToStr(val) + ")");
 		 }
 	 }
   catch (Exception &e)
 	 {
-	   CreateLog("KobzarEngine::SetLinkedFromID", e.ToString());
+	   CreateLog("KobzarEngine::SetNextID", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -1306,7 +1309,7 @@ void KobzarEngine::SetDialog(int val)
 		   if (ActiveItem->Type != DlgText)
 			 {
 			   ActiveItem->Dialog = val;
-			   ActiveItem->LinkedID = FindTextElementID(val);
+			   ActiveItem->PrevID = FindTextElementID(val);
 			 }
 		   else
 			 {
@@ -1318,7 +1321,7 @@ void KobzarEngine::SetDialog(int val)
 				   CreateLog("KobzarEngine::SetDialog", "Founded elements with Dialog. Creating links");
 
 				   for (int i = 0; i < lnks.size(); i++)
-					 lnks[i]->LinkedID = ActiveItem->ID;
+					 lnks[i]->PrevID = ActiveItem->ID;
 				 }
 
 			   if ((old != ActiveItem->Dialog) && (SearchDependeciesDialog(old) > 0))
@@ -1372,8 +1375,8 @@ void KobzarEngine::SetNextDialog(int val)
 			   if (new_dlg_id > -1)
 				 {
 				   TDlgBaseText *ndlg = FindElement(new_dlg_id);
-				   ndlg->LinkedID = ActiveItem->ID;
-				   ActiveItem->LinkedFromID = ndlg->ID;
+				   ndlg->PrevID = ActiveItem->ID;
+				   ActiveItem->NextID = ndlg->ID;
 				 }
 			 }
 		 }
@@ -1477,14 +1480,14 @@ void KobzarEngine::SetEndDialog(bool val)
 
 		   if (val)
 			 {
-			   itm->PrevLinkedFromID = itm->LinkedFromID;
-			   itm->LinkedFromID = -1;
+			   itm->PrevNextID = itm->NextID;
+			   itm->NextID = -1;
 			   itm->NextDialog = -1;
 			 }
-		   else if (itm->PrevLinkedFromID > 0)
+		   else if (itm->PrevNextID > 0)
 			 {
-			   SetLinkedFromID(itm->PrevLinkedFromID);
-			   itm->PrevLinkedFromID = -1;
+			   SetNextID(itm->PrevNextID);
+			   itm->PrevNextID = -1;
 			 }
 		 }
 	   else
