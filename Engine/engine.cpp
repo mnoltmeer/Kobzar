@@ -91,7 +91,14 @@ KobzarEngine::KobzarEngine()
 
 void KobzarEngine::LoadFunctionsToELI(ELI_INTERFACE *FEIface)
 {
-  FEIface->AddFunction(L"_Foo", L"num pID", &eFoo);
+  try
+	 {
+	   FEIface->AddFunction(L"_SetText", L"num pID,sym pText", &eSetText);
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("Story::LoadFunctionsToELI", e.ToString());
+	 }
 }
 //---------------------------------------------------------------------------
 
@@ -1716,7 +1723,7 @@ void KobzarEngine::SelectAnswer(int index)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall KobzarEngine::eFoo(void *p)
+void __stdcall KobzarEngine::eSetText(void *p)
 {
   ELI_INTERFACE *ep;
 
@@ -1724,13 +1731,13 @@ void __stdcall KobzarEngine::eFoo(void *p)
 	 {
 	   ep = static_cast<ELI_INTERFACE*>(p);
 
-	   String id = ep->GetParamToStr(L"pID");
+	   SetText(ep->GetParamToInt(L"pID"), ep->GetParamToStr(L"pText");
 
 	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "*eInterface = new KobzarEngine() :" + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "KobzarEngine::eSetText: " + e.ToString());
 	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
 	 }
 }

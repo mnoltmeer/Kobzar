@@ -35,6 +35,7 @@ struct KE_INTERFACE
   virtual int __stdcall AddAnswer() = 0;
   virtual int __stdcall AddScript() = 0;
   virtual int __stdcall Activate(int id) = 0;
+  virtual int __stdcall RunScript(int id) = 0;
   virtual int __stdcall Remove(int id) = 0;
   virtual int __stdcall Link(int id, int to_id) = 0;
   virtual int __stdcall Unlink(int id, int to_id) = 0;
