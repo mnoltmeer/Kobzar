@@ -119,9 +119,10 @@ class KobzarEngine: public KE_INTERFACE
 	virtual const wchar_t *__stdcall GetScene();
 	virtual int __stdcall GetAnswerCount();
 	virtual const wchar_t *__stdcall GetAnswer(int index);
-    virtual void __stdcall SelectAnswer(int index);
-
-    static void __stdcall eSetText(void *p);
+	virtual void __stdcall SelectAnswer(int index);
 };
+//-------------------------------------------------------------------------------
+
+ void __stdcall eSetText(void *p);
 //-------------------------------------------------------------------------------
 #endif

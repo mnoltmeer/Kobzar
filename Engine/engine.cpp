@@ -19,6 +19,7 @@ This file is part of Kobzar Engine.
 //---------------------------------------------------------------------------
 
 #pragma hdrstop
+#include <stdio.h>
 #include <Xml.adomxmldom.hpp>
 #include <Xml.XMLDoc.hpp>
 #include <Xml.xmldom.hpp>
@@ -93,6 +94,11 @@ void KobzarEngine::LoadFunctionsToELI(ELI_INTERFACE *FEIface)
 {
   try
 	 {
+	   wchar_t buffer[256];
+	   swprintf(buffer, L"%d\r\n", reinterpret_cast<int>(this));
+
+	   FEIface->SetParam(L"pStoryID", buffer);
+
 	   FEIface->AddFunction(L"_SetText", L"num pID,sym pText", &eSetText);
 	 }
   catch (Exception &e)
@@ -1722,16 +1728,21 @@ void KobzarEngine::SelectAnswer(int index)
 	 }
 }
 //---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 
-void __stdcall KobzarEngine::eSetText(void *p)
+void __stdcall eSetText(void *p)
 {
   ELI_INTERFACE *ep;
+  KobzarEngine *CurrentStory;
 
   try
 	 {
 	   ep = static_cast<ELI_INTERFACE*>(p);
+	   CurrentStory = reinterpret_cast<KobzarEngine*>(ep->GetParamToInt(L"pStoryID"));
 
-	   SetText(ep->GetParamToInt(L"pID"), ep->GetParamToStr(L"pText");
+	   CurrentStory->Activate(ep->GetParamToInt(L"pID"));
+	   CurrentStory->SetText(ep->GetParamToStr(L"pText"));
 
 	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
 	 }
