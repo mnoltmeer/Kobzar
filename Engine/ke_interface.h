@@ -34,8 +34,8 @@ struct KE_INTERFACE
   virtual int __stdcall AddScene() = 0;
   virtual int __stdcall AddAnswer() = 0;
   virtual int __stdcall AddScript() = 0;
-  virtual int __stdcall Activate(int id) = 0;
-  virtual int __stdcall RunScript(int id) = 0;
+  virtual const wchar_t *__stdcall RunScript(const wchar_t *text) = 0;
+  virtual int __stdcall Select(int id) = 0;
   virtual int __stdcall Remove(int id) = 0;
   virtual int __stdcall Link(int id, int to_id) = 0;
   virtual int __stdcall Unlink(int id, int to_id) = 0;
@@ -56,6 +56,7 @@ struct KE_INTERFACE
   virtual void __stdcall SetEndDialog(bool end_dialog) = 0;
   virtual const wchar_t* __stdcall GetParams() = 0;
   virtual void __stdcall SetParams(const wchar_t *params) = 0;
+  virtual int __stdcall Run() = 0;
   virtual const wchar_t* __stdcall GetResult() = 0;
 
 //functions for telling stories

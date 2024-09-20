@@ -275,7 +275,7 @@ int KobzarEngine::AddScript()
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::Activate(int id)
+int KobzarEngine::Select(int id)
 {
   int res = 0;
 
@@ -290,27 +290,31 @@ int KobzarEngine::Activate(int id)
 	 }
   catch (Exception &e)
 	 {
-	   CreateLog("Story::Activate", e.ToString());
+	   CreateLog("Story::Select", e.ToString());
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::RunScript(int id)
+const wchar_t *KobzarEngine::RunScript(const wchar_t *text)
 {
-  int res = 0;
+  const wchar_t *res = nullptr;
 
   try
 	 {
-	   TDlgScript *itm = reinterpret_cast<TDlgScript*>(FindElement(id));
+       std::unique_ptr<ELIScript> script(new ELIScript(GetDirPathFromFilePath(String(path)) + "\\ELI.dll"));
 
-	   if (!itm)
-		 throw Exception("Element with ID = " + IntToStr(id) + " not found");
+	   if (!script->Initialised)
+		 throw Exception("Script object not initialised!");
+
+	   LoadFunctionsToELI(script->Interpreter);
+	   script->Text = text;
+
+	   if (!script->Run())
+		 throw Exception(script->Log);
 	   else
-		 res = RunScript(itm);
-
-	   res = 1;
+		 res = script->Result.c_str();
 	 }
   catch (Exception &e)
 	 {
@@ -893,7 +897,7 @@ void KobzarEngine::UpdateDialog(int old_val, int new_val)
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::RunScript(TDlgScript *el)
+int KobzarEngine::TranslateScript(TDlgScript *el)
 {
   int res = 1;
 
@@ -926,7 +930,7 @@ int KobzarEngine::RunScript(TDlgScript *el)
   catch (Exception &e)
 	 {
 	   res = 0;
-	   CreateLog("Story::RunScript", e.ToString());
+	   CreateLog("KobzarEngine::TranslateScript", e.ToString());
 	 }
 
   return res;
@@ -1555,6 +1559,28 @@ void KobzarEngine::SetParams(const wchar_t *val)
 }
 //---------------------------------------------------------------------------
 
+int KobzarEngine::Run()
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+	   else if (ActiveItem->Type != DlgScript)
+		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not a Script");
+	   else
+		 res = TranslateScript(reinterpret_cast<TDlgScript*>(ActiveItem));
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::Run", e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
 const wchar_t *KobzarEngine::GetResult()
 {
   const wchar_t *res = nullptr;
@@ -1603,16 +1629,16 @@ int KobzarEngine::LoadDialog(int dlg_id)
 
   try
 	 {
-	   if (Activate(FindTextElementID(dlg_id)))
+	   if (Select(FindTextElementID(dlg_id)))
 		 {
 		   std::vector<TDlgScript*> scripts;
 
 		   FindScriptsByDialog(dlg_id, &scripts);
 
 		   for (int i = 0; i < scripts.size(); i++)
-			  RunScript(scripts[i]);
+			  TranslateScript(scripts[i]);
 
-           res = 1;
+		   res = 1;
 		 }
 	   else
          throw Exception("No Scene in dialog with ID = " + IntToStr(dlg_id));
@@ -1741,7 +1767,7 @@ void __stdcall eSetText(void *p)
 	   ep = static_cast<ELI_INTERFACE*>(p);
 	   CurrentStory = reinterpret_cast<KobzarEngine*>(ep->GetParamToInt(L"pStoryID"));
 
-	   CurrentStory->Activate(ep->GetParamToInt(L"pID"));
+	   CurrentStory->Select(ep->GetParamToInt(L"pID"));
 	   CurrentStory->SetText(ep->GetParamToStr(L"pText"));
 
 	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");

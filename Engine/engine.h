@@ -72,7 +72,7 @@ class KobzarEngine: public KE_INTERFACE
 	int SearchDependeciesDialog(int id);
 	void UpdatePrevID(int old_id, int new_id);
 	void UpdateDialog(int old_val, int new_val);
-	int RunScript(TDlgScript *el);
+	int TranslateScript(TDlgScript *el);
 
   //функції візуалізації
 
@@ -90,8 +90,8 @@ class KobzarEngine: public KE_INTERFACE
 	virtual int __stdcall AddScene();
 	virtual int __stdcall AddAnswer();
 	virtual int __stdcall AddScript();
-	virtual int __stdcall Activate(int id);
-	virtual int __stdcall RunScript(int id);
+    virtual const wchar_t *__stdcall RunScript(const wchar_t *text);
+	virtual int __stdcall Select(int id);
 	virtual int __stdcall Remove(int id);
 	virtual int __stdcall Link(int id, int to_id);
 	virtual int __stdcall Unlink(int id, int to_id);
@@ -112,6 +112,7 @@ class KobzarEngine: public KE_INTERFACE
 	virtual void __stdcall SetEndDialog(bool val);
 	virtual const wchar_t* __stdcall GetParams();
 	virtual void __stdcall SetParams(const wchar_t *val);
+    virtual int __stdcall Run();
 	virtual const wchar_t* __stdcall GetResult();
 
 	virtual int __stdcall TellStory(const wchar_t *story_file);
