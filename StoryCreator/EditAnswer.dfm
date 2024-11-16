@@ -58,9 +58,9 @@ object EditAnswerForm: TEditAnswerForm
   object Label4: TLabel
     Left = 127
     Top = 34
-    Width = 53
+    Width = 42
     Height = 16
-    Caption = 'LinkedID:'
+    Caption = 'PrevID:'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
@@ -70,10 +70,10 @@ object EditAnswerForm: TEditAnswerForm
   end
   object Label5: TLabel
     Left = 270
-    Top = 34
-    Width = 83
+    Top = 33
+    Width = 42
     Height = 16
-    Caption = 'LinkedFromID:'
+    Caption = 'NextID:'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
     Font.Height = -13
@@ -125,23 +125,23 @@ object EditAnswerForm: TEditAnswerForm
     OnExit = EditExit
     OnKeyUp = EditKeyUp
   end
-  object LinkedID: TEdit
+  object PrevID: TEdit
     Left = 186
     Top = 34
     Width = 41
     Height = 21
     TabOrder = 4
-    OnChange = LinkedIDChange
+    OnChange = PrevIDChange
     OnExit = EditExit
     OnKeyUp = EditKeyUp
   end
-  object LinkedFromID: TEdit
+  object NextID: TEdit
     Left = 382
     Top = 33
     Width = 41
     Height = 21
     TabOrder = 5
-    OnChange = LinkedFromIDChange
+    OnChange = NextIDChange
     OnExit = EditExit
     OnKeyUp = EditKeyUp
   end

@@ -48,8 +48,8 @@ void __fastcall TEditAnswerForm::FormShow(TObject *Sender)
   Text->Text = Selected->Text;
   Dialog->Text = IntToStr(Selected->Dialog);
   NextDialog->Text = IntToStr(Selected->NextDialog);
-  LinkedID->Text = IntToStr(Selected->LinkedID);
-  LinkedFromID->Text = IntToStr(Selected->LinkedFromID);
+  PrevID->Text = IntToStr(Selected->PrevID);
+  NextID->Text = IntToStr(Selected->NextID);
   EndDialog->Checked = dynamic_cast<TDlgAnswer*>(Selected)->EndDialog;
   ID->Text = IntToStr(Selected->ID);
 }
@@ -88,19 +88,19 @@ void __fastcall TEditAnswerForm::NextDialogChange(TObject *Sender)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TEditAnswerForm::LinkedIDChange(TObject *Sender)
+void __fastcall TEditAnswerForm::PrevIDChange(TObject *Sender)
 {
   changed = true;
 
-  StoryCreator->PropList->Cells[1][1] = LinkedID->Text;
+  StoryCreator->PropList->Cells[1][1] = PrevID->Text;
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TEditAnswerForm::LinkedFromIDChange(TObject *Sender)
+void __fastcall TEditAnswerForm::NextIDChange(TObject *Sender)
 {
   changed = true;
 
-  StoryCreator->PropList->Cells[1][2] = LinkedFromID->Text;
+  StoryCreator->PropList->Cells[1][2] = NextID->Text;
 }
 //---------------------------------------------------------------------------
 
@@ -130,13 +130,13 @@ void __fastcall TEditAnswerForm::EditExit(TObject *Sender)
 	StoryCreator->ChangeDialog(edit->Text.ToInt());
   else if (edit->Name == "NextDialog")
 	StoryCreator->ChangeNextDialog(edit->Text.ToInt());
-  else if (edit->Name == "LinkedID")
-	StoryCreator->ChangeLinkedID(edit->Text.ToInt());
-  else if (edit->Name == "LinkedFromID")
-	StoryCreator->ChangeLinkedFromID(edit->Text.ToInt());
+  else if (edit->Name == "PrevID")
+	StoryCreator->ChangePrevID(edit->Text.ToInt());
+  else if (edit->Name == "NextID")
+	StoryCreator->ChangeNextID(edit->Text.ToInt());
 
-  LinkedID->Text = IntToStr(Selected->LinkedID);
-  LinkedFromID->Text = IntToStr(Selected->LinkedFromID);
+  PrevID->Text = IntToStr(Selected->PrevID);
+  NextID->Text = IntToStr(Selected->NextID);
   UpdateItemsList(StoryCreator->ItemList);
   StoryCreator->Repaint();
   Selected->SetContainerData();
