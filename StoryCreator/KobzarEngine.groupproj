@@ -12,6 +12,12 @@
         <Projects Include="..\TestApp\Test.cbproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="..\TestApp\Test2.cbproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\ELIConnector\eliKobzar.cbproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -47,14 +53,32 @@
     <Target Name="Test:Make">
         <MSBuild Projects="..\TestApp\Test.cbproj" Targets="Make"/>
     </Target>
+    <Target Name="Test2">
+        <MSBuild Projects="..\TestApp\Test2.cbproj"/>
+    </Target>
+    <Target Name="Test2:Clean">
+        <MSBuild Projects="..\TestApp\Test2.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Test2:Make">
+        <MSBuild Projects="..\TestApp\Test2.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="eliKobzar">
+        <MSBuild Projects="..\ELIConnector\eliKobzar.cbproj"/>
+    </Target>
+    <Target Name="eliKobzar:Clean">
+        <MSBuild Projects="..\ELIConnector\eliKobzar.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="eliKobzar:Make">
+        <MSBuild Projects="..\ELIConnector\eliKobzar.cbproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="KobzarStoryCreator;KobzarEngine;Test"/>
+        <CallTarget Targets="KobzarStoryCreator;KobzarEngine;Test;Test2;eliKobzar"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="KobzarStoryCreator:Clean;KobzarEngine:Clean;Test:Clean"/>
+        <CallTarget Targets="KobzarStoryCreator:Clean;KobzarEngine:Clean;Test:Clean;Test2:Clean;eliKobzar:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="KobzarStoryCreator:Make;KobzarEngine:Make;Test:Make"/>
+        <CallTarget Targets="KobzarStoryCreator:Make;KobzarEngine:Make;Test:Make;Test2:Make;eliKobzar:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
