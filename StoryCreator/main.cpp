@@ -259,10 +259,10 @@ void __fastcall TStoryCreator::FormShow(TObject *Sender)
 	   PropList->ColWidths[0] = 120;
 	   PropList->ColWidths[1] = 70;
 	   PropList->Cols[0]->Add("ID");
-	   PropList->Cols[0]->Add("LinkedID");
-	   PropList->Cols[0]->Add("LinkedFromID");
-	   PropList->Cols[0]->Add("CardOfDialog");
-	   PropList->Cols[0]->Add("NextCardOfDialog");
+	   PropList->Cols[0]->Add("PrevID");
+	   PropList->Cols[0]->Add("NextID");
+	   PropList->Cols[0]->Add("Dialog");
+	   PropList->Cols[0]->Add("NextDialog");
 	   PropList->Cols[0]->Add("Position X");
 	   PropList->Cols[0]->Add("Position Y");
 	 }
@@ -838,27 +838,27 @@ void __fastcall TStoryCreator::ChangeNextDialog(int new_val)
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TStoryCreator::ChangeLinkedID(int new_val)
+void __fastcall TStoryCreator::ChangePrevID(int new_val)
 {
   if (Selected->Type == DlgText)
 	return;
 
-  if (Selected->LinkedID != new_val)
+  if (Selected->PrevID != new_val)
 	{
-	  Selected->LinkedID = new_val;
+	  Selected->PrevID = new_val;
 	  changed = true;
 	}
 }
 //---------------------------------------------------------------------------
 
-void __fastcall TStoryCreator::ChangeLinkedFromID(int new_val)
+void __fastcall TStoryCreator::ChangeNextID(int new_val)
 {
   if (Selected->Type == DlgText)
 	return;
 
-  if (Selected->LinkedFromID != new_val)
+  if (Selected->NextID != new_val)
 	{
-	  Selected->LinkedFromID = new_val;
+	  Selected->NextID = new_val;
 	  changed = true;
 	}
 }
@@ -931,8 +931,8 @@ void __fastcall TStoryCreator::EPPStandAloneClick(TObject *Sender)
 				 mtWarning,
 				 TMsgDlgButtons() <<mbYes <<mbNo, 0) == mrYes)
 	{
-	  ChangeLinkedID(-1);
-	  ChangeLinkedFromID(-1);
+	  ChangePrevID(-1);
+	  ChangeNextID(-1);
 
       UpdateItemsList(ItemList);
 	  Repaint();

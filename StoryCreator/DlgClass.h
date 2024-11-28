@@ -80,11 +80,11 @@ class TDlgBaseText
 	int GetID();
 	void SetID(int val);
 
-	int GetLinkedID();
-	void SetLinkedID(int val);
+	int GetPrevID();
+	void SetPrevID(int val);
 
-	int GetLinkedFromID();
-	void SetLinkedFromID(int val);
+	int GetNextID();
+	void SetNextID(int val);
 
 	int GetDialog();
 	void SetDialog(int val);
@@ -134,9 +134,9 @@ class TDlgBaseText
 //ид элемента
 	__property int ID = {read = GetID, write = SetID};
 //ид элемента к которому есть привязка
-	__property int LinkedID = {read = GetLinkedID, write = SetLinkedID};
+	__property int PrevID = {read = GetPrevID, write = SetPrevID};
 //id привязанного объекта SreenText
-	__property int LinkedFromID = {read = GetLinkedFromID, write = SetLinkedFromID};
+	__property int NextID = {read = GetNextID, write = SetNextID};
 //точка для входящего линка (верхн. л. угол)
 	__property TPoint InLink = {read = il, write = il};
 //точка для исходящего линка (нижн. пр. угол)
@@ -235,7 +235,7 @@ class TDlgAnswer : public TDlgBaseText
 	const wchar_t *CreateXML();
 
 //для хранения старого id при выборе EndDialog
-	__property int PrevLinkedFromID = {read = prev_id, write = prev_id};
+	__property int PrevNextID = {read = prev_id, write = prev_id};
 //отметка о том, что этот элемент закрывает сцену
 	__property bool EndDialog = {read = end_dlg, write = end_dlg};
 };
@@ -298,7 +298,7 @@ bool SaveDlgSchema(const wchar_t *file);
 bool LoadDlgSchema(const wchar_t *file);
 int SearchDependeciesID(int id);
 int SearchDependeciesDialog(int id);
-void UpdateLinkedID(int old_id, int new_id);
+void UpdatePrevID(int old_id, int new_id);
 void UpdateDialog(int old_val, int new_val);
 void AddScreenText(int left, int top, TForm *IconOwner);
 void AddAnswer(int left, int top, TForm *IconOwner);

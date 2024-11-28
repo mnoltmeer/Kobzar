@@ -38,17 +38,17 @@ __published:	// IDE-managed Components
 	TLabel *Label3;
 	TEdit *ID;
 	TLabel *Label4;
-	TEdit *LinkedID;
+	TEdit *PrevID;
 	TLabel *Label5;
-	TEdit *LinkedFromID;
+	TEdit *NextID;
 	TCheckBox *EndDialog;
 	void __fastcall FormShow(TObject *Sender);
 	void __fastcall TextChange(TObject *Sender);
 	void __fastcall IDChange(TObject *Sender);
 	void __fastcall DialogChange(TObject *Sender);
 	void __fastcall NextDialogChange(TObject *Sender);
-	void __fastcall LinkedIDChange(TObject *Sender);
-	void __fastcall LinkedFromIDChange(TObject *Sender);
+	void __fastcall PrevIDChange(TObject *Sender);
+	void __fastcall NextIDChange(TObject *Sender);
 	void __fastcall EndDialogClick(TObject *Sender);
 	void __fastcall FormClose(TObject *Sender, TCloseAction &Action);
 

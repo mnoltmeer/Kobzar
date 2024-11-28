@@ -89,13 +89,12 @@ object StoryCreator: TStoryCreator
   object QuickButtonsPanel: TPanel
     Left = 0
     Top = 0
-    Width = 746
+    Width = 773
     Height = 28
     Align = alTop
     ParentBackground = False
     ParentColor = True
     TabOrder = 1
-    ExplicitWidth = 773
     object QBtNew: TBitBtn
       Left = 1
       Top = 1

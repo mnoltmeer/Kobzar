@@ -188,8 +188,8 @@ public:		// User declarations
 	void __fastcall ChangeID(int new_val);
 	void __fastcall ChangeDialog(int new_val);
 	void __fastcall ChangeNextDialog(int new_val);
-	void __fastcall ChangeLinkedID(int new_val);
-	void __fastcall ChangeLinkedFromID(int new_val);
+	void __fastcall ChangePrevID(int new_val);
+	void __fastcall ChangeNextID(int new_val);
 	void __fastcall VisualiseElements();
 };
 //---------------------------------------------------------------------------

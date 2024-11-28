@@ -115,7 +115,7 @@ int FindLinkedElements(int id, std::vector<TDlgBaseText*> *el_list)
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		 {
-		   if (items[i]->LinkedID == id)
+		   if (items[i]->PrevID == id)
 			 {
 			   cnt++;
 			   el_list->push_back(items[i]);
@@ -226,11 +226,11 @@ void RedrawLinks()
 
 	   for (int i = 0; i < items.size(); i++)
 		  {
-			if (items[i]->LinkedID > -1)
+			if (items[i]->PrevID > -1)
 			  {
 				canv->Pen->Color = clGreen;
 
-				TDlgBaseText *lnk = FindElement(items[i]->LinkedID);
+				TDlgBaseText *lnk = FindElement(items[i]->PrevID);
 
 				if (lnk)
 				  {
@@ -241,11 +241,11 @@ void RedrawLinks()
 				  }
 			  }
 
-			if (items[i]->LinkedFromID > -1)
+			if (items[i]->NextID > -1)
 			  {
 				canv->Pen->Color = clBlue;
 
-				TDlgBaseText *lnk = FindElement(items[i]->LinkedFromID);
+				TDlgBaseText *lnk = FindElement(items[i]->NextID);
 
 				if (lnk)
 				  {
@@ -348,10 +348,10 @@ bool SaveDlgSchema(const wchar_t *file)
 			val = items[i]->Type;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->LinkedID;
+			val = items[i]->PrevID;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->LinkedFromID;
+			val = items[i]->NextID;
 			fs->Position += fs->Write(&val, sizeof(int));
 
 			val = items[i]->Dialog;
@@ -512,7 +512,7 @@ int SearchDependeciesID(int id)
 	 {
        for (int i = 0; i < items.size(); i++)
 		  {
-			if ((items[i]->LinkedID == id) || (items[i]->LinkedFromID == id))
+			if ((items[i]->PrevID == id) || (items[i]->NextID == id))
 			  dpnd++;
           }
 	 }
@@ -553,23 +553,23 @@ int SearchDependeciesDialog(int id)
 }
 //---------------------------------------------------------------------------
 
-void UpdateLinkedID(int old_id, int new_id)
+void UpdatePrevID(int old_id, int new_id)
 {
   try
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		  {
-			if (items[i]->LinkedID == old_id)
-			  items[i]->LinkedID = new_id;
+			if (items[i]->PrevID == old_id)
+			  items[i]->PrevID = new_id;
 
-			if (items[i]->LinkedFromID == old_id)
-			  items[i]->LinkedFromID = new_id;
+			if (items[i]->NextID == old_id)
+			  items[i]->NextID = new_id;
 		  }
 	 }
   catch (Exception &e)
 	 {
 	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::UpdateLinkedID: " + e.ToString());
+			   "DlgClass::UpdatePrevID: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -736,7 +736,7 @@ void XMLExport(const wchar_t *path)
 
 					 for (int j = 0; j < items.size(); j++)
 						{
-						  if (items[j]->LinkedID == items[i]->ID)
+						  if (items[j]->PrevID == items[i]->ID)
 							{
 							  xml_exp += items[j]->CreateXML();
 							  xml_exp += "\r\n";
@@ -788,8 +788,8 @@ void BuildLinksAfterXMLImport()
 		  {
 			if (items[i]->Type != DlgText)
 			  {
-				items[i]->LinkedID = FindTextElementID(items[i]->Dialog);
-				items[i]->LinkedFromID = FindTextElementID(items[i]->NextDialog);
+				items[i]->PrevID = FindTextElementID(items[i]->Dialog);
+				items[i]->NextID = FindTextElementID(items[i]->NextDialog);
 			  }
 		  }
 	 }
@@ -807,11 +807,11 @@ void RemoveLimboLinks()
 	 {
 	   for (int i = 0; i < items.size(); i++)
 		  {
-			if ((items[i]->LinkedID > -1) && (!FindElement(items[i]->LinkedID)))
-			  items[i]->LinkedID = -1;
+			if ((items[i]->PrevID > -1) && (!FindElement(items[i]->PrevID)))
+			  items[i]->PrevID = -1;
 
-			if ((items[i]->LinkedFromID > -1) && (!FindElement(items[i]->LinkedFromID)))
-			  items[i]->LinkedFromID = -1;
+			if ((items[i]->NextID > -1) && (!FindElement(items[i]->NextID)))
+			  items[i]->NextID = -1;
 		  }
 	 }
   catch (Exception &e)
@@ -1007,19 +1007,19 @@ void TDlgBaseText::SetID(int val)
 					 String("Element ID: " + IntToStr(ID) + " report").c_str(),
 					 MB_YESNO | MB_ICONWARNING) == mrYes))
 		{
-		  UpdateLinkedID(old_id, id);
+		  UpdatePrevID(old_id, id);
 		}
 	}
 }
 //---------------------------------------------------------------------------
 
-int TDlgBaseText::GetLinkedID()
+int TDlgBaseText::GetPrevID()
 {
   return l_id;
 }
 //---------------------------------------------------------------------------
 
-void TDlgBaseText::SetLinkedID(int val)
+void TDlgBaseText::SetPrevID(int val)
 {
   if (Type == DlgText)
 	return;
@@ -1034,7 +1034,7 @@ void TDlgBaseText::SetLinkedID(int val)
   else if (lnk && (lnk->Type != DlgText))
 	{
 	  MessageBox(Application->Handle,
-				 String("No TEXT_LIKE element with ID = LinkedID (" +
+				 String("No TEXT_LIKE element with ID = PrevID (" +
 				 IntToStr(val) + ")").c_str(),
 				 String("Element ID: " + IntToStr(ID) + " report").c_str(),
 				 MB_OK | MB_ICONERROR);
@@ -1043,7 +1043,7 @@ void TDlgBaseText::SetLinkedID(int val)
 	{
 	  if (NoWarningsAtImport ||
 		  (MessageBox(Application->Handle,
-					 String("No TEXT_LIKE element with ID = LinkedID (" +
+					 String("No TEXT_LIKE element with ID = PrevID (" +
 					 IntToStr(val) +
 					 ").\nSet value anyway?").c_str(),
 					 String("Element ID: " + IntToStr(ID) + " report").c_str(),
@@ -1056,13 +1056,13 @@ void TDlgBaseText::SetLinkedID(int val)
 }
 //---------------------------------------------------------------------------
 
-int TDlgBaseText::GetLinkedFromID()
+int TDlgBaseText::GetNextID()
 {
   return l_fr_id;
 }
 //---------------------------------------------------------------------------
 
-void TDlgBaseText::SetLinkedFromID(int val)
+void TDlgBaseText::SetNextID(int val)
 {
   if (Type == DlgText)
 	return;
@@ -1077,7 +1077,7 @@ void TDlgBaseText::SetLinkedFromID(int val)
   else if (lnk && (lnk->Type != DlgText))
 	{
 	  MessageBox(Application->Handle,
-				 String("Element with ID = LinkedFromID (" +
+				 String("Element with ID = NextID (" +
 				 IntToStr(val) + ") is not TEXT_LIKE").c_str(),
 				 String("Element ID: " + IntToStr(ID) + " report").c_str(),
 				 MB_OK | MB_ICONERROR);
@@ -1086,7 +1086,7 @@ void TDlgBaseText::SetLinkedFromID(int val)
 	{
 	  if (NoWarningsAtImport ||
 		  (MessageBox(Application->Handle,
-					 String("No TEXT_LIKE element with ID = LinkedFromID (" +
+					 String("No TEXT_LIKE element with ID = NextID (" +
 							IntToStr(val) +
 							").\nSet value anyway?").c_str(),
 					 String("Element ID: " + IntToStr(ID) + " report").c_str(),
@@ -1112,7 +1112,7 @@ void TDlgBaseText::SetDialog(int val)
   if (Type != DlgText)
 	{
 	  cd = val;
-	  LinkedID = FindTextElementID(val);
+	  PrevID = FindTextElementID(val);
 	}
   else
 	{
@@ -1130,7 +1130,7 @@ void TDlgBaseText::SetDialog(int val)
 						 MB_YESNO | MB_ICONASTERISK) == mrYes))
 			{
 			  for (int i = 0; i < lnks.size(); i++)
-				 lnks[i]->LinkedID = ID;
+				 lnks[i]->PrevID = ID;
 			}
 		}
 
@@ -1146,7 +1146,7 @@ void TDlgBaseText::SetDialog(int val)
 			}
 		  else
 			{
-			  UpdateLinkedID(ID, -1);
+			  UpdatePrevID(ID, -1);
 			}
 		}
 	}
@@ -1169,8 +1169,8 @@ void TDlgBaseText::SetNextDialog(int val)
 	  if (new_dlg_id > -1)
 		{
 		  TDlgBaseText *ndlg = FindElement(new_dlg_id);
-		  ndlg->LinkedID = ID;
-		  LinkedFromID = ndlg->ID;
+		  ndlg->PrevID = ID;
+		  NextID = ndlg->ID;
 		}
 	}
 }
@@ -1185,8 +1185,8 @@ const wchar_t *TDlgBaseText::GetInfo()
   try
 	 {
 	   lst->Add("ID = " + String(ID));
-	   lst->Add("LinkedID = " + String(LinkedID));
-	   lst->Add("LinkedFromID = " + String(LinkedFromID));
+	   lst->Add("PrevID = " + String(PrevID));
+	   lst->Add("NextID = " + String(NextID));
 	   lst->Add("Dialog = " + String(Dialog));
 	   lst->Add("NextDialog = " + String(NextDialog));
 
@@ -1203,8 +1203,8 @@ const wchar_t *TDlgBaseText::GetInfo()
 void TDlgBaseText::GiveInfo(TStrings *lst)
 {
   lst->Add(String(ID));
-  lst->Add(String(LinkedID));
-  lst->Add(String(LinkedFromID));
+  lst->Add(String(PrevID));
+  lst->Add(String(NextID));
   lst->Add(String(Dialog));
   lst->Add(String(NextDialog));
   lst->Add(String(Left));
@@ -1225,19 +1225,19 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 	{
 	  if ((Selected->Type == DlgAnsw) && (this->Type == DlgText))
 		{
-		  if (this->LinkedID > -1) //если ScreenText уже привязан к Answer'у
+		  if (this->PrevID > -1) //если ScreenText уже привязан к Answer'у
 			{
-			  TDlgBaseText *old_answ = FindElement(this->LinkedID);
+			  TDlgBaseText *old_answ = FindElement(this->PrevID);
 
 			  if (old_answ) //найдем Answer и изменим привязки
 				{
 				  old_answ->NextDialog = -1;
-				  old_answ->LinkedFromID = -1;
+				  old_answ->NextID = -1;
 				}
 			}
 
 		  Selected->NextDialog = this->Dialog;
-		  Selected->LinkedFromID = this->ID;
+		  Selected->NextID = this->ID;
 
 		  if (reinterpret_cast<TDlgAnswer*>(Selected)->EndDialog)
             reinterpret_cast<TDlgAnswer*>(Selected)->EndDialog = false;
@@ -1245,7 +1245,7 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 	  else if ((Selected->Type == DlgText) && ((this->Type == DlgAnsw) || (this->Type == DlgScript)))
 		{
 		  this->Dialog = Selected->Dialog;
-		  this->LinkedID = Selected->ID;
+		  this->PrevID = Selected->ID;
 		}
 
 	  StoryCreator->Repaint();
