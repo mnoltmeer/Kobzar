@@ -50,7 +50,6 @@ class KobzarEngine: public KE_INTERFACE
 	TDlgBaseText *ActiveItem;
 
 	void CreateLog(const String &method_name, const String &error);
-	void LoadFunctionsToELI(ELI_INTERFACE *FEIface);
 
   //функції для створення Розповіді
 	int GenDialogID();
@@ -112,7 +111,7 @@ class KobzarEngine: public KE_INTERFACE
 	virtual void __stdcall SetEndDialog(bool val);
 	virtual const wchar_t* __stdcall GetParams();
 	virtual void __stdcall SetParams(const wchar_t *val);
-    virtual int __stdcall Run();
+	virtual int __stdcall Run();
 	virtual const wchar_t* __stdcall GetResult();
 
 	virtual int __stdcall TellStory(const wchar_t *story_file);
@@ -122,47 +121,5 @@ class KobzarEngine: public KE_INTERFACE
 	virtual const wchar_t *__stdcall GetAnswer(int index);
 	virtual void __stdcall SelectAnswer(int index);
 };
-//-------------------------------------------------------------------------------
-
- //функції-обгортки ELI для функціоналу рушія
- void __stdcall eGetLastError(void *p);
- void __stdcall eCreateStory(void *p);
- void __stdcall eLoadStory(void *p);
- void __stdcall eSaveStory(void *p);
- void __stdcall eCloseStory(void *p);
- void __stdcall eClearStory(void *p);
- void __stdcall eAddScene(void *p);
- void __stdcall eAddAnswer(void *p);
- void __stdcall eAddScript(void *p);
- void __stdcall eSelect(void *p);
- void __stdcall eRemove(void *p);
- void __stdcall eLink(void *p);
- void __stdcall eUnlink(void *p);
- void __stdcall eGetID(void *p);
- void __stdcall eSetID(void *p);
- void __stdcall eGetDialog(void *p);
- void __stdcall eSetDialog(void *p);
- void __stdcall eGetNextDialog(void *p);
- void __stdcall eSetNextDialog(void *p);
- void __stdcall eGetPrevID(void *p);
- void __stdcall eSetPrevID(void *p);
- void __stdcall eGetNextID(void *p);
- void __stdcall eSetNextID(void *p);
- void __stdcall eGetType(void *p);
- void __stdcall eGetText(void *p);
- void __stdcall eSetText(void *p);
- void __stdcall eIsEndDialog(void *p);
- void __stdcall eSetEndDialog(void *p);
- void __stdcall eGetParams(void *p);
- void __stdcall eSetParams(void *p);
- void __stdcall eRun(void *p);
- void __stdcall eGetResult(void *p);
-
- void __stdcall eTellStory(void *p);
- void __stdcall eLoadDialog(void *p);
- void __stdcall eGetScene(void *p);
- void __stdcall eGetAnswerCount(void *p);
- void __stdcall eGetAnswer(void *p);
- void __stdcall eSelectAnswer(void *p);
 //-------------------------------------------------------------------------------
 #endif
