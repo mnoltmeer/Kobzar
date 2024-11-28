@@ -26,6 +26,7 @@ This file is part of Kobzar Engine.
 
 #include "eli_interface.h"
 #include "..\Engine\ke_interface.h"
+#include "..\..\work-functions\Logs.h"
 
 ELI_INTERFACE *eIface;
 KE_INTERFACE *kIface;
@@ -40,7 +41,7 @@ int ConnectEngine()
 
   try
 	 {
-	   FDllHandle = LoadLibrary("KobzarEngine.dll");
+	   FDllHandle = LoadLibrary(L"KobzarEngine.dll");
 
 	   FGetKE = (GETKEINTERFACE) GetProcAddress(FDllHandle, "GetKEInterface");
 	   FFreeKE = (FREEKEINTERFACE) GetProcAddress(FDllHandle, "FreeKEInterface");
@@ -50,7 +51,7 @@ int ConnectEngine()
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "ConnectEngine: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::ConnectEngine: " + e.ToString());
 	 }
 
   return res;
@@ -88,8 +89,8 @@ __declspec(dllexport) void __stdcall eGetEngineHandle(void *p)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetEngineHandle: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetEngineHandle: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -100,12 +101,12 @@ __declspec(dllexport) void __stdcall eCreateEngineHandle(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);	   
 
-	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), IntToStr(ConnectEngine().c_str()));
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), IntToStr(ConnectEngine()).c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eCreateEngineHandle: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eCreateEngineHandle: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -122,8 +123,8 @@ __declspec(dllexport) void __stdcall eFreeEngineHandle(void *p)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eFreeEngineHandle: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eFreeEngineHandle: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -138,8 +139,8 @@ __declspec(dllexport) void __stdcall eGetLastError(void *p)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetLastError: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetLastError: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -150,14 +151,14 @@ void __stdcall eCreateStory(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String res = IntToStr(kIface->CreateStory(ep->GetParamToStr(L"pFile")));
+	   String res = IntToStr(kIface->CreateStory(eIface->GetParamToStr(L"pFile")));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eCreateStory: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eCreateStory: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -168,14 +169,14 @@ void __stdcall eLoadStory(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String res = IntToStr(kIface->LoadStory(ep->GetParamToStr(L"pFile")));
+	   String res = IntToStr(kIface->LoadStory(eIface->GetParamToStr(L"pFile")));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eLoadStory: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eLoadStory: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -188,12 +189,12 @@ void __stdcall eSaveStory(void *p)
 
 	   String res = IntToStr(kIface->SaveStory());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eSaveStory: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eSaveStory: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -206,12 +207,12 @@ void __stdcall eCloseStory(void *p)
 
 	   kIface->CloseStory();
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eCloseStory: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eCloseStory: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -224,12 +225,12 @@ void __stdcall eClearStory(void *p)
 
 	   kIface->ClearStory();
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eClearStory: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eClearStory: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -242,12 +243,12 @@ void __stdcall eAddScene(void *p)
 
 	   String res = IntToStr(kIface->AddScene());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eAddScene: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eAddScene: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -260,12 +261,12 @@ void __stdcall eAddAnswer(void *p)
 	   
 	   String res = IntToStr(kIface->AddAnswer());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eAddAnswer: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eAddAnswer: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -278,12 +279,12 @@ void __stdcall eAddScript(void *p)
 
 	   String res = IntToStr(kIface->AddScript());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eAddScript: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eAddScript: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -294,14 +295,14 @@ void __stdcall eSelect(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String res = IntToStr(kIface->Select(ep->GetParamToInt(L"pID")));
+	   String res = IntToStr(kIface->Select(eIface->GetParamToInt(L"pID")));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eSelect: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eSelect: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -312,14 +313,14 @@ void __stdcall eRemove(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String res = IntToStr(kIface->Remove(ep->GetParamToInt(L"pID")));
+	   String res = IntToStr(kIface->Remove(eIface->GetParamToInt(L"pID")));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eRemove: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eRemove: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -330,14 +331,14 @@ void __stdcall eLink(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String res = IntToStr(kIface->Link(ep->GetParamToInt(L"pFrID"), ep->GetParamToInt(L"pToID")));
+	   String res = IntToStr(kIface->Link(eIface->GetParamToInt(L"pFrID"), eIface->GetParamToInt(L"pToID")));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eLink: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eLink: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -348,14 +349,14 @@ void __stdcall eUnlink(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String res = IntToStr(kIface->Unlink(ep->GetParamToInt(L"pFrID"), ep->GetParamToInt(L"pToID")));
+	   String res = IntToStr(kIface->Unlink(eIface->GetParamToInt(L"pFrID"), eIface->GetParamToInt(L"pToID")));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eUnlink: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eUnlink: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -366,14 +367,14 @@ void __stdcall eGetID(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   kIface->SetID(ep->GetParamToInt(L"pValue"));
+	   String res = IntToStr(kIface->GetID());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetID: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetID: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -384,14 +385,14 @@ void __stdcall eSetID(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   kIface->SetID(ep->GetParamToInt(L"pValue"));
+	   kIface->SetID(eIface->GetParamToInt(L"pValue"));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eSetID: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eSetID: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -404,12 +405,12 @@ void __stdcall eGetDialog(void *p)
 
 	   String res = IntToStr(kIface->GetDialog());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetDialog: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetDialog: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -420,14 +421,14 @@ void __stdcall eSetDialog(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   kIface->SetDialog(ep->GetParamToInt(L"pValue"));
+	   kIface->SetDialog(eIface->GetParamToInt(L"pValue"));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eSetDialog: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eSetDialog: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -440,12 +441,12 @@ void __stdcall eGetNextDialog(void *p)
 
 	   String res = IntToStr(kIface->GetNextDialog());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetNextDialog: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetNextDialog: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -456,14 +457,14 @@ void __stdcall eSetNextDialog(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   kIface->SetNextDialog(ep->GetParamToInt(L"pValue"));
+	   kIface->SetNextDialog(eIface->GetParamToInt(L"pValue"));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eSetNextDialog: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eSetNextDialog: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -476,12 +477,12 @@ void __stdcall eGetPrevID(void *p)
 
 	   String res = IntToStr(kIface->GetPrevID());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetPrevID: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetPrevID: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -492,14 +493,14 @@ void __stdcall eSetPrevID(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   kIface->SetPrevID(ep->GetParamToInt(L"pValue"));
+	   kIface->SetPrevID(eIface->GetParamToInt(L"pValue"));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eSetPrevID: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eSetPrevID: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -512,12 +513,12 @@ void __stdcall eGetNextID(void *p)
 
 	   String res = IntToStr(kIface->GetNextID());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetNextID: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetNextID: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -528,14 +529,14 @@ void __stdcall eSetNextID(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   kIface->SetNextID(ep->GetParamToInt(L"pValue"));
+	   kIface->SetNextID(eIface->GetParamToInt(L"pValue"));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eNextPrevID: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eNextPrevID: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -548,12 +549,12 @@ void __stdcall eGetType(void *p)
 
 	   String res = IntToStr(kIface->GetType());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetType: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetType: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -566,12 +567,12 @@ void __stdcall eGetText(void *p)
 
 	   String res = kIface->GetText();
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetText: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetText: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -582,14 +583,14 @@ void __stdcall eSetText(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   kIface->SetText(ep->GetParamToStr(L"pValue"));
+	   kIface->SetText(eIface->GetParamToStr(L"pValue"));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eSetText: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eSetText: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -602,12 +603,12 @@ void __stdcall eIsEndDialog(void *p)
 
 	   String res = IntToStr(kIface->IsEndDialog());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eIsEndDialog: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eIsEndDialog: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -618,14 +619,14 @@ void __stdcall eSetEndDialog(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   kIface->SetEndDialog(ep->GetParamToInt(L"pValue"));
+	   kIface->SetEndDialog(eIface->GetParamToInt(L"pValue"));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eSetEndDialog: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eSetEndDialog: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -636,12 +637,12 @@ void __stdcall eGetParams(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), kIface->GetParams());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), kIface->GetParams());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetParams: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetParams: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -652,14 +653,14 @@ void __stdcall eSetParams(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   kIface->SetParams(ep->GetParamToStr(L"pValue"));
+	   kIface->SetParams(eIface->GetParamToStr(L"pValue"));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eSetParams: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eSetParams: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -672,12 +673,12 @@ void __stdcall eRun(void *p)
 
 	   String res = IntToStr(kIface->Run());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eRun: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eRun: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -688,12 +689,12 @@ void __stdcall eGetResult(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), kIface->GetResult());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), kIface->GetResult());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetResult: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetResult: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -704,14 +705,14 @@ void __stdcall eTellStory(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String res = IntToStr(kIface->TellStory(ep->GetParamToStr(L"pFile")));
+	   String res = IntToStr(kIface->TellStory(eIface->GetParamToStr(L"pFile")));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eTellStory: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eTellStory: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -722,14 +723,14 @@ void __stdcall eLoadDialog(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String res = IntToStr(kIface->LoadDialog(ep->GetParamToInt(L"pID")));
+	   String res = IntToStr(kIface->LoadDialog(eIface->GetParamToInt(L"pID")));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eLoadDialog: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eLoadDialog: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -740,12 +741,12 @@ void __stdcall eGetScene(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), kIface->GetScene());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), kIface->GetScene());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetScene: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetScene: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -758,12 +759,12 @@ void __stdcall eGetAnswerCount(void *p)
 
 	   String res = IntToStr(kIface->GetAnswerCount());
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), res.c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eGetAnswerCount: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetAnswerCount: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -774,12 +775,12 @@ void __stdcall eGetAnswer(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), kIface->GetAnswer(ep->GetParamToInt(L"pIndex")));
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), kIface->GetAnswer(eIface->GetParamToInt(L"pIndex")));
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eSetEndDialog: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eSetEndDialog: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
@@ -790,25 +791,24 @@ void __stdcall eSelectAnswer(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   kIface->SelectAnswer(ep->GetParamToInt(L"pIndex"));
+	   kIface->SelectAnswer(eIface->GetParamToInt(L"pIndex"));
 
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "KE_INTERFACE::eSelectAnswer: " + e.ToString());
-	   ep->SetFunctionResult(ep->GetCurrentFuncName(), L"0");
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eSelectAnswer: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
-
 }
 
 int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved)
 {
   if (reason == DLL_PROCESS_ATTACH)
 	CreatedInstance = false;
-  if (reason == DLL_PROCESS_DETACH) && (!CreatedInstance))
+  if ((reason == DLL_PROCESS_DETACH) && (!CreatedInstance))
 	FreeEngine();
 	
   return 1;
