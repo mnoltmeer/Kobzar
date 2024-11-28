@@ -665,19 +665,19 @@ void __stdcall eSetParams(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eRun(void *p)
+void __stdcall eExecute(void *p)
 {
   try
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String res = IntToStr(kIface->Run());
+	   String res = IntToStr(kIface->Execute());
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eRun: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eExecute: " + e.ToString());
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
