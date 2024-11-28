@@ -44,7 +44,7 @@
 	     _ImportFunc(&$this.LibraryHandle, 'eSetEndDialog', '_SetEndDialog', 'num pValue');
 	     _ImportFunc(&$this.LibraryHandle, 'eGetParams', '_GetParams', '');
 	     _ImportFunc(&$this.LibraryHandle, 'eSetParams', '_SetParams', 'sym pValue');
-	     _ImportFunc(&$this.LibraryHandle, 'eRun', '_Run', '');
+	     _ImportFunc(&$this.LibraryHandle, 'eExecute', '_Execute', '');
 	     _ImportFunc(&$this.LibraryHandle, 'eGetResult', '_GetResult', '');
 	
 	     _ImportFunc(&$this.LibraryHandle, 'eTellStory', '_TellStory', 'sym pFile');
@@ -100,16 +100,16 @@
    }
 //===========================================================;
 
-   #public method CreateStory($File)
+   #public method CreateStory($file)
    {
      if (!&$this.Initialised)
 	   {_throw('KobzarScripts: Engine not initialised!');}
 	 else
-	   #return _CreateStory($File);
+	   #return _CreateStory($file);
    }
 //===========================================================;
 
-   #public method LoadStory($File)
+   #public method LoadStory($file)
    {
      if (!&$this.Initialised)
 	   {_throw('KobzarScripts: Engine not initialised!');}
@@ -172,7 +172,7 @@
    }
 //===========================================================;
 
-   #public method Select($ID)
+   #public method Select($id)
    {
      if (!&$this.Initialised)
 	   {_throw('KobzarScripts: Engine not initialised!');}
@@ -181,7 +181,7 @@
    }
 //===========================================================;
 
-   #public method Remove($ID)
+   #public method Remove($id)
    {
      if (!&$this.Initialised)
 	   {_throw('KobzarScripts: Engine not initialised!');}
@@ -244,56 +244,192 @@
    }
 //===========================================================;
 
-   #public method GetLastError()
+   #public method GetNextDialog()
    {
      if (!&$this.Initialised)
 	   {_throw('KobzarScripts: Engine not initialised!');}
 	 else
-	   #return _GetLastError();
+	   #return _GetNextDialog();
    }
 //===========================================================;
 
-   #public method GetLastError()
+   #public method SetNextDialog($val)
    {
      if (!&$this.Initialised)
 	   {_throw('KobzarScripts: Engine not initialised!');}
 	 else
-	   #return _GetLastError();
+	   #return _SetNextDialog($val);
    }
 //===========================================================;
 
-   #public method GetLastError()
+   #public method GetPrevID()
    {
      if (!&$this.Initialised)
 	   {_throw('KobzarScripts: Engine not initialised!');}
 	 else
-	   #return _GetLastError();
+	   #return _GetPrevID();
    }
 //===========================================================;
 
-   #public method GetLastError()
+   #public method SetPrevID($val)
    {
      if (!&$this.Initialised)
 	   {_throw('KobzarScripts: Engine not initialised!');}
 	 else
-	   #return _GetLastError();
+	   #return _SetPrevID($val);
    }
 //===========================================================;
 
-   #public method GetLastError()
+   #public method GetNextID()
    {
      if (!&$this.Initialised)
 	   {_throw('KobzarScripts: Engine not initialised!');}
 	 else
-	   #return _GetLastError();
+	   #return _GetNextID();
    }
 //===========================================================;
 
-   #public method GetLastError()
+   #public method SetNextID($val)
    {
      if (!&$this.Initialised)
 	   {_throw('KobzarScripts: Engine not initialised!');}
 	 else
-	   #return _GetLastError();
-   }   
+	   #return _SetNextID($val);
+   }
+//===========================================================;
+
+   #public method GetType()
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _GetType();
+   }
+//===========================================================;
+
+   #public method GetText()
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _GetText();
+   }
+//===========================================================;
+
+   #public method SetText($val)
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _SetText($val);
+   }
+//===========================================================;
+
+   #public method IsEndDialog()
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _IsEndDialog();
+   }
+//===========================================================;
+
+   #public method SetEndDialog($val)
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _SetEndDialog($val);
+   }
+//===========================================================;
+
+   #public method GetParams()
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _GetParams();
+   }
+//===========================================================;
+
+   #public method SetParams($val)
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _SetParams($val);
+   }
+//===========================================================;
+
+   #public method Execute()
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _Execute();
+   }
+//===========================================================;
+
+   #public method GetResult()
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _GetResult();
+   }
+//===========================================================;
+
+   #public method TellStory($file)
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _TellStory($file);
+   }
+//===========================================================;
+
+   #public method LoadDialog($id)
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _LoadDialog($id);
+   }
+//===========================================================;
+
+   #public method GetScene()
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _GetScene();
+   }
+//===========================================================;
+
+   #public method GetAnswerCount()
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _GetAnswerCount();
+   }
+//===========================================================;
+
+   #public method GetAnswer()
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _GetAnswer();
+   }
+//===========================================================;
+
+   #public method SelectAnswer($ind)
+   {
+     if (!&$this.Initialised)
+	   {_throw('KobzarScripts: Engine not initialised!');}
+	 else
+	   #return _SelectAnswer($ind);
+   }
+//===========================================================;   
 }
