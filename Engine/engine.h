@@ -111,7 +111,7 @@ class KobzarEngine: public KE_INTERFACE
 	virtual void __stdcall SetEndDialog(bool val);
 	virtual const wchar_t* __stdcall GetParams();
 	virtual void __stdcall SetParams(const wchar_t *val);
-	virtual int __stdcall Run();
+	virtual int __stdcall Execute();
 	virtual const wchar_t* __stdcall GetResult();
 
 	virtual int __stdcall TellStory(const wchar_t *story_file);

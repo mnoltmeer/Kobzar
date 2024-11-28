@@ -1549,7 +1549,7 @@ void KobzarEngine::SetParams(const wchar_t *val)
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::Run()
+int KobzarEngine::Execute()
 {
   int res = 0;
 
@@ -1564,7 +1564,7 @@ int KobzarEngine::Run()
 	 }
   catch (Exception &e)
 	 {
-	   CreateLog("KobzarEngine::Run", e.ToString());
+	   CreateLog("KobzarEngine::Execute", e.ToString());
 	 }
 
   return res;
