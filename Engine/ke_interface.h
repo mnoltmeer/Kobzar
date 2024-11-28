@@ -56,7 +56,7 @@ struct KE_INTERFACE
   virtual void __stdcall SetEndDialog(bool end_dialog) = 0;
   virtual const wchar_t* __stdcall GetParams() = 0;
   virtual void __stdcall SetParams(const wchar_t *params) = 0;
-  virtual int __stdcall Run() = 0;
+  virtual int __stdcall Execute() = 0;
   virtual const wchar_t* __stdcall GetResult() = 0;
 
 //functions for telling stories
