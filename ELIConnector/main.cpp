@@ -779,7 +779,7 @@ void __stdcall eGetAnswer(void *p)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eSetEndDialog: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eGetAnswer: " + e.ToString());
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
