@@ -1,15 +1,16 @@
 ﻿#begin CLIStoryCreator;
 
-//The script simulates work in the console;
+//The script emulates work in the console;
 //The entered commands will be interpreted in runtime mode;
 //Any ELI constructs are acceptable;
 
+#include '.\KobzarScripts.eh';
 
 #procedure RunShell()
 {
-  $res = string;
+  $res = '';
 
-  while (_istreq($res, exit) != 1)
+  while (!_istreq($res, exit))
     {
       $line = '';
 	  
@@ -32,13 +33,30 @@
 
 _writeout('[Kobzar Console Story Creator copyright 2024 Maxim Noltmeer m.noltmeer@gmail.com]');
 _writeout(#endl);
-_writeout('Type "exit" to end work');
-_writeout(#endl);
 _writeout(#endl);
 
 &Engine.Create(Kobzar, '');
+&Engine.CreateNewInstance('.\KobzarEngine.dll');
 
-:RunShell();
+if (&Engine.Initialised)
+  {
+    _writeout('Engine initialised, starting console...');
+    _writeout(#endl);
+    _writeout('Type "exit" to end work');
+    _writeout(#endl);
+    _writeout(#endl);	
+
+	:RunShell();
+	
+	_writeout(#endl);
+	_writeout('Exit console...');
+	_writeout(#endl);
+  }
+else
+  {
+    _writeout('Engine not initialised. Exit console...');
+    _writeout(#endl);
+  }
 
 &Engine.Destroy();
 
