@@ -35,13 +35,13 @@ GETKEINTERFACE FGetKE;
 FREEKEINTERFACE FFreeKE;
 bool CreatedInstance;
 
-int ConnectEngine()
+int ConnectEngine(const String &lib_file)
 {
   int res = 1;
 
   try
 	 {
-	   FDllHandle = LoadLibrary(L"KobzarEngine.dll");
+	   FDllHandle = LoadLibrary(lib_file.c_str());
 
 	   FGetKE = (GETKEINTERFACE) GetProcAddress(FDllHandle, "GetKEInterface");
 	   FFreeKE = (FREEKEINTERFACE) GetProcAddress(FDllHandle, "FreeKEInterface");
@@ -99,9 +99,10 @@ __declspec(dllexport) void __stdcall eCreateEngineHandle(void *p)
 {
   try
 	 {
-	   eIface = static_cast<ELI_INTERFACE*>(p);	   
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+	   String file = eIface->GetParamToStr(L"pFile");
 
-	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), IntToStr(ConnectEngine()).c_str());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), IntToStr(ConnectEngine(file)).c_str());
 	 }
   catch (Exception &e)
 	 {
@@ -145,7 +146,7 @@ __declspec(dllexport) void __stdcall eGetLastError(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eCreateStory(void *p)
+__declspec(dllexport) void __stdcall eCreateStory(void *p)
 {
   try
 	 {
@@ -163,7 +164,7 @@ void __stdcall eCreateStory(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eLoadStory(void *p)
+__declspec(dllexport) void __stdcall eLoadStory(void *p)
 {
   try
 	 {
@@ -181,7 +182,7 @@ void __stdcall eLoadStory(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eSaveStory(void *p)
+__declspec(dllexport) void __stdcall eSaveStory(void *p)
 {
   try
 	 {
@@ -199,7 +200,7 @@ void __stdcall eSaveStory(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eCloseStory(void *p)
+__declspec(dllexport) void __stdcall eCloseStory(void *p)
 {
   try
 	 {
@@ -217,7 +218,7 @@ void __stdcall eCloseStory(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eClearStory(void *p)
+__declspec(dllexport) void __stdcall eClearStory(void *p)
 {
   try
 	 {
@@ -235,14 +236,13 @@ void __stdcall eClearStory(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eAddScene(void *p)
+__declspec(dllexport) void __stdcall eAddScene(void *p)
 {
   try
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String res = IntToStr(kIface->AddScene());
-
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
@@ -253,7 +253,7 @@ void __stdcall eAddScene(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eAddAnswer(void *p)
+__declspec(dllexport) void __stdcall eAddAnswer(void *p)
 {
   try
 	 {
@@ -271,7 +271,7 @@ void __stdcall eAddAnswer(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eAddScript(void *p)
+__declspec(dllexport) void __stdcall eAddScript(void *p)
 {
   try
 	 {
@@ -289,7 +289,7 @@ void __stdcall eAddScript(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eSelect(void *p)
+__declspec(dllexport) void __stdcall eSelect(void *p)
 {
   try
 	 {
@@ -307,7 +307,7 @@ void __stdcall eSelect(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eRemove(void *p)
+__declspec(dllexport) void __stdcall eRemove(void *p)
 {
   try
 	 {
@@ -325,7 +325,7 @@ void __stdcall eRemove(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eLink(void *p)
+__declspec(dllexport) void __stdcall eLink(void *p)
 {
   try
 	 {
@@ -343,7 +343,7 @@ void __stdcall eLink(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eUnlink(void *p)
+__declspec(dllexport) void __stdcall eUnlink(void *p)
 {
   try
 	 {
@@ -361,7 +361,7 @@ void __stdcall eUnlink(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eGetID(void *p)
+__declspec(dllexport) void __stdcall eGetID(void *p)
 {
   try
 	 {
@@ -379,7 +379,7 @@ void __stdcall eGetID(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eSetID(void *p)
+__declspec(dllexport) void __stdcall eSetID(void *p)
 {
   try
 	 {
@@ -397,7 +397,7 @@ void __stdcall eSetID(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eGetDialog(void *p)
+__declspec(dllexport) void __stdcall eGetDialog(void *p)
 {
   try
 	 {
@@ -415,7 +415,7 @@ void __stdcall eGetDialog(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eSetDialog(void *p)
+__declspec(dllexport) void __stdcall eSetDialog(void *p)
 {
   try
 	 {
@@ -433,7 +433,7 @@ void __stdcall eSetDialog(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eGetNextDialog(void *p)
+__declspec(dllexport) void __stdcall eGetNextDialog(void *p)
 {
   try
 	 {
@@ -451,7 +451,7 @@ void __stdcall eGetNextDialog(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eSetNextDialog(void *p)
+__declspec(dllexport) void __stdcall eSetNextDialog(void *p)
 {
   try
 	 {
@@ -469,7 +469,7 @@ void __stdcall eSetNextDialog(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eGetPrevID(void *p)
+__declspec(dllexport) void __stdcall eGetPrevID(void *p)
 {
   try
 	 {
@@ -487,7 +487,7 @@ void __stdcall eGetPrevID(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eSetPrevID(void *p)
+__declspec(dllexport) void __stdcall eSetPrevID(void *p)
 {
   try
 	 {
@@ -505,7 +505,7 @@ void __stdcall eSetPrevID(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eGetNextID(void *p)
+__declspec(dllexport) void __stdcall eGetNextID(void *p)
 {
   try
 	 {
@@ -523,7 +523,7 @@ void __stdcall eGetNextID(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eSetNextID(void *p)
+__declspec(dllexport) void __stdcall eSetNextID(void *p)
 {
   try
 	 {
@@ -541,7 +541,7 @@ void __stdcall eSetNextID(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eGetType(void *p)
+__declspec(dllexport) void __stdcall eGetType(void *p)
 {
   try
 	 {
@@ -559,7 +559,7 @@ void __stdcall eGetType(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eGetText(void *p)
+__declspec(dllexport) void __stdcall eGetText(void *p)
 {
   try
 	 {
@@ -577,7 +577,7 @@ void __stdcall eGetText(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eSetText(void *p)
+__declspec(dllexport) void __stdcall eSetText(void *p)
 {
   try
 	 {
@@ -595,7 +595,7 @@ void __stdcall eSetText(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eIsEndDialog(void *p)
+__declspec(dllexport) void __stdcall eIsEndDialog(void *p)
 {
   try
 	 {
@@ -613,7 +613,7 @@ void __stdcall eIsEndDialog(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eSetEndDialog(void *p)
+__declspec(dllexport) void __stdcall eSetEndDialog(void *p)
 {
   try
 	 {
@@ -631,7 +631,7 @@ void __stdcall eSetEndDialog(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eGetParams(void *p)
+__declspec(dllexport) void __stdcall eGetParams(void *p)
 {
   try
 	 {
@@ -647,7 +647,7 @@ void __stdcall eGetParams(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eSetParams(void *p)
+__declspec(dllexport) void __stdcall eSetParams(void *p)
 {
   try
 	 {
@@ -665,7 +665,7 @@ void __stdcall eSetParams(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eExecute(void *p)
+__declspec(dllexport) void __stdcall eExecute(void *p)
 {
   try
 	 {
@@ -683,7 +683,7 @@ void __stdcall eExecute(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eGetResult(void *p)
+__declspec(dllexport) void __stdcall eGetResult(void *p)
 {
   try
 	 {
@@ -699,7 +699,7 @@ void __stdcall eGetResult(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eTellStory(void *p)
+__declspec(dllexport) void __stdcall eTellStory(void *p)
 {
   try
 	 {
@@ -717,7 +717,7 @@ void __stdcall eTellStory(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eLoadDialog(void *p)
+__declspec(dllexport) void __stdcall eLoadDialog(void *p)
 {
   try
 	 {
@@ -735,7 +735,7 @@ void __stdcall eLoadDialog(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eGetScene(void *p)
+__declspec(dllexport) void __stdcall eGetScene(void *p)
 {
   try
 	 {
@@ -751,7 +751,7 @@ void __stdcall eGetScene(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eGetAnswerCount(void *p)
+__declspec(dllexport) void __stdcall eGetAnswerCount(void *p)
 {
   try
 	 {
@@ -769,7 +769,7 @@ void __stdcall eGetAnswerCount(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eGetAnswer(void *p)
+__declspec(dllexport) void __stdcall eGetAnswer(void *p)
 {
   try
 	 {
@@ -785,7 +785,7 @@ void __stdcall eGetAnswer(void *p)
 }
 //---------------------------------------------------------------------------
 
-void __stdcall eSelectAnswer(void *p)
+__declspec(dllexport) void __stdcall eSelectAnswer(void *p)
 {
   try
 	 {
@@ -806,10 +806,10 @@ void __stdcall eSelectAnswer(void *p)
 
 int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved)
 {
-  if (reason == DLL_PROCESS_ATTACH)
+  /*if (reason == DLL_PROCESS_ATTACH)
 	CreatedInstance = false;
   if ((reason == DLL_PROCESS_DETACH) && (!CreatedInstance))
-	FreeEngine();
+	FreeEngine();*/
 	
   return 1;
 }
