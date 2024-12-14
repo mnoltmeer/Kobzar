@@ -124,7 +124,7 @@
      if (!&$this.Initialised)
 	   {_throw('KobzarScripts: Engine not initialised!');}
 	 else
-	   {#return _LoadStory($File);}
+	   {#return _LoadStory($file);}
   }
 //===========================================================;
 
