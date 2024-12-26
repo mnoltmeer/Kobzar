@@ -30,10 +30,13 @@ This file is part of Kobzar Engine.
 #include "engine.h"
 //---------------------------------------------------------------------------
 
+HWND MainAppWindowHandle; //дескриптор вікна додатка, що викликав бібліотеку рушія
 extern String UsedAppLogDir;
 
 int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved)
 {
+  MainAppWindowHandle = GetForegroundWindow();
+
   LogPath = GetEnvironmentVariable("USERPROFILE") + "\\Documents\\Kobzar";
 
   if (!DirectoryExists(LogPath))
@@ -907,10 +910,13 @@ int KobzarEngine::TranslateScript(TDlgScript *el)
 		   header += "#protect\r\n{\r\n";
 		   String footer = "\r\n}\r\n#end;";
 
-           wchar_t buffer[256];
-		   swprintf(buffer, L"%d\r\n", reinterpret_cast<int>(this));
+		   wchar_t buffer[256];
 
+		   swprintf(buffer, L"%d\r\n", reinterpret_cast<int>(this));
 		   script->Interpreter->SetParam(L"pHandle", buffer);
+
+		   swprintf(buffer, L"%d\r\n", reinterpret_cast<int>(MainAppWindowHandle));
+		   script->Interpreter->SetParam(L"pMainWindowHandle", buffer);
 
 		   script->Text = header + el->Text + footer;
 		   script->Params = el->Params;

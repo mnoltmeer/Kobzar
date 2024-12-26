@@ -73,8 +73,6 @@ class KobzarEngine: public KE_INTERFACE
 	void UpdateDialog(int old_val, int new_val);
 	int TranslateScript(TDlgScript *el);
 
-  //функції візуалізації
-
   public:
 	KobzarEngine();
 	inline virtual ~KobzarEngine(){};
