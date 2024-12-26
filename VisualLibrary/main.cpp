@@ -25,11 +25,25 @@ This file is part of Kobzar Engine.
 #pragma argsused
 
 #include "eli_interface.h"
-#include "..\..\work-functions\FormCollection.h"
 #include "..\..\work-functions\Logs.h"
 
 ELI_INTERFACE *eIface;
-TFormCollection *GeneratedForms;
+HWND HostWindowHandle;
+TForm *WorkWindow;
+
+void CreateHostWindow()
+{
+
+}
+//---------------------------------------------------------------------------
+
+TForm *CreateWorkWindow()
+{
+  TForm *res = new TForm(HostWindowHandle);
+
+  return res;
+}
+//---------------------------------------------------------------------------
 
 extern "C"
 {
@@ -39,8 +53,12 @@ __declspec(dllexport) void __stdcall eCreateForm(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-       TForm *Owner = reinterpret_cast<TForm*>(eIface->GetParamToInt(L"pMainWindowHandle"));
-       String res = IntToStr(GeneratedForms->AddNewForm(Owner));
+	   WorkWindow = CreateWorkWindow();
+
+	   if (!WorkWindow)
+		 throw("Error creating window");
+
+	   String res = IntToStr(reinterpret_cast<int>(WorkWindow));
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
@@ -58,7 +76,10 @@ __declspec(dllexport) void __stdcall eDeleteForm(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   GeneratedForms->Remove(eIface->GetParamToInt(L"pFormID"));
+	   if (!WorkWindow)
+		 throw("Window doesn't exist");
+	   else
+		 delete WorkWindow;
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -74,9 +95,15 @@ __declspec(dllexport) void __stdcall eDeleteForm(void *p)
 int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved)
 {
   if (reason == DLL_PROCESS_ATTACH)
-    GeneratedForms = new TFormCollection();
-  else if ((reason == DLL_PROCESS_DETACH) && GeneratedForms)
-	delete GeneratedForms;
+	CreateHostWindow();
+  else if (reason == DLL_PROCESS_DETACH)
+	{
+	  if (WorkWindow)
+		delete WorkWindow;
+
+	  if (HostWindowHandle)
+		DestroyWindow(HostWindowHandle);
+    }
 
   return 1;
 }
