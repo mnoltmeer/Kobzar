@@ -5,6 +5,8 @@
 //Any ELI constructs are acceptable;
 
 #include '.\KobzarScripts.eh';
+#include '.\VisualLib.eh';
+//#include '.\VisualLibFmx.eh';
 
 #procedure RunShell()
 {
@@ -40,8 +42,25 @@ _writeout(#endl);
 
 if (&Engine.Initialised)
   {
-    _writeout('Engine initialised, starting console...');
+    _writeout('Engine initialised...');
     _writeout(#endl);
+	
+	&VisualLib.Create(VisualLibrary, '');
+	
+	if (&VisualLib.Initialised)
+	  {
+	    _writeout('Visualisation Library connected...');
+        _writeout(#endl);
+	  }
+	else
+	  {
+	    _writeout('Error loading Visualisation Library');
+        _writeout(#endl);
+	  }
+	  
+	_writeout('Console started...');
+    _writeout(#endl);
+	
     _writeout('Type "exit" to end work');
     _writeout(#endl);
     _writeout(#endl);	
@@ -58,6 +77,7 @@ else
     _writeout(#endl);
   }
 
+&VisualLib.Destroy();
 &Engine.Destroy();
 
 #end;
