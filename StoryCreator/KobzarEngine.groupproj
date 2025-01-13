@@ -18,7 +18,7 @@
         <Projects Include="..\ELIConnector\eliKobzar.cbproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="..\VisualLibrary\Visualisation.cbproj">
+        <Projects Include="..\VisualLibrary\VisualLib.cbproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -74,23 +74,23 @@
     <Target Name="eliKobzar:Make">
         <MSBuild Projects="..\ELIConnector\eliKobzar.cbproj" Targets="Make"/>
     </Target>
-    <Target Name="Visualisation">
-        <MSBuild Projects="..\VisualLibrary\Visualisation.cbproj"/>
+    <Target Name="VisualLib">
+        <MSBuild Projects="..\VisualLibrary\VisualLib.cbproj"/>
     </Target>
-    <Target Name="Visualisation:Clean">
-        <MSBuild Projects="..\VisualLibrary\Visualisation.cbproj" Targets="Clean"/>
+    <Target Name="VisualLib:Clean">
+        <MSBuild Projects="..\VisualLibrary\VisualLib.cbproj" Targets="Clean"/>
     </Target>
-    <Target Name="Visualisation:Make">
-        <MSBuild Projects="..\VisualLibrary\Visualisation.cbproj" Targets="Make"/>
+    <Target Name="VisualLib:Make">
+        <MSBuild Projects="..\VisualLibrary\VisualLib.cbproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="KobzarStoryCreator;KobzarEngine;Test;Test2;eliKobzar;Visualisation"/>
+        <CallTarget Targets="KobzarStoryCreator;KobzarEngine;Test;Test2;eliKobzar;VisualLib"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="KobzarStoryCreator:Clean;KobzarEngine:Clean;Test:Clean;Test2:Clean;eliKobzar:Clean;Visualisation:Clean"/>
+        <CallTarget Targets="KobzarStoryCreator:Clean;KobzarEngine:Clean;Test:Clean;Test2:Clean;eliKobzar:Clean;VisualLib:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="KobzarStoryCreator:Make;KobzarEngine:Make;Test:Make;Test2:Make;eliKobzar:Make;Visualisation:Make"/>
+        <CallTarget Targets="KobzarStoryCreator:Make;KobzarEngine:Make;Test:Make;Test2:Make;eliKobzar:Make;VisualLib:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

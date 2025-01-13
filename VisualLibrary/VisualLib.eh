@@ -7,12 +7,12 @@
  
   #method Init()
   {
-    &$this.LibraryHandle = _ConnectLib(.\Visualisation.dll);
+    &$this.LibraryHandle = _ConnectLib(.\VisualLib.dll);
 
 	if (&$this.LibraryHandle != -1)
 	  {
-	    _ImportFunc(&$this.LibraryHandle, 'eCreateForm', '_CreateForm', '');
-	    _ImportFunc(&$this.LibraryHandle, 'eDeleteForm', '_DeleteForm', 'num pFormID');
+	    _ImportFunc(&$this.LibraryHandle, 'eOpenForm', '_OpenForm', '');
+	    _ImportFunc(&$this.LibraryHandle, 'eCloseForm', '_CloseForm', '');
 
         &$this.Initialised = 1;		
       }
@@ -40,12 +40,12 @@
   }
 //===========================================================;
 
-  #public method DeleteForm($id)
+  #public method DeleteForm()
   {
      if (!&$this.Initialised)
 	   {_throw('VisualLibrary: not initialised!');}
 	 else
-	   {#return _DeleteForm($id);}
+	   {#return _DeleteForm();}
   }
 //===========================================================;  
 }

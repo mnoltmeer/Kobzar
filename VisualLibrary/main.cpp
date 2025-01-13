@@ -20,72 +20,91 @@ This file is part of Kobzar Engine.
 
 #include <vcl.h>
 #include <windows.h>
+#include <process.h>
 
 #pragma hdrstop
 #pragma argsused
 
 #include "eli_interface.h"
 #include "..\..\work-functions\Logs.h"
+#include "CFThread.h"
 
 ELI_INTERFACE *eIface;
-HWND HostWindowHandle;
 TForm *WorkWindow;
+TCFThread *Thread;
 
-void CreateHostWindow()
+void CreateWorkWindow(HINSTANCE hinst)
 {
+  try
+	 {
+	   Thread = new TCFThread(true);
 
+	   Thread->FreeOnTerminate = true;
+	   Thread->Instance = hinst;
+	   Thread->Resume();
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateWorkWindow: " + e.ToString());
+	 }
 }
 //---------------------------------------------------------------------------
 
-TForm *CreateWorkWindow()
+void DestroyWorkWindow()
 {
-  TForm *res = new TForm(HostWindowHandle);
-
-  return res;
+  try
+	 {
+	   if (Thread->Started)
+		 Thread->Terminate();
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DestroyWorkWindow: " + e.ToString());
+	 }
 }
 //---------------------------------------------------------------------------
 
 extern "C"
 {
-__declspec(dllexport) void __stdcall eCreateForm(void *p)
+__declspec(dllexport) void __stdcall eOpenForm(void *p)
 {
   try
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   WorkWindow = CreateWorkWindow();
+	   if (!Thread->Started || !Thread->WindowHandle)
+		 throw("Window doesn't exists!");
 
-	   if (!WorkWindow)
-		 throw("Error creating window");
+	   ShowWindow(Thread->WindowHandle, SW_SHOWNORMAL);
 
-	   String res = IntToStr(reinterpret_cast<int>(WorkWindow));
+	   String res = IntToStr(reinterpret_cast<int>(Thread->WindowHandle));
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eCreateForm: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eOpenForm: " + e.ToString());
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
 
-__declspec(dllexport) void __stdcall eDeleteForm(void *p)
+__declspec(dllexport) void __stdcall eCloseForm(void *p)
 {
   try
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   if (!WorkWindow)
-		 throw("Window doesn't exist");
-	   else
-		 delete WorkWindow;
+	   if (!Thread->Started || !Thread->WindowHandle)
+		 throw("Window doesn't exists!");
+
+	   ShowWindow(Thread->WindowHandle, SW_HIDE);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDeleteForm: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eCloseForm: " + e.ToString());
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -95,15 +114,10 @@ __declspec(dllexport) void __stdcall eDeleteForm(void *p)
 int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved)
 {
   if (reason == DLL_PROCESS_ATTACH)
-	CreateHostWindow();
-  else if (reason == DLL_PROCESS_DETACH)
-	{
-	  if (WorkWindow)
-		delete WorkWindow;
+	CreateWorkWindow(hinst);
 
-	  if (HostWindowHandle)
-		DestroyWindow(HostWindowHandle);
-    }
+  if (reason == DLL_PROCESS_DETACH)
+	DestroyWorkWindow();
 
   return 1;
 }
