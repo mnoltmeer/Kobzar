@@ -1,4 +1,4 @@
-#class VisualLibrary
+#class VisualScene
 {
   #property LibraryHandle = 0;
    
@@ -20,32 +20,32 @@
       {
         &$this.Initialised = 0;
 		
-		_throw('VisualLibrary: Error loading library!');
+		_throw('VisualScene: Error loading library!');
       } 
   }
 //===========================================================;
    
-  #public method VisualLibrary(){&$this.Init();}
+  #public method VisualScene(){&$this.Init();}
 //===========================================================;
  
-  #public method ~VisualLibrary(){_FreeLib(&$this.LibraryHandle);}
+  #public method ~VisualScene(){_FreeLib(&$this.LibraryHandle);}
 //===========================================================;
 
-  #public method CreateForm()
+  #public method OpenForm()
   {
      if (!&$this.Initialised)
-	   {_throw('VisualLibrary: not initialised!');}
+	   {_throw('VisualScene: not initialised!');}
 	 else
-	   {#return _CreateForm();}
+	   {#return _OpenForm();}
   }
 //===========================================================;
 
-  #public method DeleteForm()
+  #public method CloseForm()
   {
      if (!&$this.Initialised)
-	   {_throw('VisualLibrary: not initialised!');}
+	   {_throw('VisualScene: not initialised!');}
 	 else
-	   {#return _DeleteForm();}
+	   {#return _CloseForm();}
   }
 //===========================================================;  
 }
