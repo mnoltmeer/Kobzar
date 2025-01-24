@@ -1,3 +1,39 @@
+#include '.\Color.eh';
+
+#class Form
+{
+  #public property Width = 0;
+  #public property Height = 0;
+  #public property FullScreen = 0;
+}
+
+#class Image
+{
+  #public property X = 0;
+  #public property Y = 0;
+  #public property Width = 0;
+  #public property Height = 0;
+  #public property Source = 'default.bmp';
+}
+
+#class Frame
+{
+  #public property X = 0;
+  #public property Y = 0;
+  #public property Width = 0;
+  #public property Height = 0;
+  #public property Color = #class Color(0, 0, 0);
+  #public property BorderSize = 0;
+}
+
+#class Baloon : Frame
+{
+  #public property Style = 0;
+  #public property SpeechPos = 0;
+  #public property Width = 0;
+  #public property Height = 0;
+}
+
 #class VisualScene
 {
   #property LibraryHandle = 0;
