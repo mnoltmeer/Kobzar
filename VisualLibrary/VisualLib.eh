@@ -6,6 +6,7 @@
   #public property Height = 0;
   #public property FullScreen = 0;
 }
+//===========================================================;
 
 #class Image
 {
@@ -15,6 +16,7 @@
   #public property Height = 0;
   #public property Source = 'default.bmp';
 }
+//===========================================================;
 
 #class Frame
 {
@@ -25,6 +27,7 @@
   #public property Color = #class Color(0, 0, 0);
   #public property BorderSize = 0;
 }
+//===========================================================;
 
 #class Baloon : Frame
 {
@@ -33,6 +36,35 @@
   #public property Width = 0;
   #public property Height = 0;
 }
+//===========================================================;
+
+#class Font
+{
+  #public property FontName = 'Arial';
+  #public property Style = d; //d - default, i - italic, b - bold
+  #public property Size = 10;
+  
+  #public method LoadFromFile($file)
+  {
+    #protect
+	{
+	
+	}
+  }
+  
+  #public method Font($file){LoadFromFile($file);}
+  #public method ~Font(){}
+}
+//===========================================================;
+
+#class Text
+{
+  #public property X = 0;
+  #public property Y = 0;
+  #public property Font = #class Font;
+  #public property Text = '';
+}
+//===========================================================;
 
 #class VisualScene
 {
