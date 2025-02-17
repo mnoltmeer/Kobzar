@@ -26,6 +26,7 @@ This file is part of Kobzar Engine.
 #pragma argsused
 
 #include "eli_interface.h"
+#include "..\..\work-functions\MyFunc.h"
 #include "..\..\work-functions\Logs.h"
 #include "CFThread.h"
 
@@ -66,6 +67,46 @@ void DestroyWorkWindow()
 
 extern "C"
 {
+__declspec(dllexport) void __stdcall eLoadFont(void *p)
+{
+  try
+	 {
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+       String file = eIface->GetParamToStr("pFile");
+
+	   String res = IntToStr(AddRuntimeFont(file));
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eLoadFont: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eRemoveFont(void *p)
+{
+  try
+	 {
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String file = eIface->GetParamToStr("pFile");
+
+	   String res = IntToStr(RemoveRuntimeFont(file));
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eRemoveFont: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
 __declspec(dllexport) void __stdcall eOpenForm(void *p)
 {
   try

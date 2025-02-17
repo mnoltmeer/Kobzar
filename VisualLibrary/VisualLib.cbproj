@@ -160,6 +160,10 @@
             <DependentOn>..\..\work-functions\Logs.h</DependentOn>
             <BuildOrder>4</BuildOrder>
         </CppCompile>
+        <CppCompile Include="..\..\work-functions\MyFunc.cpp">
+            <DependentOn>..\..\work-functions\MyFunc.h</DependentOn>
+            <BuildOrder>4</BuildOrder>
+        </CppCompile>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
