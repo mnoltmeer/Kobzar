@@ -21,6 +21,7 @@ This file is part of Kobzar Engine.
 #include <vcl.h>
 #include <windows.h>
 #include <process.h>
+#include <gdiplus.h>
 
 #pragma hdrstop
 #pragma argsused
@@ -28,43 +29,253 @@ This file is part of Kobzar Engine.
 #include "eli_interface.h"
 #include "..\..\work-functions\MyFunc.h"
 #include "..\..\work-functions\Logs.h"
-#include "CFThread.h"
+
+#pragma comment(lib, "gdiplus.lib")
 
 ELI_INTERFACE *eIface;
-TForm *WorkWindow;
-TCFThread *Thread;
 
-void CreateWorkWindow(HINSTANCE hinst)
+//Власне повідомлення для оновлення зображення
+#define WM_KVL_DRAW_IMAGE (WM_USER + 1)
+
+HINSTANCE DllHinst;
+HANDLE WndThread;
+HWND WHandle;
+// Віртуальне вікно (буфер)
+HBITMAP hBitmap = NULL;
+HDC hMemDC = NULL;
+int WndWidth = 800, WndHeight = 600;
+bool FullScreen = 0;
+CRITICAL_SECTION cs;  //Для безпечного доступу до пам’яті
+
+// Функція створення віртуального вікна (буфера)
+void CreateVirtualWindow(HWND hWnd, int width, int height)
 {
   try
 	 {
-	   Thread = new TCFThread(true);
-
-	   Thread->FreeOnTerminate = true;
-	   Thread->Instance = hinst;
-	   Thread->Resume();
+	   HDC hdc = GetDC(hWnd);
+	   hMemDC = CreateCompatibleDC(hdc);
+	   hBitmap = CreateCompatibleBitmap(hdc, width, height);
+	   SelectObject(hMemDC, hBitmap);
+	   ReleaseDC(hWnd, hdc);
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateWorkWindow: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateVirtualWindow: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
 
-void DestroyWorkWindow()
+// Функція малювання у віртуальному вікні
+void DrawToVirtualWindow(const wchar_t* file, int x, int y)
 {
   try
 	 {
-	   if (Thread->Started)
-		 Thread->Terminate();
+	   if (!hMemDC)
+		 throw ("Virtual buffer not exists!");
+
+//Очистка фону
+	   RECT rect = {0, 0, WndWidth, WndHeight};
+	   FillRect(hMemDC, &rect, (HBRUSH)(COLOR_WINDOW+1));
+
+//Завантаження зображення через GDI+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   Gdiplus::Image image(file);
+
+	   if (image.GetLastStatus() == Gdiplus::Ok)
+		 graphics.DrawImage(&image, x, y);
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DestroyWorkWindow: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawToVirtualWindow: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
 
+// Функція копіювання вмісту віртуального вікна в основне
+void CopyVirtualToMain(HDC hdc)
+{
+  try
+	 {
+	   BitBlt(hdc, 0, 0, WndWidth, WndHeight, hMemDC, 0, 0, SRCCOPY);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CopyVirtualToMain: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+  static int sx, sy; //розміри вікна
+  static POINT mouse; //координати курсора миші
+
+  switch (message)
+	{
+	  case WM_CREATE:
+		{
+		  break;
+		}
+
+	  case WM_SIZE:
+		{
+		  sx = LOWORD(lParam);
+		  sy = HIWORD(lParam);
+		  break;
+		}
+
+	  case WM_KVL_DRAW_IMAGE:
+		{
+		  EnterCriticalSection(&cs);
+		  int x = LOWORD(lParam);
+		  int y = HIWORD(lParam);
+
+		  DrawToVirtualWindow((LPWSTR)wParam, x, y);  // Оновлення буфера
+		  LeaveCriticalSection(&cs);
+		  InvalidateRect(WHandle, NULL, FALSE);  // Перемальовуємо вікно
+		  break;
+		}
+
+	  case WM_DESTROY:
+		{
+		  PostQuitMessage(0);
+		  break;
+		}
+
+	  case WM_PAINT:
+		{
+		  PAINTSTRUCT ps;
+		  HDC hdc = BeginPaint(WHandle, &ps);
+		  EnterCriticalSection(&cs);
+		  CopyVirtualToMain(hdc);
+		  LeaveCriticalSection(&cs);
+		  EndPaint(WHandle, &ps);
+		  break;
+		}
+
+	  case WM_LBUTTONUP:
+		{
+		  mouse.x = LOWORD(lParam);
+		  mouse.y = HIWORD(lParam);
+
+		  break;
+		}
+
+	  case WM_CLOSE:
+		{
+		  DestroyWindow(hwnd);
+		  break;
+		}
+
+	  case WM_QUIT: break;
+
+	  default:  /* for messages that we don't deal with */
+		return DefWindowProc (hwnd, message, wParam, lParam);
+	}
+
+  return 0;
+}
+//-------------------------------------------------------------------------
+
+unsigned __stdcall CreateHostWindow(void*)
+{
+  try
+	 {
+	   MSG Msg;
+
+//Ініціалізація GDI+
+	   Gdiplus::GdiplusStartupInput gdiplusStartupInput;
+	   ULONG_PTR gdiplusToken;
+	   Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
+	   WNDCLASSEX wcex = {sizeof(WNDCLASSEX),
+						  CS_HREDRAW|CS_VREDRAW,
+						  HostWindowProcedure,
+						  0, 0,
+						  GetModuleHandle(NULL),
+						  NULL,
+						  LoadCursor(NULL, IDC_ARROW),
+						  (HBRUSH)(COLOR_WINDOW+1),
+						  NULL,
+						  L"KobzarVisualisation",
+						  NULL};
+
+	   RegisterClassEx(&wcex);
+
+//Створюємо вікно
+	  WHandle = CreateWindow(L"KobzarVisualisation",
+							 L"Kobzar Visual Library Window", WS_OVERLAPPEDWINDOW,
+							 CW_USEDEFAULT, CW_USEDEFAULT,
+							 WndWidth, WndHeight,
+							 NULL, NULL,
+							 GetModuleHandle(NULL),
+							 NULL);
+
+		CreateVirtualWindow(WHandle, WndWidth, WndHeight);
+
+        ShowWindow(WHandle, SW_HIDE);
+		UpdateWindow(WHandle);
+
+		/* Run the message loop. It will run until GetMessage() returns 0 */
+		while (GetMessage (&Msg, NULL, 0, 0))
+		  {
+			TranslateMessage(&Msg);
+      		DispatchMessage(&Msg);
+		  }
+
+//Очищення пам’яті
+		DeleteObject(hBitmap);
+	    DeleteDC(hMemDC);
+
+//Завершення роботи з GDI+
+		Gdiplus::GdiplusShutdown(gdiplusToken);
+
+		UnregisterClass(L"KobzarVisualisation", DllHinst);
+
+	   _endthreadex(0);
+	 }
+  catch (...)
+	 {
+       _endthreadex(0);
+	   throw std::runtime_error("CreateTestWindow: error!");
+	 }
+
+  return 0;
+}
+//---------------------------------------------------------------------------
+
+void StartWork()
+{
+  try
+	 {
+	   InitializeCriticalSection(&cs);  //Ініціалізуємо синхронізацію
+	   unsigned int thID;
+	   WndThread = (HANDLE)_beginthreadex(NULL, 4096, CreateHostWindow, NULL, NULL, &thID);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::StartWork: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+void StopWork()
+{
+  try
+	 {
+	   WaitForSingleObject(WndThread, -1);
+	   DeleteCriticalSection(&cs);
+	   CloseHandle(WndThread);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::StopWork: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
 extern "C"
 {
 __declspec(dllexport) void __stdcall eLoadFont(void *p)
@@ -73,7 +284,7 @@ __declspec(dllexport) void __stdcall eLoadFont(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-       String file = eIface->GetParamToStr("pFile");
+	   String file = eIface->GetParamToStr(L"pFile");
 
 	   String res = IntToStr(AddRuntimeFont(file));
 
@@ -93,7 +304,7 @@ __declspec(dllexport) void __stdcall eRemoveFont(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String file = eIface->GetParamToStr("pFile");
+	   String file = eIface->GetParamToStr(L"pFile");
 
 	   String res = IntToStr(RemoveRuntimeFont(file));
 
@@ -107,18 +318,68 @@ __declspec(dllexport) void __stdcall eRemoveFont(void *p)
 }
 //---------------------------------------------------------------------------
 
-__declspec(dllexport) void __stdcall eOpenForm(void *p)
+__declspec(dllexport) void __stdcall eCreateForm(void *p)
 {
   try
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   if (!Thread->Started || !Thread->WindowHandle)
+	   WndWidth = eIface->GetParamToInt(L"pWidth"),
+	   WndHeight = eIface->GetParamToInt(L"pHeight");
+
+	   bool full = eIface->GetParamToInt(L"pFullscreen");
+
+	   if (!WHandle)
+		  StartWork();
+	   else
+		 {
+		   StopWork();
+		   StartWork();
+		 }
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eCreateForm: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eDestroyForm(void *p)
+{
+  try
+	 {
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   if (!WHandle)
+		  throw("Window doesn't exists!");
+	   else
+		 SendMessage(WHandle, WM_CLOSE, 0, 0);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDestroyForm: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eOpenForm(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
 		 throw("Window doesn't exists!");
 
-	   ShowWindow(Thread->WindowHandle, SW_SHOWNORMAL);
+	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String res = IntToStr(reinterpret_cast<int>(Thread->WindowHandle));
+	   ShowWindow(WHandle, SW_SHOWNORMAL);
+
+	   String res = IntToStr(reinterpret_cast<int>(WHandle));
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
@@ -134,12 +395,12 @@ __declspec(dllexport) void __stdcall eCloseForm(void *p)
 {
   try
 	 {
-	   eIface = static_cast<ELI_INTERFACE*>(p);
-
-	   if (!Thread->Started || !Thread->WindowHandle)
+	   if (!WHandle)
 		 throw("Window doesn't exists!");
 
-	   ShowWindow(Thread->WindowHandle, SW_HIDE);
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   ShowWindow(WHandle, SW_HIDE);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -150,16 +411,64 @@ __declspec(dllexport) void __stdcall eCloseForm(void *p)
 	 }
 }
 //---------------------------------------------------------------------------
+
+_declspec(dllexport) void __stdcall eClearForm(void *p)
+{
+  try
+	 {
+       if (!WHandle)
+		 throw("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eClearForm: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eDrawImage(void *p)
+{
+  try
+	 {
+       if (!WHandle)
+		 throw("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   int x = eIface->GetParamToInt(L"pX"),
+		   y = eIface->GetParamToInt(L"pY");
+
+	   String file = eIface->GetParamToStr(L"pFile");
+
+	   //малюємо картинку у вікні
+       SendMessage(WHandle, WM_KVL_DRAW_IMAGE, (WPARAM)file.c_str(), MAKELPARAM(x, y));
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawImage: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
 }
 
 int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved)
 {
-  if (reason == DLL_PROCESS_ATTACH)
-	CreateWorkWindow(hinst);
+  DllHinst = hinst;
+
+  //if (reason == DLL_PROCESS_ATTACH)
 
   if (reason == DLL_PROCESS_DETACH)
-	DestroyWorkWindow();
+	StopWork();
 
   return 1;
 }
-
+//---------------------------------------------------------------------------

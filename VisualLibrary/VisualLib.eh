@@ -12,8 +12,6 @@
 {
   #public property X = 0;
   #public property Y = 0;
-  #public property Width = 0;
-  #public property Height = 0;
   #public property Source = 'default.bmp';
 }
 //===========================================================;
@@ -95,8 +93,11 @@
 	    _ImportFunc(&$this.LibraryHandle, 'eLoadFont', '_LoadFont', 'sym pFile');
 		_ImportFunc(&$this.LibraryHandle, 'eRemoveFont', '_RemoveFont', 'sym pFile');
 		
-		_ImportFunc(&$this.LibraryHandle, 'eOpenForm', '_OpenForm', '');
-	    _ImportFunc(&$this.LibraryHandle, 'eCloseForm', '_CloseForm', '');
+		_ImportFunc(&$this.LibraryHandle, 'eCreateForm', '_CreateForm', 'num pWidth,num pHeight,num pFullscreen');
+		_ImportFunc(&$this.LibraryHandle, 'eDestroyForm', '_DestroyForm', '');
+		_ImportFunc(&$this.LibraryHandle, 'eShowForm', '_ShowForm', '');
+	    _ImportFunc(&$this.LibraryHandle, 'eHideForm', '_HideForm', '');
+		_ImportFunc(&$this.LibraryHandle, 'eDrawImage', '_DrawImage', 'num pX,num pY,sym pFile');
 
         &$this.Initialised = 1;		
       }
@@ -109,10 +110,22 @@
   }
 //===========================================================;
    
-  #public method VisualScene(){&$this.Init();}
+  #public method VisualScene($width, $height, $fullscreen)
+  {
+    &$this.Init();
+	
+	if (!&$this.Initialised)
+	   {_throw('VisualScene: not initialised!');}
+	 else
+	   {#return _CreateForm($width, $height, $fullscreen);}
+  }
 //===========================================================;
  
-  #public method ~VisualScene(){_FreeLib(&$this.LibraryHandle);}
+  #public method ~VisualScene()
+  {
+    _DestroyForm();
+	_FreeLib(&$this.LibraryHandle);
+  }
 //===========================================================;
 
   #public method OpenForm()
@@ -120,7 +133,7 @@
      if (!&$this.Initialised)
 	   {_throw('VisualScene: not initialised!');}
 	 else
-	   {#return _OpenForm();}
+	   {#return _ShowForm();}
   }
 //===========================================================;
 
@@ -129,7 +142,7 @@
      if (!&$this.Initialised)
 	   {_throw('VisualScene: not initialised!');}
 	 else
-	   {#return _CloseForm();}
+	   {#return _HideForm();}
   }
 //===========================================================;  
 }

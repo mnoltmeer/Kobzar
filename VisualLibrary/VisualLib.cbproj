@@ -146,10 +146,6 @@
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
     </PropertyGroup>
     <ItemGroup>
-        <CppCompile Include="CFThread.cpp">
-            <DependentOn>CFThread.h</DependentOn>
-            <BuildOrder>3</BuildOrder>
-        </CppCompile>
         <None Include="eli_interface.h">
             <BuildOrder>2</BuildOrder>
         </None>
