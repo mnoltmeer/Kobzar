@@ -34,20 +34,23 @@ This file is part of Kobzar Engine.
 
 ELI_INTERFACE *eIface;
 
-//Власне повідомлення для оновлення зображення
-#define WM_KVL_DRAW_IMAGE (WM_USER + 1)
+//Власне повідомлення для роботи з вікном
+#define WM_KVL_CLEAR_WINDOW (WM_USER + 1)
+#define WM_KVL_DRAW_IMAGE (WM_USER + 2)
 
 HINSTANCE DllHinst;
 HANDLE WndThread;
 HWND WHandle;
-// Віртуальне вікно (буфер)
+
+//Віртуальне вікно (буфер)
 HBITMAP hBitmap = NULL;
 HDC hMemDC = NULL;
+
 int WndWidth = 800, WndHeight = 600;
 bool FullScreen = 0;
 CRITICAL_SECTION cs;  //Для безпечного доступу до пам’яті
 
-// Функція створення віртуального вікна (буфера)
+//Функція створення віртуального вікна (буфера)
 void CreateVirtualWindow(HWND hWnd, int width, int height)
 {
   try
@@ -65,17 +68,13 @@ void CreateVirtualWindow(HWND hWnd, int width, int height)
 }
 //---------------------------------------------------------------------------
 
-// Функція малювання у віртуальному вікні
+//Функція малювання у віртуальному вікні
 void DrawToVirtualWindow(const wchar_t* file, int x, int y)
 {
   try
 	 {
 	   if (!hMemDC)
-		 throw ("Virtual buffer not exists!");
-
-//Очистка фону
-	   RECT rect = {0, 0, WndWidth, WndHeight};
-	   FillRect(hMemDC, &rect, (HBRUSH)(COLOR_WINDOW+1));
+		 throw ("Virtual buffer doesn't exists!");
 
 //Завантаження зображення через GDI+
 	   Gdiplus::Graphics graphics(hMemDC);
@@ -91,7 +90,7 @@ void DrawToVirtualWindow(const wchar_t* file, int x, int y)
 }
 //---------------------------------------------------------------------------
 
-// Функція копіювання вмісту віртуального вікна в основне
+//Функція копіювання вмісту віртуального вікна в основне
 void CopyVirtualToMain(HDC hdc)
 {
   try
@@ -101,6 +100,24 @@ void CopyVirtualToMain(HDC hdc)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CopyVirtualToMain: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+//очистка віртуального буферу
+void ClearVirtualWindow()
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw ("Virtual buffer doesn't exists!");
+
+	   RECT rect = {0, 0, WndWidth, WndHeight};
+	   FillRect(hMemDC, &rect, (HBRUSH)(COLOR_WINDOW+1));
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::ClearVirtualWindow: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -124,15 +141,30 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		  break;
 		}
 
+	  case WM_KVL_CLEAR_WINDOW:
+		{
+		  EnterCriticalSection(&cs);
+
+		  ClearVirtualWindow();
+
+		  LeaveCriticalSection(&cs);
+
+          InvalidateRect(WHandle, NULL, FALSE);  //Перемальовуємо вікно
+		  break;
+		}
+
 	  case WM_KVL_DRAW_IMAGE:
 		{
 		  EnterCriticalSection(&cs);
+
 		  int x = LOWORD(lParam);
 		  int y = HIWORD(lParam);
 
-		  DrawToVirtualWindow((LPWSTR)wParam, x, y);  // Оновлення буфера
+		  DrawToVirtualWindow((LPWSTR)wParam, x, y);  //Оновлення буфера
+
 		  LeaveCriticalSection(&cs);
-		  InvalidateRect(WHandle, NULL, FALSE);  // Перемальовуємо вікно
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //Перемальовуємо вікно
 		  break;
 		}
 
@@ -213,7 +245,7 @@ unsigned __stdcall CreateHostWindow(void*)
 
 		CreateVirtualWindow(WHandle, WndWidth, WndHeight);
 
-        ShowWindow(WHandle, SW_HIDE);
+        ShowWindow(WHandle, SW_SHOWNORMAL);
 		UpdateWindow(WHandle);
 
 		/* Run the message loop. It will run until GetMessage() returns 0 */
@@ -231,13 +263,13 @@ unsigned __stdcall CreateHostWindow(void*)
 		Gdiplus::GdiplusShutdown(gdiplusToken);
 
 		UnregisterClass(L"KobzarVisualisation", DllHinst);
-
+		WHandle = NULL;
 	   _endthreadex(0);
 	 }
   catch (...)
 	 {
        _endthreadex(0);
-	   throw std::runtime_error("CreateTestWindow: error!");
+	   throw std::runtime_error("CreateHostWindow: error!");
 	 }
 
   return 0;
@@ -263,6 +295,9 @@ void StopWork()
 {
   try
 	 {
+	   if (WHandle)
+		 SendMessage(WHandle, WM_CLOSE, 0, 0);
+
 	   WaitForSingleObject(WndThread, -1);
 	   DeleteCriticalSection(&cs);
 	   CloseHandle(WndThread);
@@ -337,6 +372,8 @@ __declspec(dllexport) void __stdcall eCreateForm(void *p)
 		   StartWork();
 		 }
 
+       Sleep(500);
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
@@ -356,7 +393,7 @@ __declspec(dllexport) void __stdcall eDestroyForm(void *p)
 	   if (!WHandle)
 		  throw("Window doesn't exists!");
 	   else
-		 SendMessage(WHandle, WM_CLOSE, 0, 0);
+		 PostMessage(WHandle, WM_CLOSE, 0, 0);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -368,7 +405,7 @@ __declspec(dllexport) void __stdcall eDestroyForm(void *p)
 }
 //---------------------------------------------------------------------------
 
-__declspec(dllexport) void __stdcall eOpenForm(void *p)
+__declspec(dllexport) void __stdcall eShowForm(void *p)
 {
   try
 	 {
@@ -385,7 +422,7 @@ __declspec(dllexport) void __stdcall eOpenForm(void *p)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eOpenForm: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eShowForm: " + e.ToString());
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -421,6 +458,7 @@ _declspec(dllexport) void __stdcall eClearForm(void *p)
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
+	   PostMessage(WHandle, WM_KVL_CLEAR_WINDOW, 0, 0);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -436,7 +474,7 @@ __declspec(dllexport) void __stdcall eDrawImage(void *p)
 {
   try
 	 {
-       if (!WHandle)
+	   if (!WHandle)
 		 throw("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
@@ -446,8 +484,12 @@ __declspec(dllexport) void __stdcall eDrawImage(void *p)
 
 	   String file = eIface->GetParamToStr(L"pFile");
 
-	   //малюємо картинку у вікні
-       SendMessage(WHandle, WM_KVL_DRAW_IMAGE, (WPARAM)file.c_str(), MAKELPARAM(x, y));
+	   file = ParseString(file, ".\\", String(eIface->GetInitDir()) + "\\");
+
+	   if (!FileExists(file))
+         throw("Error loading image file");
+
+	   PostMessage(WHandle, WM_KVL_DRAW_IMAGE, (WPARAM)file.c_str(), MAKELPARAM(x, y));
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
