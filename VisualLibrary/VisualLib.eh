@@ -45,52 +45,6 @@
 //===========================================================;
  
   #public method ~VisualLibrary(){_FreeLib(&$this.LibraryHandle);}
-//===========================================================;
-}
-
-#class Object
-{
-  #public property X = 0;
-  #public property Y = 0;
-}
-//===========================================================;
-
-#class Image : Object
-{
-  #public property Source = 'default.bmp';
-}
-//===========================================================;
-
-#class Frame : Object
-{
-  #public property Width = 0;
-  #public property Height = 0;
-  #public property Color = #class Color(0, 0, 0);
-  #public property BorderSize = 0;
-}
-//===========================================================;
-
-#class Baloon : Frame
-{
-  #public property Style = 0;
-  #public property SpeechPos = 0;
-}
-//===========================================================;
-
-#class Font
-{
-  #public property FontName = 'Arial';
-  #public property Style = d; //d - default, i - italic, b - bold
-  #public property Size = 10;  
-}
-//===========================================================;
-
-#class Text
-{
-  #public property X = 0;
-  #public property Y = 0;
-  #public property Font = #class Font;
-  #public property Text = '';
 }
 //===========================================================;
 
@@ -120,6 +74,54 @@
 }
 //===========================================================;
 
+#class Object
+{
+  #public property X = 0;
+  #public property Y = 0;
+}
+//===========================================================;
+
+#class Image : Object
+{
+  #public property Type = 'Image';  
+  #public property Source = '.\default.bmp';
+}
+//===========================================================;
+
+#class Frame : Object
+{
+  #public property Type = 'Frame';  
+  #public property Width = 0;
+  #public property Height = 0;
+  #public property Color = #class Color(0, 0, 0);
+  #public property BorderSize = 0;
+}
+//===========================================================;
+
+#class Baloon : Frame
+{
+  #public property Type = 'Baloon';  
+  #public property Style = 0;
+  #public property SpeechPos = 0;
+}
+//===========================================================;
+
+#class Font
+{
+  #public property FontName = 'Arial';
+  #public property Style = d; //d - default, i - italic, b - bold
+  #public property Size = 10;  
+}
+//===========================================================;
+
+#class Text : Object
+{
+  #public property Type = 'Text';  
+  #public property Font = #class Font;
+  #public property Text = '';
+}
+//===========================================================;
+
 #class VisualScene
 {
   #public method VisualScene($width, $height, $fullscreen){_CreateForm($width, $height, $fullscreen);}
@@ -138,6 +140,19 @@
 //===========================================================;
 
   #public method DrawImage($x, $y, $file){#return _DrawImage($x, $y, $file);}
+//===========================================================;
 
+  #public method Draw($objname)
+  {
+    if (!&$objname.Exist())
+	  {_throw('VisualLibrary: no object!');}
+	else
+	  {
+	    select (&$objname.Type)
+		  {
+		    when Image then {#return _DrawImage(&$objname.X, &$objname.Y, &$objname.Source);}
+		  }
+	  }
+  }
 //===========================================================;  
 }
