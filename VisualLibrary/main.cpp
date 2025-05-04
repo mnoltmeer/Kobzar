@@ -37,6 +37,36 @@ ELI_INTERFACE *eIface;
 //Власне повідомлення для роботи з вікном
 #define WM_KVL_CLEAR_WINDOW (WM_USER + 1)
 #define WM_KVL_DRAW_IMAGE (WM_USER + 2)
+#define WM_KVL_DRAW_FRAME (WM_USER + 3)
+#define WM_KVL_DRAW_TEXT (WM_USER + 4)
+
+struct COLOR
+{
+  int Red = 0;
+  int Green = 0;
+  int Blue = 0;
+  int Alpha = 0;
+};
+
+struct FRAME
+{
+  RECT Rect;
+  COLOR Color;
+  int Border = 0;
+  COLOR BorderColor;
+};
+
+struct TEXT
+{
+  RECT Rect;
+  wchar_t FontName[32];
+  int FontSize = 10;
+  int FontStyle = 0;
+  COLOR FontColor;
+  wchar_t Alignment[8];
+  int CenterVerticaly = 0;
+  int WordWrap = 0;
+};
 
 HINSTANCE DllHinst;
 HANDLE WndThread;
@@ -49,6 +79,8 @@ HDC hMemDC = NULL;
 int WndWidth = 800, WndHeight = 600;
 bool FullScreen = 0;
 CRITICAL_SECTION cs;  //Для безпечного доступу до пам’яті
+FRAME CurrentFrame; //для визначення параметрів поточного об'єкту типу Frame
+TEXT CurrentText; //для визначення параметрів поточного об'єкту типу Text
 
 //Функція створення віртуального вікна (буфера)
 void CreateVirtualWindow(HWND hWnd, int width, int height)
@@ -60,6 +92,7 @@ void CreateVirtualWindow(HWND hWnd, int width, int height)
 	   hBitmap = CreateCompatibleBitmap(hdc, width, height);
 	   SelectObject(hMemDC, hBitmap);
 	   ReleaseDC(hWnd, hdc);
+       SetBkMode(hMemDC, TRANSPARENT); //встановлюємо прозорий фон для тексту
 	 }
   catch (Exception &e)
 	 {
@@ -82,10 +115,71 @@ void DrawToVirtualWindow(const wchar_t* file, int x, int y)
 
 	   if (image.GetLastStatus() == Gdiplus::Ok)
 		 graphics.DrawImage(&image, x, y);
+	   else
+		 throw ("GDI+ not initialised!");
 	 }
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawToVirtualWindow: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+void DrawTextGDIPlus(const std::wstring& text, const RECT& rect,
+					 const std::wstring& font_name = L"Segoe UI",
+					 float font_size = 20.0f,
+					 Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
+					 Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0), // чорний
+                     const std::wstring& align = L"left", // "left", "center", "right"
+					 bool center_vertically = false,
+                     bool word_wrap = true)
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw ("Virtual buffer doesn't exists!");
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
+
+	   Gdiplus::FontFamily font_family(font_name.c_str());
+	   Gdiplus::Font font(&font_family, font_size, font_style, Gdiplus::UnitPixel);
+	   Gdiplus::SolidBrush brush(color);
+
+	   Gdiplus::RectF layout_rect((float)rect.left, (float)rect.top,
+								 (float)(rect.right - rect.left),
+								 (float)(rect.bottom - rect.top));
+
+	   Gdiplus::StringFormat format;
+
+//Горизонтальне вирівнювання
+	   if (align == L"center")
+		 format.SetAlignment(Gdiplus::StringAlignmentCenter);
+	   else if (align == L"right")
+		 format.SetAlignment(Gdiplus::StringAlignmentFar);
+	   else if (align == L"justify")
+		 {
+		   format.SetAlignment(Gdiplus::StringAlignmentNear);
+		   format.SetFormatFlags(format.GetFormatFlags() |
+								 Gdiplus::StringFormatFlagsLineLimit |
+								 Gdiplus::StringFormatFlagsNoFitBlackBox);
+		   format.SetTrimming(Gdiplus::StringTrimmingNone);
+		 }
+	   else
+		 format.SetAlignment(Gdiplus::StringAlignmentNear);//left
+
+//Вертикальне вирівнювання
+	   format.SetLineAlignment(center_vertically ? Gdiplus::StringAlignmentCenter : Gdiplus::StringAlignmentNear);
+
+//Перенос рядків
+	   if (!word_wrap)
+		 format.SetFormatFlags(Gdiplus::StringFormatFlagsNoWrap);
+
+	   graphics.DrawString(text.c_str(), -1, &font, layout_rect, &format, &brush);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawTextGDIPlus: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -118,6 +212,48 @@ void ClearVirtualWindow()
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::ClearVirtualWindow: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+//малює звичайний прямокутник певного кольору
+void DrawFrame(FRAME *object)
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw ("Virtual buffer doesn't exists!");
+
+	   HBRUSH brush = CreateSolidBrush(RGB(object->Color.Red,
+										   object->Color.Green,
+										   object->Color.Blue));
+
+	   long int Style;
+
+	   if (object->Border == 0)
+		 Style = PS_NULL;
+	   else
+		 Style = PS_SOLID;
+
+	   HPEN pen = CreatePen(Style, 0, RGB(object->BorderColor.Red,
+										  object->BorderColor.Green,
+										  object->BorderColor.Blue));
+
+	   SelectObject(hMemDC, brush);
+	   SelectObject(hMemDC, pen);
+
+	   Rectangle(hMemDC,
+				 object->Rect.left,
+				 object->Rect.top,
+				 object->Rect.right,
+				 object->Rect.bottom);
+
+	   DeleteObject(brush);
+	   DeleteObject(pen);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawFrame: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -165,6 +301,39 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		  LeaveCriticalSection(&cs);
 
 		  InvalidateRect(WHandle, NULL, FALSE);  //Перемальовуємо вікно
+		  break;
+		}
+
+      case WM_KVL_DRAW_FRAME:
+		{
+		  EnterCriticalSection(&cs);
+
+		  DrawFrame(&CurrentFrame);
+
+		  LeaveCriticalSection(&cs);
+		  InvalidateRect(WHandle, NULL, FALSE);  // Перемальовуємо вікно
+		  break;
+		}
+
+	  case WM_KVL_DRAW_TEXT:
+		{
+		  EnterCriticalSection(&cs);
+
+		  DrawTextGDIPlus((LPWSTR)wParam,
+						  CurrentText.Rect,
+						  CurrentText.FontName,
+						  CurrentText.FontSize,
+						  (Gdiplus::FontStyle)CurrentText.FontStyle,
+						  Gdiplus::Color(CurrentText.FontColor.Alpha,
+										 CurrentText.FontColor.Red,
+										 CurrentText.FontColor.Green,
+										 CurrentText.FontColor.Blue),
+						  CurrentText.Alignment,
+						  CurrentText.CenterVerticaly,
+						  CurrentText.WordWrap);
+
+		  LeaveCriticalSection(&cs);
+		  InvalidateRect(WHandle, NULL, FALSE);  // Перемальовуємо вікно
 		  break;
 		}
 
@@ -405,50 +574,6 @@ __declspec(dllexport) void __stdcall eDestroyForm(void *p)
 }
 //---------------------------------------------------------------------------
 
-__declspec(dllexport) void __stdcall eShowForm(void *p)
-{
-  try
-	 {
-	   if (!WHandle)
-		 throw("Window doesn't exists!");
-
-	   eIface = static_cast<ELI_INTERFACE*>(p);
-
-	   ShowWindow(WHandle, SW_SHOWNORMAL);
-
-	   String res = IntToStr(reinterpret_cast<int>(WHandle));
-
-	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eShowForm: " + e.ToString());
-	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
-	 }
-}
-//---------------------------------------------------------------------------
-
-__declspec(dllexport) void __stdcall eCloseForm(void *p)
-{
-  try
-	 {
-	   if (!WHandle)
-		 throw("Window doesn't exists!");
-
-	   eIface = static_cast<ELI_INTERFACE*>(p);
-
-	   ShowWindow(WHandle, SW_HIDE);
-
-	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eCloseForm: " + e.ToString());
-	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
-	 }
-}
-//---------------------------------------------------------------------------
-
 _declspec(dllexport) void __stdcall eClearForm(void *p)
 {
   try
@@ -479,10 +604,15 @@ __declspec(dllexport) void __stdcall eDrawImage(void *p)
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   int x = eIface->GetParamToInt(L"pX"),
-		   y = eIface->GetParamToInt(L"pY");
+	   String obj_name = eIface->GetParamToStr(L"pObjectName");
 
-	   String file = eIface->GetParamToStr(L"pFile");
+	   if (obj_name == "")
+		 throw("Can't get object name!");
+
+	   int x = _wtoi(eIface->GetObjectProperty(obj_name.c_str(), L"X")),
+		   y = _wtoi(eIface->GetObjectProperty(obj_name.c_str(), L"Y"));
+
+	   String file = eIface->GetObjectProperty(obj_name.c_str(), L"File");
 
 	   file = ParseString(file, ".\\", String(eIface->GetInitDir()) + "\\");
 
@@ -496,6 +626,110 @@ __declspec(dllexport) void __stdcall eDrawImage(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawImage: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eDrawFrame(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw("Can't get main object name!");
+
+	   CurrentFrame.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X"));
+	   CurrentFrame.Rect.top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Y"));
+	   CurrentFrame.Rect.right = CurrentFrame.Rect.left +
+								_wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentFrame.Rect.bottom = CurrentFrame.Rect.top +
+								 _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+	   CurrentFrame.Border = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Border"));
+
+	   PostMessage(WHandle, WM_KVL_DRAW_FRAME, NULL, NULL);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawImage: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eDrawText(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw("Can't get main object name!");
+
+	   String obj_font = eIface->GetObjectProperty(obj.c_str(), L"Font");
+
+	   if (obj_font == "")
+		 throw("Can't get Font object name!");
+
+	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
+
+	   if (obj_font == "")
+		 throw("Can't get Color object name!");
+
+	   CurrentText.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X"));
+	   CurrentText.Rect.top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Y"));
+	   CurrentText.Rect.right = CurrentText.Rect.left +
+								_wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentText.Rect.bottom = CurrentText.Rect.top +
+								 _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+	   wcscpy(CurrentText.Alignment, eIface->GetObjectProperty(obj.c_str(), L"Alignment"));
+	   CurrentText.CenterVerticaly = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"CenterVerticaly"));
+	   CurrentText.WordWrap = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"WordWrap"));
+	   String text = eIface->GetObjectProperty(obj.c_str(), L"Text");
+
+	   wcscpy(CurrentText.FontName, eIface->GetObjectProperty(obj_font.c_str(), L"Name"));
+	   CurrentText.FontSize = _wtoi(eIface->GetObjectProperty(obj_font.c_str(), L"Size"));
+
+	   String style = eIface->GetObjectProperty(obj_font.c_str(), L"Style");
+
+	   if (style == "b")
+		 CurrentText.FontStyle = 1;
+	   else if (style == "i")
+		 CurrentText.FontStyle = 2;
+	   else if (style == "bi")
+		 CurrentText.FontStyle = 3;
+	   else if (style == "u")
+		 CurrentText.FontStyle = 4;
+	   else if (style == "s")
+		 CurrentText.FontStyle = 8;
+	   else
+		 CurrentText.FontStyle = 0;
+
+	   CurrentText.FontColor.Red = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red"));
+	   CurrentText.FontColor.Green = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green"));
+	   CurrentText.FontColor.Blue = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue"));
+	   CurrentText.FontColor.Alpha = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha"));
+
+	   PostMessage(WHandle, WM_KVL_DRAW_TEXT, (WPARAM)text.c_str(), NULL);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawText: " + e.ToString());
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }

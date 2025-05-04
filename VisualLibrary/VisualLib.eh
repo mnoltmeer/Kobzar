@@ -1,4 +1,4 @@
-#include '.\Color.eh';
+#include ".\Color.eh";
 
 #class VisualLibrary
 {
@@ -13,16 +13,15 @@
 
 	if (&$this.LibraryHandle != -1)
 	  {
-	    _ImportFunc(&$this.LibraryHandle, 'eLoadFont', '_LoadFont', 'sym pFile');
-		_ImportFunc(&$this.LibraryHandle, 'eRemoveFont', '_RemoveFont', 'sym pFile');
+	    _ImportFunc(&$this.LibraryHandle, "eLoadFont", "_LoadFont", "sym pFile");
+		_ImportFunc(&$this.LibraryHandle, "eRemoveFont", "_RemoveFont", "sym pFile");
 		
-		_ImportFunc(&$this.LibraryHandle, 'eCreateForm', '_CreateForm', 'num pWidth,num pHeight,num pFullscreen');
-		_ImportFunc(&$this.LibraryHandle, 'eDestroyForm', '_DestroyForm', '');
-		_ImportFunc(&$this.LibraryHandle, 'eShowForm', '_ShowForm', '');
-	    _ImportFunc(&$this.LibraryHandle, 'eHideForm', '_HideForm', '');
-		_ImportFunc(&$this.LibraryHandle, 'eClearForm', '_ClearForm', '');
-		_ImportFunc(&$this.LibraryHandle, 'eDrawImage', '_DrawImage', 'num pX,num pY,sym pFile');
-		
+		_ImportFunc(&$this.LibraryHandle, "eCreateForm", "_CreateForm", "num pWidth,num pHeight,num pFullscreen");
+		_ImportFunc(&$this.LibraryHandle, "eDestroyForm", "_DestroyForm", "");
+		_ImportFunc(&$this.LibraryHandle, "eClearForm", "_ClearForm", "");
+		_ImportFunc(&$this.LibraryHandle, "eDrawImage", "_DrawImage", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawFrame", "_DrawFrame", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawText", "_DrawText", "sym pObjectName");
 
         &$this.Initialised = 1;		
       }
@@ -30,7 +29,7 @@
       {
         &$this.Initialised = 0;
 		
-		_throw('VisualLibrary: Error loading library!');
+		_throw("VisualLibrary: Error loading library!");
       } 
   }
 //===========================================================;
@@ -40,7 +39,7 @@
     &$this.Init();
 	
 	if (!&$this.Initialised)
-	   {_throw('VisualLibrary: not initialised!');}
+	   {_throw("VisualLibrary: not initialised!");}
   }
 //===========================================================;
  
@@ -50,7 +49,7 @@
 
 #class RuntimeFont
 {
-  #property File = '';
+  #property File = "";
   
   #public method RuntimeFont($file)
   {
@@ -74,51 +73,85 @@
 }
 //===========================================================;
 
+#class Font
+{
+  #public property Name = "Arial";
+  #public property Style = r; //r (Regular) = 0
+							  //b (Bold) = 1,
+							  //i (Italic) = 2,
+							  //bi (BoldItalic) = 3,
+							  //u (Underline) = 4,
+							  //s (Strikeout) = 8;
+  #public property Size = 10;
+  #public property Color = #class Color(255, 0, 0, 0);  
+}
+//===========================================================;
+
+#class Border
+{
+  #public property Size = 0;
+  #public property Color = #class Color(255, 0, 0, 0);  
+}
+//===========================================================;
+
 #class Object
 {
+  #public property Type = "Object";
+  
   #public property X = 0;
   #public property Y = 0;
+  #public property Width = 0;
+  #public property Height = 0;
+  
+  #public method Draw()
+  {
+    if (&$this.Type == "Image")
+	  {_DrawImage(&$this.Name);}
+	else if (&$this.Type == "Text")
+	  {_DrawText(&$this.Name);}
+	else if (&$this.Type == "Frame")
+	  {_DrawFrame(&$this.Name);}
+	else
+	  {_throw("VisualLibrary: invalid object type");}
+  }
 }
 //===========================================================;
 
 #class Image : Object
-{
-  #public property Type = 'Image';  
-  #public property Source = '.\default.bmp';
+{  
+  #public property Type = "Image";
+  
+  #public property Source = ".\default.png";
 }
 //===========================================================;
 
 #class Frame : Object
-{
-  #public property Type = 'Frame';  
-  #public property Width = 0;
-  #public property Height = 0;
-  #public property Color = #class Color(0, 0, 0);
-  #public property BorderSize = 0;
+{  
+  #public property Type = "Frame";
+  
+  #public property Color = #class Color(255, 0, 0, 0); 
 }
 //===========================================================;
 
 #class Baloon : Frame
-{
-  #public property Type = 'Baloon';  
+{  
+  #public property Type = "Baloon";
+  
   #public property Style = 0;
   #public property SpeechPos = 0;
-}
-//===========================================================;
-
-#class Font
-{
-  #public property FontName = 'Arial';
-  #public property Style = d; //d - default, i - italic, b - bold
-  #public property Size = 10;  
+  #public property Border = #class Border;
 }
 //===========================================================;
 
 #class Text : Object
-{
-  #public property Type = 'Text';  
+{  
+  #public property Type = "Text";
+  
   #public property Font = #class Font;
-  #public property Text = '';
+  #public property Alignment = "justify"; //left, right, center, justify;
+  #public property WordWrap = 0;
+  #public property CenterVerticaly = 0;
+  #public property Text = "";
 }
 //===========================================================;
 
@@ -130,29 +163,6 @@
   #public method ~VisualScene(){_DestroyForm();}
 //===========================================================;
 
-  #public method ShowForm(){#return _ShowForm();}
-//===========================================================;
-
-  #public method HideForm(){#return _HideForm();}
-//===========================================================;
-
   #public method Clear(){#return _ClearForm();}
-//===========================================================;
-
-  #public method DrawImage($x, $y, $file){#return _DrawImage($x, $y, $file);}
-//===========================================================;
-
-  #public method Draw($objname)
-  {
-    if (!&$objname.Exist())
-	  {_throw('VisualLibrary: no object!');}
-	else
-	  {
-	    select (&$objname.Type)
-		  {
-		    when Image then {#return _DrawImage(&$objname.X, &$objname.Y, &$objname.Source);}
-		  }
-	  }
-  }
 //===========================================================;  
 }

@@ -17,8 +17,9 @@
   #public property Red = 0;
   #public property Green = 0;
   #public property Blue = 0;
+  #public property Alpha = 255;
   
-  #public method Color($r, $g, $b)
+  #public method Color($a, $r, $g, $b)
   {
     if (&$this.InRange($r))
 	  {&$this.Red = $r;}
@@ -33,6 +34,11 @@
 	if (&$this.InRange($b))
 	  {&$this.Blue = $b;}
 	else
-	  {&$this.Blue = 0;}	`
+	  {&$this.Blue = 0;}
+
+	if (&$this.InRange($a))
+	  {&$this.Alpha = $a;}
+	else
+	  {&$this.Blue = 0;}`
   }
 }
