@@ -904,8 +904,8 @@ int KobzarEngine::TranslateScript(TDlgScript *el)
 			 throw Exception("Script object not initialised!");
 
 		   String header = "#begin Script_" + IntToStr(el->ID) + ";\r\n";
-		   header += "#include '.\scripts\KobzarScripts.eh';\r\n\r\n";
-		   header += "&Engine.Create(Kobzar, '');\r\n";
+		   header += "#include \".\\scripts\\KobzarScripts.eh\"';\r\n\r\n";
+		   header += "&Engine.Create(Kobzar, \"\");\r\n";
 		   header += "&Engine.UseCurrrentInstance();\r\n";
 		   header += "#protect\r\n{\r\n";
 		   String footer = "\r\n}\r\n#end;";
