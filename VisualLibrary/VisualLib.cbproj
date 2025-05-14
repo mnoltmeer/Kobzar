@@ -117,14 +117,16 @@
         <ILINK_TranslatedLibraryPath>$(BDSLIB)\$(PLATFORM)\debug\$(LANGDIR);$(ILINK_TranslatedLibraryPath)</ILINK_TranslatedLibraryPath>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <LinkPackageImports>rtl.bpi;vcl.bpi;IndyProtocols.bpi;IndyCore.bpi;IndySystem.bpi</LinkPackageImports>
-        <Debugger_HostApplication>D:\ELI\FilesDLL\Win32\Debug\Win32Project1.exe</Debugger_HostApplication>
-        <Debugger_CWD>D:\ELI\FilesDLL\Win32\Debug</Debugger_CWD>
+        <LinkPackageImports>rtl.bpi;vcl.bpi;IndyProtocols.bpi;IndyCore.bpi;IndySystem.bpi;fmx.bpi</LinkPackageImports>
+        <Debugger_HostApplication>C:\Users\mnolt\OneDrive\GIT\Kobzar\VisualLibrary\Win32\Debug\et.exe</Debugger_HostApplication>
+        <Debugger_CWD>C:\Users\mnolt\OneDrive\GIT\Kobzar\VisualLibrary\Win32\Debug</Debugger_CWD>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Manifest_File>(None)</Manifest_File>
         <ILINK_LibraryPath>$(BDSLIB)\$(PLATFORM)$(CC_SUFFIX)\debug;$(ILINK_LibraryPath)</ILINK_LibraryPath>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
+        <BCC_UseClassicCompiler>false</BCC_UseClassicCompiler>
+        <Debugger_RunParams>C:\Users\mnolt\OneDrive\GIT\Kobzar\VisualLibrary\Win32\Debug\ELI.dll C:\Users\mnolt\OneDrive\GIT\Kobzar\VisualLibrary\Win32\Debug\ConsoleTest.es</Debugger_RunParams>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <Defines>NDEBUG;$(Defines)</Defines>
@@ -132,8 +134,8 @@
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
         <BCC_UseClassicCompiler>false</BCC_UseClassicCompiler>
-        <Debugger_HostApplication>D:\ELI\Win32\Debug\Win32Project1.exe</Debugger_HostApplication>
-        <Debugger_CWD>D:\ELI\Win32\Debug</Debugger_CWD>
+        <Debugger_HostApplication>C:\Users\mnolt\OneDrive\GIT\Kobzar\VisualLibrary\Win32\Release\et.exe</Debugger_HostApplication>
+        <Debugger_CWD>C:\Users\mnolt\OneDrive\GIT\Kobzar\VisualLibrary\Win32\Release</Debugger_CWD>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Manifest_File>(None)</Manifest_File>
@@ -144,6 +146,7 @@
         <UsePackages>false</UsePackages>
         <VerInfo_Build>1</VerInfo_Build>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
+        <Debugger_RunParams>ELI.dll test.txt</Debugger_RunParams>
     </PropertyGroup>
     <ItemGroup>
         <None Include="eli_interface.h">

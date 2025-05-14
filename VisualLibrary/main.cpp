@@ -71,6 +71,7 @@ struct TEXT
 HINSTANCE DllHinst;
 HANDLE WndThread;
 HWND WHandle;
+unsigned int thID;
 
 //Віртуальне вікно (буфер)
 HBITMAP hBitmap = NULL;
@@ -107,7 +108,7 @@ void DrawToVirtualWindow(const wchar_t* file, int x, int y)
   try
 	 {
 	   if (!hMemDC)
-		 throw ("Virtual buffer doesn't exists!");
+		 throw Exception("Virtual buffer doesn't exists!");
 
 //Завантаження зображення через GDI+
 	   Gdiplus::Graphics graphics(hMemDC);
@@ -116,7 +117,7 @@ void DrawToVirtualWindow(const wchar_t* file, int x, int y)
 	   if (image.GetLastStatus() == Gdiplus::Ok)
 		 graphics.DrawImage(&image, x, y);
 	   else
-		 throw ("GDI+ not initialised!");
+		 throw Exception("GDI+ not initialised!");
 	 }
   catch (Exception &e)
 	 {
@@ -137,7 +138,7 @@ void DrawTextGDIPlus(const std::wstring& text, const RECT& rect,
   try
 	 {
 	   if (!hMemDC)
-		 throw ("Virtual buffer doesn't exists!");
+		 throw Exception("Virtual buffer doesn't exists!");
 
 	   Gdiplus::Graphics graphics(hMemDC);
 	   graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
@@ -204,7 +205,7 @@ void ClearVirtualWindow()
   try
 	 {
 	   if (!hMemDC)
-		 throw ("Virtual buffer doesn't exists!");
+		 throw Exception("Virtual buffer doesn't exists!");
 
 	   RECT rect = {0, 0, WndWidth, WndHeight};
 	   FillRect(hMemDC, &rect, (HBRUSH)(COLOR_WINDOW+1));
@@ -414,8 +415,8 @@ unsigned __stdcall CreateHostWindow(void*)
 
 		CreateVirtualWindow(WHandle, WndWidth, WndHeight);
 
-        ShowWindow(WHandle, SW_SHOWNORMAL);
-		UpdateWindow(WHandle);
+		ShowWindow(WHandle, SW_SHOWNORMAL);
+        UpdateWindow(WHandle);
 
 		/* Run the message loop. It will run until GetMessage() returns 0 */
 		while (GetMessage (&Msg, NULL, 0, 0))
@@ -437,7 +438,7 @@ unsigned __stdcall CreateHostWindow(void*)
 	 }
   catch (...)
 	 {
-       _endthreadex(0);
+	   _endthreadex(0);
 	   throw std::runtime_error("CreateHostWindow: error!");
 	 }
 
@@ -450,7 +451,6 @@ void StartWork()
   try
 	 {
 	   InitializeCriticalSection(&cs);  //Ініціалізуємо синхронізацію
-	   unsigned int thID;
 	   WndThread = (HANDLE)_beginthreadex(NULL, 4096, CreateHostWindow, NULL, NULL, &thID);
 	 }
   catch (Exception &e)
@@ -465,9 +465,9 @@ void StopWork()
   try
 	 {
 	   if (WHandle)
-		 SendMessage(WHandle, WM_CLOSE, 0, 0);
+		 PostMessage(WHandle, WM_CLOSE, 0, 0);
 
-	   WaitForSingleObject(WndThread, -1);
+	   WaitForSingleObject(WndThread, 500);
 	   DeleteCriticalSection(&cs);
 	   CloseHandle(WndThread);
 	 }
@@ -543,6 +543,8 @@ __declspec(dllexport) void __stdcall eCreateForm(void *p)
 
        Sleep(500);
 
+	   PostMessage(WHandle, WM_KVL_CLEAR_WINDOW, 0, 0);
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
@@ -560,7 +562,7 @@ __declspec(dllexport) void __stdcall eDestroyForm(void *p)
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   if (!WHandle)
-		  throw("Window doesn't exists!");
+		  throw Exception("Window doesn't exists!");
 	   else
 		 PostMessage(WHandle, WM_CLOSE, 0, 0);
 
@@ -579,7 +581,7 @@ _declspec(dllexport) void __stdcall eClearForm(void *p)
   try
 	 {
        if (!WHandle)
-		 throw("Window doesn't exists!");
+		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
@@ -600,24 +602,26 @@ __declspec(dllexport) void __stdcall eDrawImage(void *p)
   try
 	 {
 	   if (!WHandle)
-		 throw("Window doesn't exists!");
+		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String obj_name = eIface->GetParamToStr(L"pObjectName");
+	   String obj = eIface->GetParamToStr(L"pObjectName");
 
-	   if (obj_name == "")
-		 throw("Can't get object name!");
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
 
-	   int x = _wtoi(eIface->GetObjectProperty(obj_name.c_str(), L"X")),
-		   y = _wtoi(eIface->GetObjectProperty(obj_name.c_str(), L"Y"));
+	   obj = "&" + obj;
 
-	   String file = eIface->GetObjectProperty(obj_name.c_str(), L"File");
+	   int x = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left")),
+		   y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+
+	   String file = eIface->GetObjectProperty(obj.c_str(), L"Source");
 
 	   file = ParseString(file, ".\\", String(eIface->GetInitDir()) + "\\");
 
 	   if (!FileExists(file))
-         throw("Error loading image file");
+		 throw Exception("Error loading image file");
 
 	   PostMessage(WHandle, WM_KVL_DRAW_IMAGE, (WPARAM)file.c_str(), MAKELPARAM(x, y));
 
@@ -636,17 +640,19 @@ __declspec(dllexport) void __stdcall eDrawFrame(void *p)
   try
 	 {
 	   if (!WHandle)
-		 throw("Window doesn't exists!");
+		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
 
 	   if (obj == "")
-		 throw("Can't get main object name!");
+		 throw Exception("Can't get main object name!");
 
-	   CurrentFrame.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X"));
-	   CurrentFrame.Rect.top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Y"));
+	   obj = "&" + obj;
+
+	   CurrentFrame.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentFrame.Rect.top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
 	   CurrentFrame.Rect.right = CurrentFrame.Rect.left +
 								_wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
 	   CurrentFrame.Rect.bottom = CurrentFrame.Rect.top +
@@ -677,28 +683,30 @@ __declspec(dllexport) void __stdcall eDrawText(void *p)
 	   String obj = eIface->GetParamToStr(L"pObjectName");
 
 	   if (obj == "")
-		 throw("Can't get main object name!");
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
 
 	   String obj_font = eIface->GetObjectProperty(obj.c_str(), L"Font");
 
 	   if (obj_font == "")
-		 throw("Can't get Font object name!");
+		 throw Exception("Can't get Font object name!");
 
-	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
+	   String obj_color = eIface->GetObjectProperty(obj_font.c_str(), L"Color");
 
-	   if (obj_font == "")
-		 throw("Can't get Color object name!");
+	   if (obj_color == "")
+		 throw Exception("Can't get Color object name!");
 
-	   CurrentText.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X"));
-	   CurrentText.Rect.top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Y"));
+	   CurrentText.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentText.Rect.top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
 	   CurrentText.Rect.right = CurrentText.Rect.left +
 								_wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
 	   CurrentText.Rect.bottom = CurrentText.Rect.top +
 								 _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
-	   wcscpy(CurrentText.Alignment, eIface->GetObjectProperty(obj.c_str(), L"Alignment"));
+	   wcscpy(CurrentText.Alignment, eIface->GetObjectProperty(obj.c_str(), L"Align"));
 	   CurrentText.CenterVerticaly = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"CenterVerticaly"));
 	   CurrentText.WordWrap = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"WordWrap"));
-	   String text = eIface->GetObjectProperty(obj.c_str(), L"Text");
+	   String text = eIface->GetObjectProperty(obj.c_str(), L"Data");
 
 	   wcscpy(CurrentText.FontName, eIface->GetObjectProperty(obj_font.c_str(), L"Name"));
 	   CurrentText.FontSize = _wtoi(eIface->GetObjectProperty(obj_font.c_str(), L"Size"));
@@ -738,11 +746,9 @@ __declspec(dllexport) void __stdcall eDrawText(void *p)
 
 int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved)
 {
-  DllHinst = hinst;
-
-  //if (reason == DLL_PROCESS_ATTACH)
-
-  if (reason == DLL_PROCESS_DETACH)
+  if (reason == DLL_PROCESS_ATTACH)
+	DllHinst = hinst;
+  else if (reason == DLL_PROCESS_DETACH)
 	StopWork();
 
   return 1;
