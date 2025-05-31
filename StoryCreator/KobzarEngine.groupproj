@@ -21,6 +21,9 @@
         <Projects Include="..\VisualLibrary\VisualLib.cbproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="..\..\ELI\ELI.cbproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -83,14 +86,23 @@
     <Target Name="VisualLib:Make">
         <MSBuild Projects="..\VisualLibrary\VisualLib.cbproj" Targets="Make"/>
     </Target>
+    <Target Name="ELI">
+        <MSBuild Projects="..\..\ELI\ELI.cbproj"/>
+    </Target>
+    <Target Name="ELI:Clean">
+        <MSBuild Projects="..\..\ELI\ELI.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ELI:Make">
+        <MSBuild Projects="..\..\ELI\ELI.cbproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="KobzarStoryCreator;KobzarEngine;Test;Test2;eliKobzar;VisualLib"/>
+        <CallTarget Targets="KobzarStoryCreator;KobzarEngine;Test;Test2;eliKobzar;VisualLib;ELI"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="KobzarStoryCreator:Clean;KobzarEngine:Clean;Test:Clean;Test2:Clean;eliKobzar:Clean;VisualLib:Clean"/>
+        <CallTarget Targets="KobzarStoryCreator:Clean;KobzarEngine:Clean;Test:Clean;Test2:Clean;eliKobzar:Clean;VisualLib:Clean;ELI:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="KobzarStoryCreator:Make;KobzarEngine:Make;Test:Make;Test2:Make;eliKobzar:Make;VisualLib:Make"/>
+        <CallTarget Targets="KobzarStoryCreator:Make;KobzarEngine:Make;Test:Make;Test2:Make;eliKobzar:Make;VisualLib:Make;ELI:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>
