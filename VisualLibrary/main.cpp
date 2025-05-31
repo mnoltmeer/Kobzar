@@ -54,6 +54,7 @@ struct FRAME
   COLOR Color;
   int Border = 0;
   COLOR BorderColor;
+  int CornerRadius = 0;
 };
 
 struct TEXT
@@ -217,44 +218,70 @@ void ClearVirtualWindow()
 }
 //---------------------------------------------------------------------------
 
-//малює звичайний прямокутник певного кольору
-void DrawFrame(FRAME *object)
+//Допоміжна функція для побудови прямокутника із закругленими кутами
+Gdiplus::GraphicsPath* CreateRoundedRectPath(Gdiplus::Rect rect, int radius)
+{
+  Gdiplus::GraphicsPath* path = new Gdiplus::GraphicsPath();
+
+  try
+	 {
+	   int x = rect.X, y = rect.Y, w = rect.Width, h = rect.Height;
+	   int r = radius * 2;
+
+	   path->AddArc(x, y, r, r, 180, 90);                 // верхній лівий кут
+	   path->AddArc(x + w - r, y, r, r, 270, 90);         // верхній правий кут
+	   path->AddArc(x + w - r, y + h - r, r, r, 0,   90); // нижній правий кут
+	   path->AddArc(x, y + h - r, r, r, 90, 90);          // нижній лівий кут
+	   path->CloseFigure();
+	 }
+  catch (Exception &e)
+	 {
+	   if (path)
+		 delete path;
+
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateRoundedRectPath: " + e.ToString());
+	 }
+
+  return path;
+}
+//---------------------------------------------------------------------------
+
+void DrawRectangleGDIPlus(int x, int y, int width, int height,
+						  Gdiplus::Color fillColor = Gdiplus::Color(255, 255, 255, 255),
+                          Gdiplus::Color borderColor = Gdiplus::Color(255, 0, 0, 0),
+                          float borderWidth = 1.0f,
+                          int cornerRadius = 0)
 {
   try
 	 {
 	   if (!hMemDC)
-		 throw ("Virtual buffer doesn't exists!");
+		 throw Exception("Virtual buffer doesn't exists!");
 
-	   HBRUSH brush = CreateSolidBrush(RGB(object->Color.Red,
-										   object->Color.Green,
-										   object->Color.Blue));
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
 
-	   long int Style;
+	   Gdiplus::Rect rect(x, y, width, height);
+	   Gdiplus::SolidBrush brush(fillColor);
+	   Gdiplus::Pen pen(borderColor, borderWidth);
 
-	   if (object->Border == 0)
-		 Style = PS_NULL;
+	   if (cornerRadius > 0)
+		 {
+		   Gdiplus::GraphicsPath* path = CreateRoundedRectPath(rect, cornerRadius);
+
+		   graphics.FillPath(&brush, path);
+		   graphics.DrawPath(&pen, path);
+
+		   delete path;
+		 }
 	   else
-		 Style = PS_SOLID;
-
-	   HPEN pen = CreatePen(Style, 0, RGB(object->BorderColor.Red,
-										  object->BorderColor.Green,
-										  object->BorderColor.Blue));
-
-	   SelectObject(hMemDC, brush);
-	   SelectObject(hMemDC, pen);
-
-	   Rectangle(hMemDC,
-				 object->Rect.left,
-				 object->Rect.top,
-				 object->Rect.right,
-				 object->Rect.bottom);
-
-	   DeleteObject(brush);
-	   DeleteObject(pen);
+		 {
+		   graphics.FillRectangle(&brush, rect);
+		   graphics.DrawRectangle(&pen, rect);
+		 }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawFrame: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawRectangleGdiPlus: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -309,7 +336,20 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawFrame(&CurrentFrame);
+		  DrawRectangleGDIPlus(CurrentFrame.Rect.left,
+							   CurrentFrame.Rect.top,
+							   CurrentFrame.Rect.right,
+							   CurrentFrame.Rect.bottom,
+							   Gdiplus::Color(CurrentFrame.Color.Alpha,
+											  CurrentFrame.Color.Red,
+											  CurrentFrame.Color.Green,
+											  CurrentFrame.Color.Blue),
+							   Gdiplus::Color(CurrentFrame.BorderColor.Alpha,
+											  CurrentFrame.BorderColor.Red,
+											  CurrentFrame.BorderColor.Green,
+											  CurrentFrame.BorderColor.Blue),
+							   CurrentFrame.Border,
+							   CurrentFrame.CornerRadius);
 
 		  LeaveCriticalSection(&cs);
 		  InvalidateRect(WHandle, NULL, FALSE);  // Перемальовуємо вікно
@@ -490,6 +530,9 @@ __declspec(dllexport) void __stdcall eLoadFont(void *p)
 
 	   String file = eIface->GetParamToStr(L"pFile");
 
+	   if (!FileExists(file))
+		 throw Exception("Error loading file: " + file);
+
 	   String res = IntToStr(AddRuntimeFont(file));
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
@@ -509,6 +552,9 @@ __declspec(dllexport) void __stdcall eRemoveFont(void *p)
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String file = eIface->GetParamToStr(L"pFile");
+
+       if (!FileExists(file))
+		 throw Exception("Error loading file: " + file);
 
 	   String res = IntToStr(RemoveRuntimeFont(file));
 
@@ -621,7 +667,7 @@ __declspec(dllexport) void __stdcall eDrawImage(void *p)
 	   file = ParseString(file, ".\\", String(eIface->GetInitDir()) + "\\");
 
 	   if (!FileExists(file))
-		 throw Exception("Error loading image file");
+		 throw Exception("Error loading image file: " + file);
 
 	   PostMessage(WHandle, WM_KVL_DRAW_IMAGE, (WPARAM)file.c_str(), MAKELPARAM(x, y));
 
@@ -651,13 +697,41 @@ __declspec(dllexport) void __stdcall eDrawFrame(void *p)
 
 	   obj = "&" + obj;
 
+	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Color object name!");
+
+	   String obj_bord = eIface->GetObjectProperty(obj.c_str(), L"Border");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border object name!");
+
 	   CurrentFrame.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
 	   CurrentFrame.Rect.top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
 	   CurrentFrame.Rect.right = CurrentFrame.Rect.left +
 								_wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
 	   CurrentFrame.Rect.bottom = CurrentFrame.Rect.top +
 								 _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
-	   CurrentFrame.Border = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Border"));
+
+	   CurrentFrame.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
+
+	   CurrentFrame.Color.Red = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red"));
+	   CurrentFrame.Color.Green = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green"));
+	   CurrentFrame.Color.Blue = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue"));
+	   CurrentFrame.Color.Alpha = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha"));
+
+       CurrentFrame.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
+
+	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border Color object name!");
+
+	   CurrentFrame.BorderColor.Red = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red"));
+	   CurrentFrame.BorderColor.Green = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green"));
+	   CurrentFrame.BorderColor.Blue = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue"));
+	   CurrentFrame.BorderColor.Alpha = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha"));
 
 	   PostMessage(WHandle, WM_KVL_DRAW_FRAME, NULL, NULL);
 

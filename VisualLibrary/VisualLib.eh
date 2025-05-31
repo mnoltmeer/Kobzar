@@ -43,7 +43,7 @@
   }
 //===========================================================;
  
-  #public method ~VisualLibrary(){_FreeLib(&$this.LibraryHandle);}
+  #public method ~VisualLibrary(){#protect {_FreeLib(&$this.LibraryHandle);}}
 }
 //===========================================================;
 
@@ -55,7 +55,7 @@
   {
     #protect
 	{
-	  _LoadFont($file);
+	  $res = _LoadFont($file);
 	  
 	  if ($res)
 	    {&$this.File = $file;}
@@ -67,7 +67,8 @@
   {
     #protect
 	{
-	  if (&$this.File) {_RemoveFont(&$this.File);}
+	  if (_streq(&$this.File, "") == 0)
+	    {_RemoveFont(&$this.File);}
 	}
   }
 }
@@ -89,7 +90,7 @@
 
 #class Border
 {
-  #public property Size = 0;
+  #public property Size = 1; //can't be less than 1;
   #public property Color = #class Color(255, 0, 0, 0);  
 }
 //===========================================================;
@@ -119,7 +120,8 @@
 
 #class Image : Object
 {  
-  #public property Type = "Image";  
+  #public property Type = "Image";
+  
   #public property Source = ".\default.png";
   
   #public method Image($file){&$this.Source = $file;}
@@ -128,31 +130,34 @@
 
 #class Frame : Object
 {  
-  #public property Type = "Frame";  
+  #public property Type = "Frame";
+  
   #public property Color = #class Color(255, 0, 0, 0);
+  #public property Border = #class Border;
+  #public property Corner = 0; //set more than 0 to set corner radius;
 
   #public method Frame($a, $r, $g, $b)
   {
-    &$this.Color.Alpha = $a;
-    &$this.Color.Red = $r;
-	&$this.Color.Green = $g;
-	&$this.Color.Blue = $b;
+    &$this.Color.Set($a, $r, $g, $b);
+	&$this.Border.Color.Set($a, $r, $g, $b); //no border by default;
   }  
 }
 //===========================================================;
 
 #class Baloon : Frame
 {  
-  #public property Type = "Baloon";  
+  #public property Type = "Baloon";
+  
   #public property Style = 0;
   #public property SpeechPos = 0;
-  #public property Border = #class Border;
+  
 }
 //===========================================================;
 
 #class Text : Object
 {  
-  #public property Type = "Text";  
+  #public property Type = "Text";
+  
   #public property Font = #class Font;
   #public property Align = "justify"; //left, right, center, justify;
   #public property WordWrap = 0;
@@ -166,7 +171,7 @@
   #public method VisualScene($width, $height, $fullscreen){_CreateForm($width, $height, $fullscreen);}
 //===========================================================;
  
-  #public method ~VisualScene(){_DestroyForm();}
+  #public method ~VisualScene(){#protect {_DestroyForm();}}
 //===========================================================;
 
   #public method Clear(){#return _ClearForm();}
