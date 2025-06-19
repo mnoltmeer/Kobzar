@@ -26,6 +26,8 @@ This file is part of Kobzar Engine.
 #pragma hdrstop
 #pragma argsused
 
+#include <System.Math.hpp>
+
 #include "eli_interface.h"
 #include "..\..\work-functions\MyFunc.h"
 #include "..\..\work-functions\Logs.h"
@@ -39,22 +41,21 @@ ELI_INTERFACE *eIface;
 #define WM_KVL_DRAW_IMAGE (WM_USER + 2)
 #define WM_KVL_DRAW_FRAME (WM_USER + 3)
 #define WM_KVL_DRAW_TEXT (WM_USER + 4)
-
-struct COLOR
-{
-  int Red = 0;
-  int Green = 0;
-  int Blue = 0;
-  int Alpha = 0;
-};
+#define WM_KVL_DRAW_BUBBLE (WM_USER + 5)
 
 struct FRAME
 {
   RECT Rect;
-  COLOR Color;
-  int Border = 0;
-  COLOR BorderColor;
+  Gdiplus::Color Color;
+  int Border = 1;
+  Gdiplus::Color BorderColor;
   int CornerRadius = 0;
+  int Shadow = 0;
+};
+
+struct BUBBLE : FRAME
+{
+  POINT Tail;
 };
 
 struct TEXT
@@ -63,7 +64,7 @@ struct TEXT
   wchar_t FontName[32];
   int FontSize = 10;
   int FontStyle = 0;
-  COLOR FontColor;
+  Gdiplus::Color FontColor;
   wchar_t Alignment[8];
   int CenterVerticaly = 0;
   int WordWrap = 0;
@@ -83,6 +84,7 @@ bool FullScreen = 0;
 CRITICAL_SECTION cs;  //Для безпечного доступу до пам’яті
 FRAME CurrentFrame; //для визначення параметрів поточного об'єкту типу Frame
 TEXT CurrentText; //для визначення параметрів поточного об'єкту типу Text
+BUBBLE CurrentBubble; //для визначення параметрів поточного об'єкту типу Bubble
 
 //Функція створення віртуального вікна (буфера)
 void CreateVirtualWindow(HWND hWnd, int width, int height)
@@ -104,7 +106,7 @@ void CreateVirtualWindow(HWND hWnd, int width, int height)
 //---------------------------------------------------------------------------
 
 //Функція малювання у віртуальному вікні
-void DrawToVirtualWindow(const wchar_t* file, int x, int y)
+void DrawToVirtualWindow(const wchar_t *file, int x, int y)
 {
   try
 	 {
@@ -219,19 +221,19 @@ void ClearVirtualWindow()
 //---------------------------------------------------------------------------
 
 //Допоміжна функція для побудови прямокутника із закругленими кутами
-Gdiplus::GraphicsPath* CreateRoundedRectPath(Gdiplus::Rect rect, int radius)
+Gdiplus::GraphicsPath *CreateRoundedRectPath(Gdiplus::Rect rect, int radius)
 {
-  Gdiplus::GraphicsPath* path = new Gdiplus::GraphicsPath();
+  Gdiplus::GraphicsPath *path = new Gdiplus::GraphicsPath();
 
   try
 	 {
 	   int x = rect.X, y = rect.Y, w = rect.Width, h = rect.Height;
 	   int r = radius * 2;
 
-	   path->AddArc(x, y, r, r, 180, 90);                 // верхній лівий кут
-	   path->AddArc(x + w - r, y, r, r, 270, 90);         // верхній правий кут
-	   path->AddArc(x + w - r, y + h - r, r, r, 0,   90); // нижній правий кут
-	   path->AddArc(x, y + h - r, r, r, 90, 90);          // нижній лівий кут
+	   path->AddArc(x, y, r, r, 180, 90);                 //верхній лівий кут
+	   path->AddArc(x + w - r, y, r, r, 270, 90);         //верхній правий кут
+	   path->AddArc(x + w - r, y + h - r, r, r, 0, 90);   //нижній правий кут
+	   path->AddArc(x, y + h - r, r, r, 90, 90);          //нижній лівий кут
 	   path->CloseFigure();
 	 }
   catch (Exception &e)
@@ -247,10 +249,71 @@ Gdiplus::GraphicsPath* CreateRoundedRectPath(Gdiplus::Rect rect, int radius)
 //---------------------------------------------------------------------------
 
 void DrawRectangleGDIPlus(int x, int y, int width, int height,
-						  Gdiplus::Color fillColor = Gdiplus::Color(255, 255, 255, 255),
-                          Gdiplus::Color borderColor = Gdiplus::Color(255, 0, 0, 0),
-                          float borderWidth = 1.0f,
-                          int cornerRadius = 0)
+						  Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
+						  Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
+						  float border_width = 1.0f,
+						  int corner_radius = 0,
+						  bool shadow = false) //напівпрозора чорна тінь
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   int ShadowOffset = 5;
+	   Gdiplus::Color ShadowColor = Gdiplus::Color(100, 0, 0, 0);
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+
+//Створення основного шляху
+	   Gdiplus::GraphicsPath path;
+	   Gdiplus::Rect rect(x, y, width, height);
+
+	   if (corner_radius > 0)
+		 {
+		   Gdiplus::GraphicsPath *RectPath = CreateRoundedRectPath(rect, corner_radius);
+		   path.AddPath(RectPath, TRUE);
+
+		   delete RectPath;
+		 }
+
+	   if (shadow) //Тінь
+		 {
+		   Gdiplus::GraphicsPath ShadowPath;
+		   Gdiplus::Matrix ShadowMatrix;
+		   ShadowMatrix.Translate((float)ShadowOffset, (float)ShadowOffset);
+		   ShadowPath.AddPath(&path, FALSE);
+		   ShadowPath.Transform(&ShadowMatrix);
+
+		   Gdiplus::SolidBrush ShadowBrush(ShadowColor);
+		   graphics.FillPath(&ShadowBrush, &ShadowPath);
+		 }
+
+//зафарбовуємо і малюємо
+	   Gdiplus::SolidBrush brush(fill_color);
+	   graphics.FillPath(&brush, &path);
+
+	   if (border_width > 0)
+		 {
+		   Gdiplus::Pen pen(border_color, border_width);
+		   graphics.DrawPath(&pen, &path);
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawRectangleGdiPlus: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+void DrawSpeechBubbleRectGDIPlus(int x, int y, int width, int height,
+								 const Gdiplus::Point& tail_point,
+								 int corner_radius = 10,
+								 Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255),
+								 Gdiplus::Color border_color = Gdiplus::Color(0, 0, 0),
+								 float border_width = 1.0f,
+								 bool shadow = false)  //напівпрозора чорна тінь
 {
   try
 	 {
@@ -260,28 +323,245 @@ void DrawRectangleGDIPlus(int x, int y, int width, int height,
 	   Gdiplus::Graphics graphics(hMemDC);
 	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
 
+	   int ShadowOffset = 5;
+	   Gdiplus::Color ShadowColor = Gdiplus::Color(100, 0, 0, 0);
+
+	   Gdiplus::GraphicsPath path;
 	   Gdiplus::Rect rect(x, y, width, height);
-	   Gdiplus::SolidBrush brush(fillColor);
-	   Gdiplus::Pen pen(borderColor, borderWidth);
 
-	   if (cornerRadius > 0)
+	   int tail_width = 30, //ширина основи хвостика
+		   tail_base_pos = 0; //позиція центра основи хвостика
+
+	   if (corner_radius > 0) //заокруглений прямокутник
 		 {
-		   Gdiplus::GraphicsPath* path = CreateRoundedRectPath(rect, cornerRadius);
+		   int r = corner_radius * 2;
+		   int x = rect.X, y = rect.Y, w = rect.Width, h = rect.Height;
+		   int lw = w - r * 2, lh = h - r * 2; //висота та ширина для ліній між дугами
 
-		   graphics.FillPath(&brush, path);
-		   graphics.DrawPath(&pen, path);
+//точки нумеруються за годинниковою стрілкою
+		   Gdiplus::Point TopLeft1(rect.X, rect.Y + r);
+		   Gdiplus::Point TopLeft2(TopLeft1.X + r, rect.Y);
+		   Gdiplus::Point TopRight1(TopLeft2.X + lw, TopLeft2.Y);
+		   Gdiplus::Point TopRight2(TopRight1.X + r, TopRight1.Y + r);
+		   Gdiplus::Point BottomRight1(TopRight2.X, TopRight2.Y + lh);
+		   Gdiplus::Point BottomRight2(BottomRight1.X - r, BottomRight1.Y + r);
+		   Gdiplus::Point BottomLeft1(BottomRight2.X - lw, BottomRight2.Y);
+		   Gdiplus::Point BottomLeft2(BottomLeft1.X - r, BottomLeft1.Y - r);
 
-		   delete path;
+//малюємо фігуру
+		   path.AddArc(x, y, r, r, 180, 90); //верхній лівий кут
+
+		   if ((tail_point.X > TopRight2.X) &&
+			   InRange(tail_point.Y, TopRight2.Y, TopRight2.Y + lh)) //хвостик вказує вправо
+			 {
+			   if (tail_point.Y <= (TopRight2.Y + lh / 2)) //ближче до верхнього кута
+				 tail_base_pos = TopRight2.Y + lh / 3 - tail_width / 2;
+			   else //ближче до нижнього кута
+				 tail_base_pos = BottomRight1.Y - lh / 3 - tail_width / 2;
+
+			   Gdiplus::Point TailBaseLeft(TopRight2.X, tail_base_pos);
+			   Gdiplus::Point TailBaseRight(TailBaseLeft.X, TailBaseLeft.Y + tail_width);
+
+			   path.AddLine(TopLeft2, TopRight1);                //в-л -> в-п
+			   path.AddArc(x + w - r, y, r, r, 270, 90);         //верхній правий кут
+
+			   path.AddLine(TopRight2, TailBaseLeft);
+			   path.AddLine(TailBaseLeft, tail_point);
+			   path.AddLine(tail_point, TailBaseRight);
+			   path.AddLine(TailBaseRight, BottomRight1);
+
+			   path.AddArc(x + w - r, y + h - r, r, r, 0, 90);   //нижній правий кут
+			   path.AddLine(BottomRight2, BottomLeft1); 		 //н-п -> н-л
+			   path.AddArc(x, y + h - r, r, r, 90, 90);          //нижній лівий кут
+			   path.AddLine(BottomLeft2, TopLeft1);              //н-л -> в-л
+			 }
+		   else if ((tail_point.X < TopLeft1.X) &&
+					InRange(tail_point.Y, TopLeft1.Y, TopLeft1.Y + lh)) //хвостик вказує вліво
+			 {
+			   if (tail_point.Y <= (TopLeft2.Y + lh / 2)) //ближче до верхнього кута
+				 tail_base_pos = TopLeft2.Y + lh / 3 + tail_width / 2;
+			   else //ближче до нижнього кута
+				 tail_base_pos = BottomLeft2.Y - lh / 3 + tail_width / 2;
+
+			   Gdiplus::Point TailBaseLeft(TopLeft1.X, tail_base_pos);
+			   Gdiplus::Point TailBaseRight(TailBaseLeft.X, TailBaseLeft.Y - tail_width);
+
+			   path.AddLine(TopLeft2, TopRight1);                //в-л -> в-п
+			   path.AddArc(x + w - r, y, r, r, 270, 90);         //верхній правий кут
+			   path.AddLine(TopRight2, BottomRight1); 			 //в-п -> н-п
+			   path.AddArc(x + w - r, y + h - r, r, r, 0, 90);   //нижній правий кут
+			   path.AddLine(BottomRight2, BottomLeft1); 		 //н-п -> н-л
+			   path.AddArc(x, y + h - r, r, r, 90, 90);          //нижній лівий кут
+
+			   path.AddLine(BottomLeft2, TailBaseLeft);
+			   path.AddLine(TailBaseLeft, tail_point);
+			   path.AddLine(tail_point, TailBaseRight);
+			   path.AddLine(TailBaseRight, TopLeft1);
+			 }
+           else if (tail_point.Y < TopLeft2.Y) //хвостик вказує вверх
+			 {
+			   if (tail_point.X <= (BottomLeft1.X + lw / 2)) //ближче до лівого кута
+				 tail_base_pos = TopLeft2.X + lw / 3 - tail_width / 2;
+			   else //ближче до правого кута
+				 tail_base_pos = TopRight1.X - lw / 3 - tail_width / 2;
+
+			   Gdiplus::Point TailBaseLeft(tail_base_pos, TopLeft2.Y);
+			   Gdiplus::Point TailBaseRight(TailBaseLeft.X + tail_width, TailBaseLeft.Y);
+
+			   path.AddLine(TopLeft2, TailBaseLeft);
+			   path.AddLine(TailBaseLeft, tail_point);
+			   path.AddLine(tail_point, TailBaseRight);
+			   path.AddLine(TailBaseRight, TopRight1);
+
+			   path.AddArc(x + w - r, y, r, r, 270, 90);         //верхній правий кут
+			   path.AddLine(TopRight2, BottomRight1); 			 //в-п -> н-п
+			   path.AddArc(x + w - r, y + h - r, r, r, 0, 90);   //нижній правий кут
+			   path.AddLine(BottomRight2, BottomLeft1);          //н-п -> н-л
+			   path.AddArc(x, y + h - r, r, r, 90, 90);          //нижній лівий кут
+			   path.AddLine(BottomLeft2, TopLeft1);              //н-л -> в-л
+			 }
+		   else //хвостик вказує вниз
+			 {
+			   if (tail_point.X <= (BottomLeft1.X + lw / 2)) //ближче до лівого кута
+				 tail_base_pos = BottomLeft1.X + lw / 3 + tail_width / 2;
+			   else //ближче до правого кута
+				 tail_base_pos = BottomRight2.X - lw / 3 + tail_width / 2;
+
+			   Gdiplus::Point TailBaseLeft(tail_base_pos, BottomRight2.Y);
+			   Gdiplus::Point TailBaseRight(TailBaseLeft.X - tail_width, TailBaseLeft.Y);
+
+			   path.AddLine(TopLeft2, TopRight1);                //в-л -> в-п
+			   path.AddArc(x + w - r, y, r, r, 270, 90);         //верхній правий кут
+			   path.AddLine(TopRight2, BottomRight1); 			 //в-п -> н-п
+			   path.AddArc(x + w - r, y + h - r, r, r, 0, 90);   //нижній правий кут
+
+			   path.AddLine(BottomRight2, TailBaseLeft);
+			   path.AddLine(TailBaseLeft, tail_point);
+			   path.AddLine(tail_point, TailBaseRight);
+			   path.AddLine(TailBaseRight, BottomLeft1);
+
+			   path.AddArc(x, y + h - r, r, r, 90, 90);          //нижній лівий кут
+			   path.AddLine(BottomLeft2, TopLeft1);              //н-л -> в-л
+			 }
+
+		   path.CloseFigure();
 		 }
-	   else
+	   else //малюємо складний полігон по точкам, за основу беремо прямокутник
 		 {
-		   graphics.FillRectangle(&brush, rect);
-		   graphics.DrawRectangle(&pen, rect);
+		   Gdiplus::Point BaseLeftUp(x, y);
+		   Gdiplus::Point BaseRightUp(x + width, y);
+		   Gdiplus::Point BaseRightDown(x + width, y + height);
+		   Gdiplus::Point BaseLeftDown(x, y + height);
+
+		   if ((tail_point.X > BaseRightUp.X) &&
+			   InRange(tail_point.Y, BaseRightUp.Y, BaseRightUp.Y + height)) //хвостик вказує вправо
+			 {
+			   if (tail_point.Y <= (BaseRightUp.Y + height / 2)) //ближче до верхнього кута
+				 tail_base_pos = BaseRightUp.Y + height / 3 - tail_width / 2;
+			   else //ближче до нижнього кута
+				 tail_base_pos = BaseRightDown.Y - height / 3 - tail_width / 2;
+
+			   Gdiplus::Point TailBaseLeft(BaseRightDown.X, tail_base_pos);
+			   Gdiplus::Point TailBaseRight(TailBaseLeft.X, TailBaseLeft.Y + tail_width);
+
+               Gdiplus::Point poly[7] = {BaseLeftUp,
+										 BaseRightUp,
+                                         TailBaseLeft,
+										 tail_point,
+										 TailBaseRight,
+										 BaseRightDown,
+										 BaseLeftDown};
+
+               path.AddPolygon(poly, 7);
+			 }
+		   else if ((tail_point.X < BaseLeftUp.X) &&
+					InRange(tail_point.Y, BaseLeftUp.Y, BaseLeftUp.Y + height)) //хвостик вказує вліво
+			 {
+			   if (tail_point.Y <= (BaseLeftUp.Y + height / 2)) //ближче до верхнього кута
+				 tail_base_pos = BaseLeftUp.Y + height / 3 + tail_width / 2;
+			   else //ближче до нижнього кута
+				 tail_base_pos = BaseLeftDown.Y - height / 3 + tail_width / 2;
+
+			   Gdiplus::Point TailBaseLeft(BaseLeftDown.X, tail_base_pos);
+			   Gdiplus::Point TailBaseRight(TailBaseLeft.X, TailBaseLeft.Y - tail_width);
+
+               Gdiplus::Point poly[7] = {BaseLeftUp,
+										 BaseRightUp,
+										 BaseRightDown,
+										 BaseLeftDown,
+										 TailBaseLeft,
+										 tail_point,
+										 TailBaseRight};
+
+			   path.AddPolygon(poly, 7);
+			 }
+		   else if (tail_point.Y < BaseLeftUp.Y) //хвостик вказує вверх
+			 {
+			   if (tail_point.X <= (BaseLeftUp.X + width / 2)) //ближче до лівого кута
+				 tail_base_pos = BaseLeftUp.X + width / 3 - tail_width / 2;
+			   else //ближче до правого кута
+				 tail_base_pos = BaseRightUp.X - width / 3 - tail_width / 2;
+
+			   Gdiplus::Point TailBaseLeft(tail_base_pos, BaseLeftUp.Y);
+			   Gdiplus::Point TailBaseRight(TailBaseLeft.X + tail_width, TailBaseLeft.Y);
+
+			   Gdiplus::Point poly[7] = {BaseLeftUp,
+										 TailBaseLeft,
+										 tail_point,
+										 TailBaseRight,
+                                         BaseRightUp,
+										 BaseRightDown,
+										 BaseLeftDown};
+
+			   path.AddPolygon(poly, 7);
+			 }
+		   else //хвостик вказує вниз
+			 {
+			   if (tail_point.X <= (BaseLeftDown.X + width / 2)) //ближче до лівого кута
+				 tail_base_pos = BaseLeftDown.X + width / 3 + tail_width / 2;
+			   else //ближче до правого кута
+				 tail_base_pos = BaseRightDown.X - width / 3 + tail_width / 2;
+
+			   Gdiplus::Point TailBaseLeft(tail_base_pos, BaseRightDown.Y);
+			   Gdiplus::Point TailBaseRight(TailBaseLeft.X - tail_width, TailBaseLeft.Y);
+
+			   Gdiplus::Point poly[7] = {BaseLeftUp,
+										 BaseRightUp,
+										 BaseRightDown,
+										 TailBaseLeft,
+										 tail_point,
+										 TailBaseRight,
+										 BaseLeftDown};
+
+			   path.AddPolygon(poly, 7);
+			 }
+		 }
+
+	   if (shadow) //тінь
+		 {
+		   Gdiplus::GraphicsPath ShadowPath;
+		   Gdiplus::Matrix ShadowMatrix;
+		   ShadowMatrix.Translate((float)ShadowOffset, (float)ShadowOffset);
+		   ShadowPath.AddPath(&path, FALSE);
+		   ShadowPath.Transform(&ShadowMatrix);
+
+		   Gdiplus::SolidBrush ShadowBrush(ShadowColor);
+		   graphics.FillPath(&ShadowBrush, &ShadowPath);
+		 }
+
+//зафарбовуємо і малюємо
+	   Gdiplus::SolidBrush brush(fill_color);
+	   graphics.FillPath(&brush, &path);
+
+	   if (border_width > 0)
+		 {
+		   Gdiplus::Pen pen(border_color, border_width);
+		   graphics.DrawPath(&pen, &path);
 		 }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawRectangleGdiPlus: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawSpeechBubbleGDIPlus: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -332,7 +612,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		  break;
 		}
 
-      case WM_KVL_DRAW_FRAME:
+	  case WM_KVL_DRAW_FRAME:
 		{
 		  EnterCriticalSection(&cs);
 
@@ -340,16 +620,34 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 							   CurrentFrame.Rect.top,
 							   CurrentFrame.Rect.right,
 							   CurrentFrame.Rect.bottom,
-							   Gdiplus::Color(CurrentFrame.Color.Alpha,
-											  CurrentFrame.Color.Red,
-											  CurrentFrame.Color.Green,
-											  CurrentFrame.Color.Blue),
-							   Gdiplus::Color(CurrentFrame.BorderColor.Alpha,
-											  CurrentFrame.BorderColor.Red,
-											  CurrentFrame.BorderColor.Green,
-											  CurrentFrame.BorderColor.Blue),
+							   CurrentFrame.Color,
+							   CurrentFrame.BorderColor,
 							   CurrentFrame.Border,
-							   CurrentFrame.CornerRadius);
+							   CurrentFrame.CornerRadius,
+							   CurrentFrame.Shadow);
+
+		  LeaveCriticalSection(&cs);
+		  InvalidateRect(WHandle, NULL, FALSE);  // Перемальовуємо вікно
+		  break;
+		}
+
+	  case WM_KVL_DRAW_BUBBLE:
+		{
+		  EnterCriticalSection(&cs);
+
+		  Gdiplus::Point tail(CurrentBubble.Tail.x, CurrentBubble.Tail.y);
+
+		  DrawSpeechBubbleRectGDIPlus(CurrentBubble.Rect.left,
+									  CurrentBubble.Rect.top,
+									  CurrentBubble.Rect.right,
+									  CurrentBubble.Rect.bottom,  //основний прямокутник
+									  tail, 					  //координати кінчика хвостика
+									  CurrentBubble.CornerRadius, //радіус заокруглення
+									  CurrentBubble.Color,        //заливка
+									  CurrentBubble.BorderColor,  //рамка
+									  CurrentBubble.Border,       //товщина
+								  	  CurrentBubble.Shadow);      //увімкнути тінь
+
 
 		  LeaveCriticalSection(&cs);
 		  InvalidateRect(WHandle, NULL, FALSE);  // Перемальовуємо вікно
@@ -365,10 +663,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 						  CurrentText.FontName,
 						  CurrentText.FontSize,
 						  (Gdiplus::FontStyle)CurrentText.FontStyle,
-						  Gdiplus::Color(CurrentText.FontColor.Alpha,
-										 CurrentText.FontColor.Red,
-										 CurrentText.FontColor.Green,
-										 CurrentText.FontColor.Blue),
+						  CurrentText.FontColor,
 						  CurrentText.Alignment,
 						  CurrentText.CenterVerticaly,
 						  CurrentText.WordWrap);
@@ -709,17 +1004,16 @@ __declspec(dllexport) void __stdcall eDrawFrame(void *p)
 
 	   CurrentFrame.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
 	   CurrentFrame.Rect.top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
-	   CurrentFrame.Rect.right = CurrentFrame.Rect.left +
-								_wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
-	   CurrentFrame.Rect.bottom = CurrentFrame.Rect.top +
-								 _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+	   CurrentFrame.Rect.right = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentFrame.Rect.bottom = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
 	   CurrentFrame.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
+       CurrentFrame.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
 
-	   CurrentFrame.Color.Red = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red"));
-	   CurrentFrame.Color.Green = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green"));
-	   CurrentFrame.Color.Blue = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue"));
-	   CurrentFrame.Color.Alpha = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha"));
+	   CurrentFrame.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
        CurrentFrame.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
 
@@ -728,10 +1022,10 @@ __declspec(dllexport) void __stdcall eDrawFrame(void *p)
 	   if (obj_color == "")
 		 throw Exception("Can't get Border Color object name!");
 
-	   CurrentFrame.BorderColor.Red = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red"));
-	   CurrentFrame.BorderColor.Green = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green"));
-	   CurrentFrame.BorderColor.Blue = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue"));
-	   CurrentFrame.BorderColor.Alpha = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha"));
+	   CurrentFrame.BorderColor = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
 	   PostMessage(WHandle, WM_KVL_DRAW_FRAME, NULL, NULL);
 
@@ -739,7 +1033,78 @@ __declspec(dllexport) void __stdcall eDrawFrame(void *p)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawImage: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawFrame: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eDrawBubbleRect(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw Exception("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Color object name!");
+
+	   String obj_bord = eIface->GetObjectProperty(obj.c_str(), L"Border");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border object name!");
+
+	   String obj_tail = eIface->GetObjectProperty(obj.c_str(), L"Tail");
+
+	   if (obj_tail == "")
+		 throw Exception("Can't get Tail object name!");
+
+	   CurrentBubble.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentBubble.Rect.top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   CurrentBubble.Rect.right = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentBubble.Rect.bottom = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+
+	   CurrentBubble.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
+       CurrentBubble.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
+
+	   CurrentBubble.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+											_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+											_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+											_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   CurrentBubble.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
+
+	   CurrentBubble.Tail.x = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"X"));
+	   CurrentBubble.Tail.y = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"Y"));
+
+	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border Color object name!");
+
+	   CurrentBubble.BorderColor = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+												  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+												  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+												  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   PostMessage(WHandle, WM_KVL_DRAW_BUBBLE, NULL, NULL);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawBubbleRect: " + e.ToString());
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -800,10 +1165,10 @@ __declspec(dllexport) void __stdcall eDrawText(void *p)
 	   else
 		 CurrentText.FontStyle = 0;
 
-	   CurrentText.FontColor.Red = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red"));
-	   CurrentText.FontColor.Green = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green"));
-	   CurrentText.FontColor.Blue = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue"));
-	   CurrentText.FontColor.Alpha = _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha"));
+	   CurrentText.FontColor = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+											  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+											  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+											  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
 	   PostMessage(WHandle, WM_KVL_DRAW_TEXT, (WPARAM)text.c_str(), NULL);
 
