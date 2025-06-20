@@ -1,4 +1,5 @@
 #include ".\Color.eh";
+#include ".\Point.eh";
 
 #class VisualLibrary
 {
@@ -19,8 +20,11 @@
 		_ImportFunc(&$this.LibraryHandle, "eCreateForm", "_CreateForm", "num pWidth,num pHeight,num pFullscreen");
 		_ImportFunc(&$this.LibraryHandle, "eDestroyForm", "_DestroyForm", "");
 		_ImportFunc(&$this.LibraryHandle, "eClearForm", "_ClearForm", "");
+		_ImportFunc(&$this.LibraryHandle, "eDrawLine", "_DrawLine", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawPoly", "_DrawPoly", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawImage", "_DrawImage", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawFrame", "_DrawFrame", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawBubbleRect", "_DrawBubbleRect", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawText", "_DrawText", "sym pObjectName");
 
         &$this.Initialised = 1;		
@@ -90,8 +94,30 @@
 
 #class Border
 {
-  #public property Size = 1; //can't be less than 1;
+  #public property Size = 0;
   #public property Color = #class Color(255, 0, 0, 0);  
+}
+//===========================================================;
+
+#class Line
+{
+  #public property X1 = 0;
+  #public property Y1 = 0;
+  #public property X2 = 0;
+  #public property Y2 = 0;
+  #public property Size = 0;
+  #public property Color = #class Color(255, 0, 0, 0);
+
+  #public method Draw(){_DrawLine(&$this.GetName());}
+  
+  #public method Line($x1, $y1, $x2, $y2, $size)
+  {
+    &$this.X1 = $x1;
+	&$this.Y1 = $y1;
+	&$this.X2 = $x2;
+	&$this.Y2 = $y2;
+	&$this.Size = $size;
+  }  
 }
 //===========================================================;
 
@@ -112,8 +138,18 @@
 	  {_DrawText(&$this.GetName());}
 	else if (_istreq(&$this.Type, "Frame"))
 	  {_DrawFrame(&$this.GetName());}
+	else if (_istreq(&$this.Type, "Bubble"))
+	  {_DrawBubbleRect(&$this.GetName());}
 	else
 	  {_throw("VisualLibrary: invalid object type");}
+  }
+  
+  #public method Object($left, $top, $width, $height)
+  {
+    &$this.Left = $left;
+	&$this.Top = $top;
+	&$this.Width = $width;
+	&$this.Height = $height;
   }
 }
 //===========================================================;
@@ -132,25 +168,22 @@
 {  
   #public property Type = "Frame";
   
-  #public property Color = #class Color(255, 0, 0, 0);
+  #public property Color = #class Color(255, 255, 255, 255);
   #public property Border = #class Border;
   #public property Corner = 0; //set more than 0 to set corner radius;
+  #public property Shadow = 0;
 
-  #public method Frame($a, $r, $g, $b)
-  {
-    &$this.Color.Set($a, $r, $g, $b);
-	&$this.Border.Color.Set($a, $r, $g, $b); //no border by default;
-  }  
+  #public method Frame($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
 }
 //===========================================================;
 
-#class Baloon : Frame
+#class Bubble : Frame
 {  
-  #public property Type = "Baloon";
+  #public property Type = "Bubble";
   
-  #public property Style = 0;
-  #public property SpeechPos = 0;
+  #public property Tail = #class Point(0, 0);
   
+  #public method Bubble($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
 }
 //===========================================================;
 
@@ -163,6 +196,8 @@
   #public property WordWrap = 0;
   #public property CenterVerticaly = 0;
   #public property Data = "";
+  
+  #public method Text($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}
 }
 //===========================================================;
 
