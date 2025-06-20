@@ -38,10 +38,31 @@ ELI_INTERFACE *eIface;
 
 //Власне повідомлення для роботи з вікном
 #define WM_KVL_CLEAR_WINDOW (WM_USER + 1)
-#define WM_KVL_DRAW_IMAGE (WM_USER + 2)
-#define WM_KVL_DRAW_FRAME (WM_USER + 3)
-#define WM_KVL_DRAW_TEXT (WM_USER + 4)
-#define WM_KVL_DRAW_BUBBLE (WM_USER + 5)
+#define WM_KVL_DRAW_POLYGON (WM_USER + 2)
+#define WM_KVL_DRAW_LINE (WM_USER + 3)
+#define WM_KVL_DRAW_IMAGE (WM_USER + 4)
+#define WM_KVL_DRAW_FRAME (WM_USER + 5)
+#define WM_KVL_DRAW_TEXT (WM_USER + 6)
+#define WM_KVL_DRAW_BUBBLE (WM_USER + 7)
+
+struct LINE
+{
+  int X1 = 0;
+  int Y1 = 0;
+  int X2 = 0;
+  int Y2 = 0;
+  Gdiplus::Color Color;
+  int Size = 1;
+};
+
+struct POLYGON
+{
+  std::vector<Gdiplus::Point> Points;
+  Gdiplus::Color Color;
+  int Border = 1;
+  Gdiplus::Color BorderColor;
+  int Shadow = 0;
+};
 
 struct FRAME
 {
@@ -85,6 +106,8 @@ CRITICAL_SECTION cs;  //Для безпечного доступу до пам’яті
 FRAME CurrentFrame; //для визначення параметрів поточного об'єкту типу Frame
 TEXT CurrentText; //для визначення параметрів поточного об'єкту типу Text
 BUBBLE CurrentBubble; //для визначення параметрів поточного об'єкту типу Bubble
+POLYGON CurrentPoly; //для визначення параметрів поточного об'єкту типу Polygon
+LINE CurrentLine; //для визначення параметрів поточного об'єкту типу Polygon
 
 //Функція створення віртуального вікна (буфера)
 void CreateVirtualWindow(HWND hWnd, int width, int height)
@@ -129,14 +152,88 @@ void DrawToVirtualWindow(const wchar_t *file, int x, int y)
 }
 //---------------------------------------------------------------------------
 
+void DrawLineGDIPlus(int x1, int y1, int x2, int y2,
+					 Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0),
+					 int width = 0)
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+	   Gdiplus::Pen pen(color, width);
+
+	   graphics.DrawLine(&pen, x1, y1, x2, y2);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawLineGDIPlus: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+void DrawPolygonGDIPlus(Gdiplus::Point *points,
+						int cnt,
+						Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
+						Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
+						float border_width = 1.0f,
+						bool shadow = false)
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   int ShadowOffset = 5;
+	   Gdiplus::Color ShadowColor = Gdiplus::Color(100, 0, 0, 0);
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+
+//Створення основного шляху
+	   Gdiplus::GraphicsPath path;
+
+	   path.AddPolygon(points, cnt);
+
+	   if (shadow) //Тінь
+		 {
+		   Gdiplus::GraphicsPath ShadowPath;
+		   Gdiplus::Matrix ShadowMatrix;
+		   ShadowMatrix.Translate((float)ShadowOffset, (float)ShadowOffset);
+		   ShadowPath.AddPath(&path, FALSE);
+		   ShadowPath.Transform(&ShadowMatrix);
+
+		   Gdiplus::SolidBrush ShadowBrush(ShadowColor);
+		   graphics.FillPath(&ShadowBrush, &ShadowPath);
+		 }
+
+//зафарбовуємо і малюємо
+	   Gdiplus::SolidBrush brush(fill_color);
+	   graphics.FillPath(&brush, &path);
+
+	   if (border_width > 0)
+		 {
+		   Gdiplus::Pen pen(border_color, border_width);
+		   graphics.DrawPath(&pen, &path);
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawPolygonGDIPlus: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
 void DrawTextGDIPlus(const std::wstring& text, const RECT& rect,
 					 const std::wstring& font_name = L"Segoe UI",
 					 float font_size = 20.0f,
 					 Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
 					 Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0), // чорний
-                     const std::wstring& align = L"left", // "left", "center", "right"
+					 const std::wstring& align = L"left", // "left", "center", "right"
 					 bool center_vertically = false,
-                     bool word_wrap = true)
+					 bool word_wrap = true)
 {
   try
 	 {
@@ -593,7 +690,32 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-          InvalidateRect(WHandle, NULL, FALSE);  //Перемальовуємо вікно
+          InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  break;
+		}
+
+	  case WM_KVL_DRAW_LINE:
+		{
+		  EnterCriticalSection(&cs);
+
+		  DrawLineGDIPlus(CurrentLine.X1, CurrentLine.Y1, CurrentLine.X2, CurrentLine.Y2,
+						  CurrentLine.Color,
+                          CurrentLine.Size);
+
+		  LeaveCriticalSection(&cs);
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  break;
+		}
+
+	  case WM_KVL_DRAW_POLYGON:
+		{
+		  EnterCriticalSection(&cs);
+
+
+		  LeaveCriticalSection(&cs);
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -608,7 +730,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //Перемальовуємо вікно
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -627,7 +749,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 							   CurrentFrame.Shadow);
 
 		  LeaveCriticalSection(&cs);
-		  InvalidateRect(WHandle, NULL, FALSE);  // Перемальовуємо вікно
+		  InvalidateRect(WHandle, NULL, FALSE);  // перемальовуємо вікно
 		  break;
 		}
 
@@ -650,7 +772,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 
 		  LeaveCriticalSection(&cs);
-		  InvalidateRect(WHandle, NULL, FALSE);  // Перемальовуємо вікно
+		  InvalidateRect(WHandle, NULL, FALSE);  // перемальовуємо вікно
 		  break;
 		}
 
@@ -669,7 +791,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 						  CurrentText.WordWrap);
 
 		  LeaveCriticalSection(&cs);
-		  InvalidateRect(WHandle, NULL, FALSE);  // Перемальовуємо вікно
+		  InvalidateRect(WHandle, NULL, FALSE);  // перемальовуємо вікно
 		  break;
 		}
 
@@ -938,6 +1060,108 @@ _declspec(dllexport) void __stdcall eClearForm(void *p)
 }
 //---------------------------------------------------------------------------
 
+__declspec(dllexport) void __stdcall eDrawPoly(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw Exception("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Color object name!");
+
+	   String obj_bord = eIface->GetObjectProperty(obj.c_str(), L"Border");
+
+	   if (obj_bord == "")
+		 throw Exception("Can't get Border object name!");
+
+	   CurrentPoly.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
+
+	   CurrentPoly.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   CurrentPoly.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
+
+	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border Color object name!");
+
+	   CurrentPoly.BorderColor = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+												_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+												_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+												_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+
+	   PostMessage(WHandle, WM_KVL_DRAW_POLYGON, NULL, NULL);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawPolygon: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eDrawLine(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw Exception("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Color object name!");
+
+	   CurrentLine.X1 = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X1"));
+	   CurrentLine.Y1 = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Y1"));
+	   CurrentLine.X2 = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X2"));
+	   CurrentLine.Y2 = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Y2"));
+	   CurrentLine.Size = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Size"));
+
+	   CurrentLine.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   PostMessage(WHandle, WM_KVL_DRAW_LINE, NULL, NULL);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawLine: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
 __declspec(dllexport) void __stdcall eDrawImage(void *p)
 {
   try
@@ -999,7 +1223,7 @@ __declspec(dllexport) void __stdcall eDrawFrame(void *p)
 
 	   String obj_bord = eIface->GetObjectProperty(obj.c_str(), L"Border");
 
-	   if (obj_color == "")
+	   if (obj_bord == "")
 		 throw Exception("Can't get Border object name!");
 
 	   CurrentFrame.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
@@ -1008,14 +1232,14 @@ __declspec(dllexport) void __stdcall eDrawFrame(void *p)
 	   CurrentFrame.Rect.bottom = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
 	   CurrentFrame.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
-       CurrentFrame.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
+	   CurrentFrame.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
 
 	   CurrentFrame.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
 										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
 										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
 										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
-       CurrentFrame.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
+	   CurrentFrame.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
 
 	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
 

@@ -4,7 +4,7 @@
         <ProjectVersion>20.1</ProjectVersion>
         <FrameworkType>VCL</FrameworkType>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Release</Config>
+        <Config Condition="'$(Config)'==''">Debug</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <AppType>Library</AppType>
@@ -119,14 +119,14 @@
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
         <LinkPackageImports>rtl.bpi;vcl.bpi;IndyProtocols.bpi;IndyCore.bpi;IndySystem.bpi;fmx.bpi</LinkPackageImports>
         <Debugger_HostApplication>C:\Users\mnolt\OneDrive\GIT\Kobzar\VisualLibrary\Win32\Debug\et.exe</Debugger_HostApplication>
-        <Debugger_CWD>C:\Users\mnolt\OneDrive\GIT\Kobzar\VisualLibrary\Win32\Debug</Debugger_CWD>
+        <Debugger_CWD>C:\Users\mnolt\OneDrive\GIT\Kobzar\CLICreator</Debugger_CWD>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Manifest_File>(None)</Manifest_File>
         <ILINK_LibraryPath>$(BDSLIB)\$(PLATFORM)$(CC_SUFFIX)\debug;$(ILINK_LibraryPath)</ILINK_LibraryPath>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
         <BCC_UseClassicCompiler>false</BCC_UseClassicCompiler>
-        <Debugger_RunParams>C:\Users\mnolt\OneDrive\GIT\Kobzar\VisualLibrary\Win32\Debug\ELI.dll C:\Users\mnolt\OneDrive\GIT\Kobzar\VisualLibrary\Win32\Debug\ConsoleTest.es</Debugger_RunParams>
+        <Debugger_RunParams>C:\Users\mnolt\OneDrive\GIT\Kobzar\CLICreator\ELI.dll C:\Users\mnolt\OneDrive\GIT\Kobzar\CLICreator\ConsoleTest.es</Debugger_RunParams>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <Defines>NDEBUG;$(Defines)</Defines>
