@@ -42,10 +42,11 @@ ELI_INTERFACE *eIface;
 #define WM_KVL_DRAW_ELLIPSE (WM_USER + 3)
 #define WM_KVL_DRAW_LINE (WM_USER + 4)
 #define WM_KVL_DRAW_ARC (WM_USER + 5)
-#define WM_KVL_DRAW_IMAGE (WM_USER + 6)
-#define WM_KVL_DRAW_FRAME (WM_USER + 7)
-#define WM_KVL_DRAW_TEXT (WM_USER + 8)
-#define WM_KVL_DRAW_BUBBLE (WM_USER + 9)
+#define WM_KVL_DRAW_RECT (WM_USER + 6)
+#define WM_KVL_DRAW_IMAGE (WM_USER + 7)
+#define WM_KVL_DRAW_FRAME (WM_USER + 8)
+#define WM_KVL_DRAW_TEXT (WM_USER + 9)
+#define WM_KVL_DRAW_BUBBLE (WM_USER + 10)
 
 struct LINE
 {
@@ -59,8 +60,8 @@ struct LINE
 
 struct ARC
 {
-  int X = 0;
-  int Y = 0;
+  int Left = 0;
+  int Top = 0;
   int Width = 0;
   int Height = 0;
   int StartAngle = 0;
@@ -80,8 +81,8 @@ struct POLYGON
 
 struct ELLIPSE
 {
-  int X = 0;
-  int Y = 0;
+  int Left = 0;
+  int Top = 0;
   int Width = 0;
   int Height = 0;
   Gdiplus::Color Color;
@@ -90,14 +91,21 @@ struct ELLIPSE
   int Shadow = 0;
 };
 
-struct FRAME
+struct MYRECT
 {
-  RECT Rect;
+  int Left = 0;
+  int Top = 0;
+  int Width = 0;
+  int Height = 0;
   Gdiplus::Color Color;
   int Border = 1;
   Gdiplus::Color BorderColor;
-  int CornerRadius = 0;
   int Shadow = 0;
+};
+
+struct FRAME : MYRECT
+{
+  int CornerRadius = 0;
 };
 
 struct BUBBLE : FRAME
@@ -136,6 +144,7 @@ POLYGON CurrentPoly; //для визначення параметрів поточного об'єкту типу Poly
 LINE CurrentLine; //для визначення параметрів поточного об'єкту типу Line
 ARC CurrentArc; //для визначення параметрів поточного об'єкту типу Arc
 ELLIPSE CurrentEllipse; //для визначення параметрів поточного об'єкту типу Ellipse
+MYRECT CurrentRect; //для визначення параметрів поточного об'єкту типу Rect
 
 //Функція створення віртуального вікна (буфера)
 void CreateVirtualWindow(HWND hWnd, int width, int height)
@@ -475,6 +484,8 @@ void DrawRectangleGDIPlus(int x, int y, int width, int height,
 
 		   delete RectPath;
 		 }
+	   else
+         path.AddRectangle(rect);
 
 	   if (shadow) //Тінь
 		 DrawShadow(&graphics, &path, 5, Gdiplus::Color(100, 0, 0, 0));
@@ -792,7 +803,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawArcGDIPlus(CurrentArc.X, CurrentArc.Y,
+		  DrawArcGDIPlus(CurrentArc.Left, CurrentArc.Top,
 		  				 CurrentArc.Width, CurrentArc.Height,
 						 CurrentArc.StartAngle, CurrentArc.SweepAngle,
 						 CurrentArc.Color,
@@ -825,14 +836,34 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawEllipseGDIPlus(CurrentEllipse.X,
-							 CurrentEllipse.Y,
+		  DrawEllipseGDIPlus(CurrentEllipse.Left,
+							 CurrentEllipse.Top,
 							 CurrentEllipse.Width,
                              CurrentEllipse.Height,
 							 CurrentEllipse.Color,
 							 CurrentEllipse.BorderColor,
 							 CurrentEllipse.Border,
 							 CurrentEllipse.Shadow);
+
+		  LeaveCriticalSection(&cs);
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  break;
+		}
+
+	  case WM_KVL_DRAW_RECT:
+		{
+		  EnterCriticalSection(&cs);
+
+		  DrawRectangleGDIPlus(CurrentRect.Left,
+							   CurrentRect.Top,
+							   CurrentRect.Width,
+							   CurrentRect.Height,
+							   CurrentRect.Color,
+							   CurrentRect.BorderColor,
+							   CurrentRect.Border,
+							   0,
+							   CurrentRect.Shadow);
 
 		  LeaveCriticalSection(&cs);
 
@@ -847,7 +878,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		  int x = LOWORD(lParam);
 		  int y = HIWORD(lParam);
 
-		  DrawToVirtualWindow((LPWSTR)wParam, x, y);  //Оновлення буфера
+		  DrawToVirtualWindow((LPWSTR)wParam, x, y);  //оновлення буфера
 
 		  LeaveCriticalSection(&cs);
 
@@ -859,10 +890,10 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawRectangleGDIPlus(CurrentFrame.Rect.left,
-							   CurrentFrame.Rect.top,
-							   CurrentFrame.Rect.right,
-							   CurrentFrame.Rect.bottom,
+		  DrawRectangleGDIPlus(CurrentFrame.Left,
+							   CurrentFrame.Top,
+							   CurrentFrame.Width,
+							   CurrentFrame.Height,
 							   CurrentFrame.Color,
 							   CurrentFrame.BorderColor,
 							   CurrentFrame.Border,
@@ -870,7 +901,8 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 							   CurrentFrame.Shadow);
 
 		  LeaveCriticalSection(&cs);
-		  InvalidateRect(WHandle, NULL, FALSE);  // перемальовуємо вікно
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -880,20 +912,21 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  Gdiplus::Point tail(CurrentBubble.Tail.x, CurrentBubble.Tail.y);
 
-		  DrawSpeechBubbleRectGDIPlus(CurrentBubble.Rect.left,
-									  CurrentBubble.Rect.top,
-									  CurrentBubble.Rect.right,
-									  CurrentBubble.Rect.bottom,  //основний прямокутник
+		  DrawSpeechBubbleRectGDIPlus(CurrentBubble.Left,
+									  CurrentBubble.Top,
+									  CurrentBubble.Width,
+									  CurrentBubble.Height,  	  //основний прямокутник
 									  tail, 					  //координати кінчика хвостика
 									  CurrentBubble.CornerRadius, //радіус заокруглення
 									  CurrentBubble.Color,        //заливка
 									  CurrentBubble.BorderColor,  //рамка
 									  CurrentBubble.Border,       //товщина
-								  	  CurrentBubble.Shadow);      //увімкнути тінь
+									  CurrentBubble.Shadow);      //увімкнути тінь
 
 
 		  LeaveCriticalSection(&cs);
-		  InvalidateRect(WHandle, NULL, FALSE);  // перемальовуємо вікно
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -912,7 +945,8 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 						  CurrentText.WordWrap);
 
 		  LeaveCriticalSection(&cs);
-		  InvalidateRect(WHandle, NULL, FALSE);  // перемальовуємо вікно
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1246,8 +1280,8 @@ __declspec(dllexport) void __stdcall eDrawArc(void *p)
 	   if (obj_color == "")
 		 throw Exception("Can't get Color object name!");
 
-	   CurrentArc.X = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X"));
-	   CurrentArc.Y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Y"));
+	   CurrentArc.Left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentArc.Top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
 	   CurrentArc.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
 	   CurrentArc.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 	   CurrentArc.StartAngle = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"StartAngle"));
@@ -1358,8 +1392,8 @@ __declspec(dllexport) void __stdcall eDrawEllipse(void *p)
 
 	   obj = "&" + obj;
 
-	   CurrentEllipse.X = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X"));
-	   CurrentEllipse.Y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X"));
+	   CurrentEllipse.Left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentEllipse.Top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
 	   CurrentEllipse.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
 	   CurrentEllipse.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
@@ -1400,6 +1434,68 @@ __declspec(dllexport) void __stdcall eDrawEllipse(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawEllipse: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eDrawRect(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw Exception("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   CurrentRect.Left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentRect.Top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   CurrentRect.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentRect.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+
+	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Color object name!");
+
+	   String obj_bord = eIface->GetObjectProperty(obj.c_str(), L"Border");
+
+	   if (obj_bord == "")
+		 throw Exception("Can't get Border object name!");
+
+	   CurrentRect.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
+
+	   CurrentRect.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   CurrentRect.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
+
+	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border Color object name!");
+
+	   CurrentRect.BorderColor = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+												_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+												_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+												_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+
+	   PostMessage(WHandle, WM_KVL_DRAW_RECT, NULL, NULL);
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawRect: " + e.ToString());
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -1469,10 +1565,10 @@ __declspec(dllexport) void __stdcall eDrawFrame(void *p)
 	   if (obj_bord == "")
 		 throw Exception("Can't get Border object name!");
 
-	   CurrentFrame.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
-	   CurrentFrame.Rect.top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
-	   CurrentFrame.Rect.right = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
-	   CurrentFrame.Rect.bottom = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+	   CurrentFrame.Left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentFrame.Top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   CurrentFrame.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentFrame.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
 	   CurrentFrame.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
 	   CurrentFrame.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
@@ -1537,13 +1633,13 @@ __declspec(dllexport) void __stdcall eDrawBubbleRect(void *p)
 	   if (obj_tail == "")
 		 throw Exception("Can't get Tail object name!");
 
-	   CurrentBubble.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
-	   CurrentBubble.Rect.top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
-	   CurrentBubble.Rect.right = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
-	   CurrentBubble.Rect.bottom = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+	   CurrentBubble.Left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentBubble.Top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   CurrentBubble.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentBubble.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
 	   CurrentBubble.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
-       CurrentBubble.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
+	   CurrentBubble.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
 
 	   CurrentBubble.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
 											_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),

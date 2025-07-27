@@ -24,6 +24,7 @@
 		_ImportFunc(&$this.LibraryHandle, "eDrawArc", "_DrawArc", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawPoly", "_DrawPoly", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawEllipse", "_DrawEllipse", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawRect", "_DrawRect", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawImage", "_DrawImage", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawFrame", "_DrawFrame", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawBubbleRect", "_DrawBubbleRect", "sym pObjectName");
@@ -125,8 +126,8 @@
 
 #class Arc
 {
-  #public property X = 0;
-  #public property Y = 0;
+  #public property Left = 0;
+  #public property Top = 0;
   #public property Width = 0;
   #public property Height = 0;
   #public property StartAngle = 0;
@@ -136,10 +137,10 @@
 
   #public method Draw(){_DrawArc(&$this.GetName());}
   
-  #public method Arc($x, $y, $width, $height, $stangle, $swangle, $size)
+  #public method Arc($left, $top, $width, $height, $stangle, $swangle, $size)
   {
-    &$this.X = $x;
-	&$this.Y = $y;
+    &$this.Left = $left;
+	&$this.Top = $top;
 	&$this.Width = $width;
 	&$this.Height = $height;
 	&$this.StartAngle = $stangle;
@@ -169,8 +170,8 @@
 
 #class Ellipse
 {     
-  #public property X = 0;
-  #public property Y = 0;
+  #public property Left = 0;
+  #public property Top = 0;
   #public property Width = 0;
   #public property Height = 0;
   #public property Color = #class Color(255, 255, 255, 255);
@@ -179,10 +180,32 @@
    
   #public method Draw(){_DrawEllipse(&$this.GetName());}
   
-  #public method Ellipse($x, $y, $width, $height)
+  #public method Ellipse($left, $top, $width, $height)
   {
-    &$this.X = $x;
-	&$this.Y = $y;
+    &$this.Left = $left;
+	&$this.Top = $top;
+	&$this.Width = $width;
+	&$this.Height = $height;
+  }
+}
+//===========================================================;
+
+#class Rect
+{     
+  #public property Left = 0;
+  #public property Top = 0;
+  #public property Width = 0;
+  #public property Height = 0;
+  #public property Color = #class Color(255, 255, 255, 255);
+  #public property Border = #class Border;
+  #public property Shadow = 0;
+   
+  #public method Draw(){_DrawRect(&$this.GetName());}
+  
+  #public method Rect($left, $top, $width, $height)
+  {
+    &$this.Left = $left;
+	&$this.Top = $top;
 	&$this.Width = $width;
 	&$this.Height = $height;
   }
