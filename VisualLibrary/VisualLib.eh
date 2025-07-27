@@ -21,7 +21,9 @@
 		_ImportFunc(&$this.LibraryHandle, "eDestroyForm", "_DestroyForm", "");
 		_ImportFunc(&$this.LibraryHandle, "eClearForm", "_ClearForm", "");
 		_ImportFunc(&$this.LibraryHandle, "eDrawLine", "_DrawLine", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawArc", "_DrawArc", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawPoly", "_DrawPoly", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawEllipse", "_DrawEllipse", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawImage", "_DrawImage", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawFrame", "_DrawFrame", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawBubbleRect", "_DrawBubbleRect", "sym pObjectName");
@@ -105,7 +107,7 @@
   #public property Y1 = 0;
   #public property X2 = 0;
   #public property Y2 = 0;
-  #public property Size = 0;
+  #public property Size = 1;
   #public property Color = #class Color(255, 0, 0, 0);
 
   #public method Draw(){_DrawLine(&$this.GetName());}
@@ -118,6 +120,72 @@
 	&$this.Y2 = $y2;
 	&$this.Size = $size;
   }  
+}
+//===========================================================;
+
+#class Arc
+{
+  #public property X = 0;
+  #public property Y = 0;
+  #public property Width = 0;
+  #public property Height = 0;
+  #public property StartAngle = 0;
+  #public property SweepAngle = 0;
+  #public property Size = 1;
+  #public property Color = #class Color(255, 0, 0, 0);
+
+  #public method Draw(){_DrawArc(&$this.GetName());}
+  
+  #public method Arc($x, $y, $width, $height, $stangle, $swangle, $size)
+  {
+    &$this.X = $x;
+	&$this.Y = $y;
+	&$this.Width = $width;
+	&$this.Height = $height;
+	&$this.StartAngle = $stangle;
+	&$this.SweepAngle = $swangle;
+	&$this.Size = $size;
+  }  
+}
+//===========================================================;
+
+#class Poly
+{   
+  #public property Count = 0;  
+  #public property Color = #class Color(255, 255, 255, 255);
+  #public property Border = #class Border;
+  #public property Shadow = 0;
+  
+  #public method AddPoint($x, $y)
+  {
+    $name = _int(&$this.Count);
+    &$this.Add($name, #class Point("$x,$y"));
+	&$this.Count = ++1;
+  }
+  
+  #public method Draw(){_DrawPoly(&$this.GetName());}
+}
+//===========================================================;
+
+#class Ellipse
+{     
+  #public property X = 0;
+  #public property Y = 0;
+  #public property Width = 0;
+  #public property Height = 0;
+  #public property Color = #class Color(255, 255, 255, 255);
+  #public property Border = #class Border;
+  #public property Shadow = 0;
+   
+  #public method Draw(){_DrawEllipse(&$this.GetName());}
+  
+  #public method Ellipse($x, $y, $width, $height)
+  {
+    &$this.X = $x;
+	&$this.Y = $y;
+	&$this.Width = $width;
+	&$this.Height = $height;
+  }
 }
 //===========================================================;
 

@@ -39,11 +39,13 @@ ELI_INTERFACE *eIface;
 //Власне повідомлення для роботи з вікном
 #define WM_KVL_CLEAR_WINDOW (WM_USER + 1)
 #define WM_KVL_DRAW_POLYGON (WM_USER + 2)
-#define WM_KVL_DRAW_LINE (WM_USER + 3)
-#define WM_KVL_DRAW_IMAGE (WM_USER + 4)
-#define WM_KVL_DRAW_FRAME (WM_USER + 5)
-#define WM_KVL_DRAW_TEXT (WM_USER + 6)
-#define WM_KVL_DRAW_BUBBLE (WM_USER + 7)
+#define WM_KVL_DRAW_ELLIPSE (WM_USER + 3)
+#define WM_KVL_DRAW_LINE (WM_USER + 4)
+#define WM_KVL_DRAW_ARC (WM_USER + 5)
+#define WM_KVL_DRAW_IMAGE (WM_USER + 6)
+#define WM_KVL_DRAW_FRAME (WM_USER + 7)
+#define WM_KVL_DRAW_TEXT (WM_USER + 8)
+#define WM_KVL_DRAW_BUBBLE (WM_USER + 9)
 
 struct LINE
 {
@@ -55,9 +57,33 @@ struct LINE
   int Size = 1;
 };
 
+struct ARC
+{
+  int X = 0;
+  int Y = 0;
+  int Width = 0;
+  int Height = 0;
+  int StartAngle = 0;
+  int SweepAngle = 0;
+  Gdiplus::Color Color;
+  int Size = 1;
+};
+
 struct POLYGON
 {
   std::vector<Gdiplus::Point> Points;
+  Gdiplus::Color Color;
+  int Border = 1;
+  Gdiplus::Color BorderColor;
+  int Shadow = 0;
+};
+
+struct ELLIPSE
+{
+  int X = 0;
+  int Y = 0;
+  int Width = 0;
+  int Height = 0;
   Gdiplus::Color Color;
   int Border = 1;
   Gdiplus::Color BorderColor;
@@ -106,8 +132,10 @@ CRITICAL_SECTION cs;  //Для безпечного доступу до пам’яті
 FRAME CurrentFrame; //для визначення параметрів поточного об'єкту типу Frame
 TEXT CurrentText; //для визначення параметрів поточного об'єкту типу Text
 BUBBLE CurrentBubble; //для визначення параметрів поточного об'єкту типу Bubble
-POLYGON CurrentPoly; //для визначення параметрів поточного об'єкту типу Polygon
-LINE CurrentLine; //для визначення параметрів поточного об'єкту типу Polygon
+POLYGON CurrentPoly; //для визначення параметрів поточного об'єкту типу Poly
+LINE CurrentLine; //для визначення параметрів поточного об'єкту типу Line
+ARC CurrentArc; //для визначення параметрів поточного об'єкту типу Arc
+ELLIPSE CurrentEllipse; //для визначення параметрів поточного об'єкту типу Ellipse
 
 //Функція створення віртуального вікна (буфера)
 void CreateVirtualWindow(HWND hWnd, int width, int height)
@@ -152,135 +180,26 @@ void DrawToVirtualWindow(const wchar_t *file, int x, int y)
 }
 //---------------------------------------------------------------------------
 
-void DrawLineGDIPlus(int x1, int y1, int x2, int y2,
-					 Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0),
-					 int width = 0)
+//Функція малювання тіні для основної фігури
+void DrawShadow(Gdiplus::Graphics *graphics,
+				Gdiplus::GraphicsPath *main_path,
+				int offset = 5,
+				Gdiplus::Color color = Gdiplus::Color(100, 0, 0, 0))
 {
   try
 	 {
-	   if (!hMemDC)
-		 throw Exception("Virtual buffer doesn't exists!");
+	   Gdiplus::GraphicsPath ShadowPath;
+	   Gdiplus::Matrix ShadowMatrix;
+	   ShadowMatrix.Translate((float)offset, (float)offset);
+	   ShadowPath.AddPath(main_path, FALSE);
+	   ShadowPath.Transform(&ShadowMatrix);
 
-	   Gdiplus::Graphics graphics(hMemDC);
-	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
-	   Gdiplus::Pen pen(color, width);
-
-	   graphics.DrawLine(&pen, x1, y1, x2, y2);
+	   Gdiplus::SolidBrush ShadowBrush(color);
+	   graphics->FillPath(&ShadowBrush, &ShadowPath);
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawLineGDIPlus: " + e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-void DrawPolygonGDIPlus(Gdiplus::Point *points,
-						int cnt,
-						Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
-						Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
-						float border_width = 1.0f,
-						bool shadow = false)
-{
-  try
-	 {
-	   if (!hMemDC)
-		 throw Exception("Virtual buffer doesn't exists!");
-
-	   int ShadowOffset = 5;
-	   Gdiplus::Color ShadowColor = Gdiplus::Color(100, 0, 0, 0);
-
-	   Gdiplus::Graphics graphics(hMemDC);
-	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
-
-//Створення основного шляху
-	   Gdiplus::GraphicsPath path;
-
-	   path.AddPolygon(points, cnt);
-
-	   if (shadow) //Тінь
-		 {
-		   Gdiplus::GraphicsPath ShadowPath;
-		   Gdiplus::Matrix ShadowMatrix;
-		   ShadowMatrix.Translate((float)ShadowOffset, (float)ShadowOffset);
-		   ShadowPath.AddPath(&path, FALSE);
-		   ShadowPath.Transform(&ShadowMatrix);
-
-		   Gdiplus::SolidBrush ShadowBrush(ShadowColor);
-		   graphics.FillPath(&ShadowBrush, &ShadowPath);
-		 }
-
-//зафарбовуємо і малюємо
-	   Gdiplus::SolidBrush brush(fill_color);
-	   graphics.FillPath(&brush, &path);
-
-	   if (border_width > 0)
-		 {
-		   Gdiplus::Pen pen(border_color, border_width);
-		   graphics.DrawPath(&pen, &path);
-		 }
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawPolygonGDIPlus: " + e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-void DrawTextGDIPlus(const std::wstring& text, const RECT& rect,
-					 const std::wstring& font_name = L"Segoe UI",
-					 float font_size = 20.0f,
-					 Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
-					 Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0), // чорний
-					 const std::wstring& align = L"left", // "left", "center", "right"
-					 bool center_vertically = false,
-					 bool word_wrap = true)
-{
-  try
-	 {
-	   if (!hMemDC)
-		 throw Exception("Virtual buffer doesn't exists!");
-
-	   Gdiplus::Graphics graphics(hMemDC);
-	   graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
-
-	   Gdiplus::FontFamily font_family(font_name.c_str());
-	   Gdiplus::Font font(&font_family, font_size, font_style, Gdiplus::UnitPixel);
-	   Gdiplus::SolidBrush brush(color);
-
-	   Gdiplus::RectF layout_rect((float)rect.left, (float)rect.top,
-								 (float)(rect.right - rect.left),
-								 (float)(rect.bottom - rect.top));
-
-	   Gdiplus::StringFormat format;
-
-//Горизонтальне вирівнювання
-	   if (align == L"center")
-		 format.SetAlignment(Gdiplus::StringAlignmentCenter);
-	   else if (align == L"right")
-		 format.SetAlignment(Gdiplus::StringAlignmentFar);
-	   else if (align == L"justify")
-		 {
-		   format.SetAlignment(Gdiplus::StringAlignmentNear);
-		   format.SetFormatFlags(format.GetFormatFlags() |
-								 Gdiplus::StringFormatFlagsLineLimit |
-								 Gdiplus::StringFormatFlagsNoFitBlackBox);
-		   format.SetTrimming(Gdiplus::StringTrimmingNone);
-		 }
-	   else
-		 format.SetAlignment(Gdiplus::StringAlignmentNear);//left
-
-//Вертикальне вирівнювання
-	   format.SetLineAlignment(center_vertically ? Gdiplus::StringAlignmentCenter : Gdiplus::StringAlignmentNear);
-
-//Перенос рядків
-	   if (!word_wrap)
-		 format.SetFormatFlags(Gdiplus::StringFormatFlagsNoWrap);
-
-	   graphics.DrawString(text.c_str(), -1, &font, layout_rect, &format, &brush);
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawTextGDIPlus: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawShadow: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -345,6 +264,191 @@ Gdiplus::GraphicsPath *CreateRoundedRectPath(Gdiplus::Rect rect, int radius)
 }
 //---------------------------------------------------------------------------
 
+void DrawLineGDIPlus(int x1, int y1, int x2, int y2,
+					 Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0),
+					 int width = 0)
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+	   Gdiplus::Pen pen(color, width);
+
+	   graphics.DrawLine(&pen, x1, y1, x2, y2);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawLineGDIPlus: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+void DrawArcGDIPlus(int x, int y,
+					int width, int height,
+					int st_angle, int sw_angle,
+					Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0),
+					int border_width = 0)
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+	   Gdiplus::Pen pen(color, border_width);
+
+	   graphics.DrawArc(&pen, x, y, width, height, st_angle, sw_angle);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawArcGDIPlus: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+void DrawPolygonGDIPlus(Gdiplus::Point *points,
+						int cnt,
+						Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
+						Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
+						float border_width = 1.0f,
+						bool shadow = false)
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+
+//Створення основного шляху
+	   Gdiplus::GraphicsPath path;
+
+	   path.AddPolygon(points, cnt);
+
+	   if (shadow) //Тінь
+		 DrawShadow(&graphics, &path, 5, Gdiplus::Color(100, 0, 0, 0));
+
+//зафарбовуємо і малюємо
+	   Gdiplus::SolidBrush brush(fill_color);
+	   graphics.FillPath(&brush, &path);
+
+	   if (border_width > 0)
+		 {
+		   Gdiplus::Pen pen(border_color, border_width);
+		   graphics.DrawPath(&pen, &path);
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawPolygonGDIPlus: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+void DrawEllipseGDIPlus(int x, int y,
+					   int width, int height,
+					   Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
+					   Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
+					   float border_width = 1.0f,
+					   bool shadow = false)
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+
+//Створення основного шляху
+	   Gdiplus::GraphicsPath path;
+
+       path.AddEllipse(x, y, width, height);
+
+	   if (shadow) //Тінь
+		 DrawShadow(&graphics, &path, 5, Gdiplus::Color(100, 0, 0, 0));
+
+//зафарбовуємо і малюємо
+	   Gdiplus::SolidBrush brush(fill_color);
+	   graphics.FillPath(&brush, &path);
+
+	   if (border_width > 0)
+		 {
+		   Gdiplus::Pen pen(border_color, border_width);
+		   graphics.DrawPath(&pen, &path);
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawEllipseGDIPlus: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+void DrawTextGDIPlus(const std::wstring& text, const RECT& rect,
+					 const std::wstring& font_name = L"Segoe UI",
+					 float font_size = 20.0f,
+					 Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
+					 Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0), // чорний
+					 const std::wstring& align = L"left", // "left", "center", "right"
+					 bool center_vertically = false,
+					 bool word_wrap = true)
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
+
+	   Gdiplus::FontFamily font_family(font_name.c_str());
+	   Gdiplus::Font font(&font_family, font_size, font_style, Gdiplus::UnitPixel);
+	   Gdiplus::SolidBrush brush(color);
+
+	   Gdiplus::RectF layout_rect((float)rect.left, (float)rect.top,
+								 (float)(rect.right - rect.left),
+								 (float)(rect.bottom - rect.top));
+
+	   Gdiplus::StringFormat format;
+
+//Горизонтальне вирівнювання
+	   if (align == L"center")
+		 format.SetAlignment(Gdiplus::StringAlignmentCenter);
+	   else if (align == L"right")
+		 format.SetAlignment(Gdiplus::StringAlignmentFar);
+	   else if (align == L"justify")
+		 {
+		   format.SetAlignment(Gdiplus::StringAlignmentNear);
+		   format.SetFormatFlags(format.GetFormatFlags() |
+								 Gdiplus::StringFormatFlagsLineLimit |
+								 Gdiplus::StringFormatFlagsNoFitBlackBox);
+		   format.SetTrimming(Gdiplus::StringTrimmingNone);
+		 }
+	   else
+		 format.SetAlignment(Gdiplus::StringAlignmentNear);//left
+
+//Вертикальне вирівнювання
+	   format.SetLineAlignment(center_vertically ? Gdiplus::StringAlignmentCenter : Gdiplus::StringAlignmentNear);
+
+//Перенос рядків
+	   if (!word_wrap)
+		 format.SetFormatFlags(Gdiplus::StringFormatFlagsNoWrap);
+
+	   graphics.DrawString(text.c_str(), -1, &font, layout_rect, &format, &brush);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawTextGDIPlus: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
 void DrawRectangleGDIPlus(int x, int y, int width, int height,
 						  Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
 						  Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
@@ -356,9 +460,6 @@ void DrawRectangleGDIPlus(int x, int y, int width, int height,
 	 {
 	   if (!hMemDC)
 		 throw Exception("Virtual buffer doesn't exists!");
-
-	   int ShadowOffset = 5;
-	   Gdiplus::Color ShadowColor = Gdiplus::Color(100, 0, 0, 0);
 
 	   Gdiplus::Graphics graphics(hMemDC);
 	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
@@ -376,16 +477,7 @@ void DrawRectangleGDIPlus(int x, int y, int width, int height,
 		 }
 
 	   if (shadow) //Тінь
-		 {
-		   Gdiplus::GraphicsPath ShadowPath;
-		   Gdiplus::Matrix ShadowMatrix;
-		   ShadowMatrix.Translate((float)ShadowOffset, (float)ShadowOffset);
-		   ShadowPath.AddPath(&path, FALSE);
-		   ShadowPath.Transform(&ShadowMatrix);
-
-		   Gdiplus::SolidBrush ShadowBrush(ShadowColor);
-		   graphics.FillPath(&ShadowBrush, &ShadowPath);
-		 }
+		 DrawShadow(&graphics, &path, 5, Gdiplus::Color(100, 0, 0, 0));
 
 //зафарбовуємо і малюємо
 	   Gdiplus::SolidBrush brush(fill_color);
@@ -419,9 +511,6 @@ void DrawSpeechBubbleRectGDIPlus(int x, int y, int width, int height,
 
 	   Gdiplus::Graphics graphics(hMemDC);
 	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
-
-	   int ShadowOffset = 5;
-	   Gdiplus::Color ShadowColor = Gdiplus::Color(100, 0, 0, 0);
 
 	   Gdiplus::GraphicsPath path;
 	   Gdiplus::Rect rect(x, y, width, height);
@@ -635,16 +724,7 @@ void DrawSpeechBubbleRectGDIPlus(int x, int y, int width, int height,
 		 }
 
 	   if (shadow) //тінь
-		 {
-		   Gdiplus::GraphicsPath ShadowPath;
-		   Gdiplus::Matrix ShadowMatrix;
-		   ShadowMatrix.Translate((float)ShadowOffset, (float)ShadowOffset);
-		   ShadowPath.AddPath(&path, FALSE);
-		   ShadowPath.Transform(&ShadowMatrix);
-
-		   Gdiplus::SolidBrush ShadowBrush(ShadowColor);
-		   graphics.FillPath(&ShadowBrush, &ShadowPath);
-		 }
+		 DrawShadow(&graphics, &path, 5, Gdiplus::Color(100, 0, 0, 0));
 
 //зафарбовуємо і малюємо
 	   Gdiplus::SolidBrush brush(fill_color);
@@ -708,10 +788,51 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		  break;
 		}
 
+	  case WM_KVL_DRAW_ARC:
+		{
+		  EnterCriticalSection(&cs);
+
+		  DrawArcGDIPlus(CurrentArc.X, CurrentArc.Y,
+		  				 CurrentArc.Width, CurrentArc.Height,
+						 CurrentArc.StartAngle, CurrentArc.SweepAngle,
+						 CurrentArc.Color,
+						 CurrentArc.Size);
+
+		  LeaveCriticalSection(&cs);
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  break;
+		}
+
 	  case WM_KVL_DRAW_POLYGON:
 		{
 		  EnterCriticalSection(&cs);
 
+		  DrawPolygonGDIPlus(CurrentPoly.Points.data(),
+							 CurrentPoly.Points.size(),
+							 CurrentPoly.Color,
+							 CurrentPoly.BorderColor,
+							 CurrentPoly.Border,
+                             CurrentPoly.Shadow);
+
+		  LeaveCriticalSection(&cs);
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  break;
+		}
+
+	  case WM_KVL_DRAW_ELLIPSE:
+		{
+		  EnterCriticalSection(&cs);
+
+		  DrawEllipseGDIPlus(CurrentEllipse.X,
+							 CurrentEllipse.Y,
+							 CurrentEllipse.Width,
+                             CurrentEllipse.Height,
+							 CurrentEllipse.Color,
+							 CurrentEllipse.BorderColor,
+							 CurrentEllipse.Border,
+							 CurrentEllipse.Shadow);
 
 		  LeaveCriticalSection(&cs);
 
@@ -1060,6 +1181,96 @@ _declspec(dllexport) void __stdcall eClearForm(void *p)
 }
 //---------------------------------------------------------------------------
 
+__declspec(dllexport) void __stdcall eDrawLine(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw Exception("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Color object name!");
+
+	   CurrentLine.X1 = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X1"));
+	   CurrentLine.Y1 = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Y1"));
+	   CurrentLine.X2 = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X2"));
+	   CurrentLine.Y2 = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Y2"));
+	   CurrentLine.Size = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Size"));
+
+	   CurrentLine.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   PostMessage(WHandle, WM_KVL_DRAW_LINE, NULL, NULL);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawLine: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eDrawArc(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw Exception("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Color object name!");
+
+	   CurrentArc.X = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X"));
+	   CurrentArc.Y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Y"));
+	   CurrentArc.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentArc.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+	   CurrentArc.StartAngle = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"StartAngle"));
+	   CurrentArc.SweepAngle = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"SweepAngle"));
+	   CurrentArc.Size = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Size"));
+
+	   CurrentArc.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+										 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+										 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+										 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   PostMessage(WHandle, WM_KVL_DRAW_ARC, NULL, NULL);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawArc: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
 __declspec(dllexport) void __stdcall eDrawPoly(void *p)
 {
   try
@@ -1075,6 +1286,19 @@ __declspec(dllexport) void __stdcall eDrawPoly(void *p)
 		 throw Exception("Can't get main object name!");
 
 	   obj = "&" + obj;
+
+	   int cnt = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Count"));
+	   int x = 0, y = 0;
+	   String pt = "";
+
+	   for (int i = 0; i < cnt; i++)
+		  {
+			pt = eIface->GetObjectProperty(obj.c_str(), IntToStr(i).c_str());
+			x = _wtoi(eIface->GetObjectProperty(pt.c_str(), L"X"));
+			y = _wtoi(eIface->GetObjectProperty(pt.c_str(), L"Y"));
+
+			CurrentPoly.Points.push_back(Gdiplus::Point(x, y));
+		  }
 
 	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
 
@@ -1118,7 +1342,7 @@ __declspec(dllexport) void __stdcall eDrawPoly(void *p)
 }
 //---------------------------------------------------------------------------
 
-__declspec(dllexport) void __stdcall eDrawLine(void *p)
+__declspec(dllexport) void __stdcall eDrawEllipse(void *p)
 {
   try
 	 {
@@ -1134,29 +1358,48 @@ __declspec(dllexport) void __stdcall eDrawLine(void *p)
 
 	   obj = "&" + obj;
 
+	   CurrentEllipse.X = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X"));
+	   CurrentEllipse.Y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X"));
+	   CurrentEllipse.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentEllipse.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+
 	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
 
 	   if (obj_color == "")
 		 throw Exception("Can't get Color object name!");
 
-	   CurrentLine.X1 = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X1"));
-	   CurrentLine.Y1 = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Y1"));
-	   CurrentLine.X2 = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"X2"));
-	   CurrentLine.Y2 = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Y2"));
-	   CurrentLine.Size = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Size"));
+	   String obj_bord = eIface->GetObjectProperty(obj.c_str(), L"Border");
 
-	   CurrentLine.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
-										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
-										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
-										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+	   if (obj_bord == "")
+		 throw Exception("Can't get Border object name!");
 
-	   PostMessage(WHandle, WM_KVL_DRAW_LINE, NULL, NULL);
+	   CurrentEllipse.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
+
+	   CurrentEllipse.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+											 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+											 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+											 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   CurrentEllipse.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
+
+	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border Color object name!");
+
+	   CurrentEllipse.BorderColor = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+												   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+												   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+												   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+
+	   PostMessage(WHandle, WM_KVL_DRAW_ELLIPSE, NULL, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawLine: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawEllipse: " + e.ToString());
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
