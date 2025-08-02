@@ -20,6 +20,7 @@
 		_ImportFunc(&$this.LibraryHandle, "eCreateForm", "_CreateForm", "num pWidth,num pHeight,num pFullscreen");
 		_ImportFunc(&$this.LibraryHandle, "eDestroyForm", "_DestroyForm", "");
 		_ImportFunc(&$this.LibraryHandle, "eClearForm", "_ClearForm", "");
+		_ImportFunc(&$this.LibraryHandle, "eCalcTextArea", "_CalcTextArea", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawLine", "_DrawLine", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawArc", "_DrawArc", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawPoly", "_DrawPoly", "sym pObjectName");
@@ -228,12 +229,21 @@
 	else if (_istreq(&$this.Type, "Text"))
 	  {_DrawText(&$this.GetName());}
 	else if (_istreq(&$this.Type, "Frame"))
-	  {_DrawFrame(&$this.GetName());}
+	  {
+	    _DrawFrame(&$this.GetName());
+		_DrawText(&$this.Text.GetName());
+	  }
 	else if (_istreq(&$this.Type, "Bubble"))
-	  {_DrawBubbleRect(&$this.GetName());}
+	  {
+	    _DrawBubbleRect(&$this.GetName());
+		_DrawText(&$this.Text.GetName());
+	  }
 	else
 	  {_throw("VisualLibrary: invalid object type");}
   }
+  
+  #public method SetPos($left, $top){&$this.Left = $left; &$this.Top = $top;}
+  #public method SetSize($width, $height){&$this.Width = $width; &$this.Height = $height;}
   
   #public method Object($left, $top, $width, $height)
   {
@@ -257,19 +267,43 @@
 
 #class Frame : Object
 {  
+  #property BeforeTextInterval = 5;
+  #property AfterTextInterval = 5;
+  
   #public property Type = "Frame";
   
   #public property Color = #class Color(255, 255, 255, 255);
   #public property Border = #class Border;
   #public property Corner = 0; //set more than 0 to set corner radius;
   #public property Shadow = 0;
-
-  #public method Frame($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
+  
+  #public property Text = #class Text(0, 0, 0, 0);  
+  
+  #public method AdjustToText()
+  {
+	&$this.Text.Left = &$this.Left + &$this.BeforeTextInterval;
+	&$this.Text.Top = &$this.Top + &$this.AfterTextInterval;
+	&$this.Text.Width = &$this.Width - &$this.BeforeTextInterval - &$this.AfterTextInterval;
+	&$this.Text.Height = 0;
+		
+	&$this.Text.CalcAreaSize();
+	
+	&$this.Width = &$this.Text.Width + &$this.BeforeTextInterval + &$this.AfterTextInterval;
+	&$this.Height = &$this.Text.Height + &$this.BeforeTextInterval + &$this.AfterTextInterval;
+  }
+  
+  #public method Frame($left, $top, $width, $height)
+  {
+    &$this.Object($left, $top, $width, $height);
+  }  
 }
 //===========================================================;
 
 #class Bubble : Frame
 {  
+  #property BeforeTextInterval = 5;
+  #property AfterTextInterval = 5;
+  
   #public property Type = "Bubble";
   
   #public property Tail = #class Point(0, 0);
@@ -288,7 +322,12 @@
   #public property CenterVerticaly = 0;
   #public property Data = "";
   
-  #public method Text($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}
+  #public method CalcAreaSize(){_CalcTextArea(&$this.GetName());}
+  
+  #public method Text($left, $top, $width, $height) 
+  {
+    &$this.Object($left, $top, $width, $height); //set $width or $height to 0 for auto calculate;
+  }
 }
 //===========================================================;
 

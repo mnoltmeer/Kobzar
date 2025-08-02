@@ -115,7 +115,7 @@ struct BUBBLE : FRAME
 
 struct TEXT
 {
-  RECT Rect;
+  Gdiplus::RectF Rect;
   wchar_t FontName[32];
   int FontSize = 10;
   int FontStyle = 0;
@@ -273,6 +273,75 @@ Gdiplus::GraphicsPath *CreateRoundedRectPath(Gdiplus::Rect rect, int radius)
 }
 //---------------------------------------------------------------------------
 
+// Функція для вимірювання розміру тексту
+Gdiplus::RectF MeasureTextRect(const std::wstring &text,
+							   Gdiplus::RectF rect,
+							   const std::wstring &font_name = L"Segoe UI",
+							   float font_size = 10.0f,
+							   Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
+							   const std::wstring &align = L"left", // "left", "center", "right"
+							   bool center_vertically = false,
+							   bool word_wrap = true)
+{
+  Gdiplus::RectF layout_rect;
+
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
+
+	   Gdiplus::FontFamily font_family(font_name.c_str());
+	   Gdiplus::Font font(&font_family, font_size, font_style, Gdiplus::UnitPixel);
+
+	   Gdiplus::StringFormat format;
+
+//Горизонтальне вирівнювання
+	   if (align == L"center")
+		 format.SetAlignment(Gdiplus::StringAlignmentCenter);
+	   else if (align == L"right")
+		 format.SetAlignment(Gdiplus::StringAlignmentFar);
+	   else if (align == L"justify")
+		 {
+		   format.SetAlignment(Gdiplus::StringAlignmentNear);
+		   format.SetFormatFlags(format.GetFormatFlags() |
+								 Gdiplus::StringFormatFlagsLineLimit |
+								 Gdiplus::StringFormatFlagsNoFitBlackBox);
+		   format.SetTrimming(Gdiplus::StringTrimmingNone);
+		 }
+	   else
+		 format.SetAlignment(Gdiplus::StringAlignmentNear); //left
+
+//Вертикальне вирівнювання
+	   format.SetLineAlignment(center_vertically ? Gdiplus::StringAlignmentCenter : Gdiplus::StringAlignmentNear);
+
+//Перенос рядків
+	   if (!word_wrap)
+		 format.SetFormatFlags(Gdiplus::StringFormatFlagsNoWrap);
+
+	   if (rect.Width == 0)
+		 rect.Width = 10000;
+	   else
+		 rect.Width++;
+
+	   if (rect.Height == 0)
+		 rect.Height = 10000;
+	   else
+		 rect.Height++;
+
+	   graphics.MeasureString(text.c_str(), -1, &font, rect, &format, &layout_rect);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::MeasureTextRect: " + e.ToString());
+	 }
+
+  return layout_rect;
+}
+//---------------------------------------------------------------------------
+
 void DrawLineGDIPlus(int x1, int y1, int x2, int y2,
 					 Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0),
 					 int width = 0)
@@ -360,11 +429,11 @@ void DrawPolygonGDIPlus(Gdiplus::Point *points,
 //---------------------------------------------------------------------------
 
 void DrawEllipseGDIPlus(int x, int y,
-					   int width, int height,
-					   Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
-					   Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
-					   float border_width = 1.0f,
-					   bool shadow = false)
+						int width, int height,
+						Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
+						Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
+						float border_width = 1.0f,
+					    bool shadow = false)
 {
   try
 	 {
@@ -399,12 +468,13 @@ void DrawEllipseGDIPlus(int x, int y,
 }
 //---------------------------------------------------------------------------
 
-void DrawTextGDIPlus(const std::wstring& text, const RECT& rect,
-					 const std::wstring& font_name = L"Segoe UI",
-					 float font_size = 20.0f,
+void DrawTextGDIPlus(const std::wstring &text,
+					 Gdiplus::RectF rect,
+					 const std::wstring &font_name = L"Segoe UI",
+					 float font_size = 10.0f,
 					 Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
 					 Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0), // чорний
-					 const std::wstring& align = L"left", // "left", "center", "right"
+					 const std::wstring &align = L"left", // "left", "center", "right"
 					 bool center_vertically = false,
 					 bool word_wrap = true)
 {
@@ -419,10 +489,6 @@ void DrawTextGDIPlus(const std::wstring& text, const RECT& rect,
 	   Gdiplus::FontFamily font_family(font_name.c_str());
 	   Gdiplus::Font font(&font_family, font_size, font_style, Gdiplus::UnitPixel);
 	   Gdiplus::SolidBrush brush(color);
-
-	   Gdiplus::RectF layout_rect((float)rect.left, (float)rect.top,
-								 (float)(rect.right - rect.left),
-								 (float)(rect.bottom - rect.top));
 
 	   Gdiplus::StringFormat format;
 
@@ -448,6 +514,20 @@ void DrawTextGDIPlus(const std::wstring& text, const RECT& rect,
 //Перенос рядків
 	   if (!word_wrap)
 		 format.SetFormatFlags(Gdiplus::StringFormatFlagsNoWrap);
+
+//визначаємо фактичний розмір області тексту
+	   Gdiplus::RectF layout_rect;
+
+	   if (rect.Width == 0)
+		 rect.Width = 10000;
+
+	   if (rect.Height == 0)
+		 rect.Height = 10000;
+
+	   if ((rect.Width == 0) || (rect.Height == 0))
+		 graphics.MeasureString(text.c_str(), -1, &font, rect, &format, &layout_rect);
+	   else
+		 layout_rect = rect;
 
 	   graphics.DrawString(text.c_str(), -1, &font, layout_rect, &format, &brush);
 	 }
@@ -1215,6 +1295,75 @@ _declspec(dllexport) void __stdcall eClearForm(void *p)
 }
 //---------------------------------------------------------------------------
 
+__declspec(dllexport) void __stdcall eCalcTextArea(void *p)
+{
+  try
+	 {
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   TEXT CheckedText;
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   String obj_font = eIface->GetObjectProperty(obj.c_str(), L"Font");
+
+	   if (obj_font == "")
+		 throw Exception("Can't get Font object name!");
+
+	   CheckedText.Rect.X = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CheckedText.Rect.Y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   CheckedText.Rect.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CheckedText.Rect.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+	   wcscpy(CheckedText.Alignment, eIface->GetObjectProperty(obj.c_str(), L"Align"));
+	   CheckedText.CenterVerticaly = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"CenterVerticaly"));
+	   CheckedText.WordWrap = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"WordWrap"));
+	   String text = eIface->GetObjectProperty(obj.c_str(), L"Data");
+
+	   wcscpy(CheckedText.FontName, eIface->GetObjectProperty(obj_font.c_str(), L"Name"));
+	   CheckedText.FontSize = _wtoi(eIface->GetObjectProperty(obj_font.c_str(), L"Size"));
+
+	   String style = eIface->GetObjectProperty(obj_font.c_str(), L"Style");
+
+	   if (style == "b")
+		 CheckedText.FontStyle = 1;
+	   else if (style == "i")
+		 CheckedText.FontStyle = 2;
+	   else if (style == "bi")
+		 CheckedText.FontStyle = 3;
+	   else if (style == "u")
+		 CheckedText.FontStyle = 4;
+	   else if (style == "s")
+		 CheckedText.FontStyle = 8;
+	   else
+		 CheckedText.FontStyle = 0;
+
+	   CheckedText.Rect = MeasureTextRect(text.c_str(),
+										  CheckedText.Rect,
+										  CheckedText.FontName,
+										  CheckedText.FontSize,
+										  (Gdiplus::FontStyle)CheckedText.FontStyle,
+										  CheckedText.Alignment,
+										  CheckedText.CenterVerticaly,
+										  CheckedText.WordWrap);
+
+	   eIface->SetObjectProperty(obj.c_str(), L"Width", IntToStr((int)CheckedText.Rect.Width + 1).c_str());
+	   eIface->SetObjectProperty(obj.c_str(), L"Height", IntToStr((int)CheckedText.Rect.Height + 1).c_str());
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eGetTextArea: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
 __declspec(dllexport) void __stdcall eDrawLine(void *p)
 {
   try
@@ -1699,12 +1848,10 @@ __declspec(dllexport) void __stdcall eDrawText(void *p)
 	   if (obj_color == "")
 		 throw Exception("Can't get Color object name!");
 
-	   CurrentText.Rect.left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
-	   CurrentText.Rect.top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
-	   CurrentText.Rect.right = CurrentText.Rect.left +
-								_wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
-	   CurrentText.Rect.bottom = CurrentText.Rect.top +
-								 _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+	   CurrentText.Rect.X = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentText.Rect.Y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   CurrentText.Rect.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentText.Rect.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 	   wcscpy(CurrentText.Alignment, eIface->GetObjectProperty(obj.c_str(), L"Align"));
 	   CurrentText.CenterVerticaly = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"CenterVerticaly"));
 	   CurrentText.WordWrap = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"WordWrap"));
@@ -1732,6 +1879,21 @@ __declspec(dllexport) void __stdcall eDrawText(void *p)
 											  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
 											  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
 											  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+
+	   TEXT CheckedText = CurrentText;
+
+	   CheckedText.Rect = MeasureTextRect(text.c_str(),
+										  CheckedText.Rect,
+										  CheckedText.FontName,
+										  CheckedText.FontSize,
+										  (Gdiplus::FontStyle)CheckedText.FontStyle,
+										  CheckedText.Alignment,
+										  CheckedText.CenterVerticaly,
+										  CheckedText.WordWrap);
+
+	   eIface->SetObjectProperty(obj.c_str(), L"Width", IntToStr((int)CheckedText.Rect.Width + 1).c_str());
+	   eIface->SetObjectProperty(obj.c_str(), L"Height", IntToStr((int)CheckedText.Rect.Height + 1).c_str());
 
 	   PostMessage(WHandle, WM_KVL_DRAW_TEXT, (WPARAM)text.c_str(), NULL);
 
