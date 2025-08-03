@@ -28,7 +28,8 @@
 		_ImportFunc(&$this.LibraryHandle, "eDrawRect", "_DrawRect", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawImage", "_DrawImage", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawFrame", "_DrawFrame", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawBubbleRect", "_DrawBubbleRect", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawBubbleRect", "_DrawBubble", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawBlast", "_DrawBlast", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawText", "_DrawText", "sym pObjectName");
 
         &$this.Initialised = 1;		
@@ -230,12 +231,20 @@
 	  {_DrawText(&$this.GetName());}
 	else if (_istreq(&$this.Type, "Frame"))
 	  {
-	    _DrawFrame(&$this.GetName());
+	    &$this.AdjustToText();
+		_DrawFrame(&$this.GetName());
 		_DrawText(&$this.Text.GetName());
 	  }
 	else if (_istreq(&$this.Type, "Bubble"))
 	  {
-	    _DrawBubbleRect(&$this.GetName());
+	    &$this.AdjustToText();
+		_DrawBubble(&$this.GetName());
+		_DrawText(&$this.Text.GetName());
+	  }
+	else if (_istreq(&$this.Type, "Blast"))
+	  {
+	    &$this.AdjustToText();
+		_DrawBlast(&$this.GetName());
 		_DrawText(&$this.Text.GetName());
 	  }
 	else
@@ -267,17 +276,16 @@
 
 #class Frame : Object
 {  
-  #property BeforeTextInterval = 5;
-  #property AfterTextInterval = 5;
-  
   #public property Type = "Frame";
   
   #public property Color = #class Color(255, 255, 255, 255);
   #public property Border = #class Border;
   #public property Corner = 0; //set more than 0 to set corner radius;
   #public property Shadow = 0;
+  #public property BeforeTextInterval = 5;
+  #public property AfterTextInterval = 5;
   
-  #public property Text = #class Text(0, 0, 0, 0);  
+  #public property Text = #class Text;  
   
   #public method AdjustToText()
   {
@@ -301,14 +309,29 @@
 
 #class Bubble : Frame
 {  
-  #property BeforeTextInterval = 5;
-  #property AfterTextInterval = 5;
-  
   #public property Type = "Bubble";
   
   #public property Tail = #class Point(0, 0);
   
   #public method Bubble($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
+}
+//===========================================================;
+
+#class Blast : Frame
+{  
+  #public property Type = "Blast";
+  
+  #public property MinRayHeight = 10;
+  #public property MaxRayHeight = 50; //max ray height or ray height if DynamicRays is 0;
+  #public property DynamicRays = 0; //set more than 0 to randomising ray height;
+   
+  #public method Blast($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
+}
+//===========================================================;
+
+#modify class Blast
+{  
+  #drop property Corner; 
 }
 //===========================================================;
 

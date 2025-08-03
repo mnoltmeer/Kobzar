@@ -47,6 +47,7 @@ ELI_INTERFACE *eIface;
 #define WM_KVL_DRAW_FRAME (WM_USER + 8)
 #define WM_KVL_DRAW_TEXT (WM_USER + 9)
 #define WM_KVL_DRAW_BUBBLE (WM_USER + 10)
+#define WM_KVL_DRAW_BLAST (WM_USER + 11)
 
 struct LINE
 {
@@ -113,6 +114,13 @@ struct BUBBLE : FRAME
   POINT Tail;
 };
 
+struct BLAST : MYRECT
+{
+  int MinRayHeight = 10;
+  int MaxRayHeight = 50;
+  int DynamicRays = 0;
+};
+
 struct TEXT
 {
   Gdiplus::RectF Rect;
@@ -136,7 +144,7 @@ HDC hMemDC = NULL;
 
 int WndWidth = 800, WndHeight = 600;
 bool FullScreen = 0;
-CRITICAL_SECTION cs;  //Для безпечного доступу до пам’яті
+CRITICAL_SECTION cs;  //для безпечного доступу до пам’яті
 FRAME CurrentFrame; //для визначення параметрів поточного об'єкту типу Frame
 TEXT CurrentText; //для визначення параметрів поточного об'єкту типу Text
 BUBBLE CurrentBubble; //для визначення параметрів поточного об'єкту типу Bubble
@@ -145,6 +153,7 @@ LINE CurrentLine; //для визначення параметрів поточного об'єкту типу Line
 ARC CurrentArc; //для визначення параметрів поточного об'єкту типу Arc
 ELLIPSE CurrentEllipse; //для визначення параметрів поточного об'єкту типу Ellipse
 MYRECT CurrentRect; //для визначення параметрів поточного об'єкту типу Rect
+BLAST CurrentBlast; //для визначення параметрів поточного об'єкту типу Blast
 
 //Функція створення віртуального вікна (буфера)
 void CreateVirtualWindow(HWND hWnd, int width, int height)
@@ -267,6 +276,157 @@ Gdiplus::GraphicsPath *CreateRoundedRectPath(Gdiplus::Rect rect, int radius)
 		 delete path;
 
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateRoundedRectPath: " + e.ToString());
+	 }
+
+  return path;
+}
+//---------------------------------------------------------------------------
+
+int GenerateRayHeight(int min_ray_h, int max_ray_h)
+
+{
+  int res = min_ray_h;
+
+  try
+	 {
+	   res = Random(max_ray_h);
+
+	   if (res < min_ray_h)
+		 res = min_ray_h;
+	 }
+  catch (Exception &e)
+	 {
+	   res = min_ray_h;
+
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::GenerateRayHeight: " + e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+//Допоміжна функція для побудови полігона, що імітує спалах або вибух
+Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::Rect rect,
+										  int min_ray_h, //мінімальна висота променю
+										  int max_ray_h, //максимальна висота променю
+										  bool rand_h = false)
+
+{
+  Gdiplus::GraphicsPath *path = new Gdiplus::GraphicsPath();
+
+  try
+	 {
+	   std::vector<Gdiplus::Point> points;
+
+	   int max_ray_w = (rect.Width + rect.Height) / 2; //максимальна ширина основи променю
+	   int h = max_ray_h; //висота кожного променю
+	   int w = 0; //ширина основи променю, динамічна в межах max_ray_w
+	   Gdiplus::Point mp; //середина основи променю, від неї відкладається висота
+
+//0 - верхній бік прямокутника
+	   mp.X = rect.X + rect.Width / 2;
+	   mp.Y = rect.Y;
+
+	   if (rand_h)
+		 h = GenerateRayHeight(min_ray_h, max_ray_h);
+
+	   w = rect.Width / 2;
+
+	   points.push_back(Gdiplus::Point(mp.X - w / 2, mp.Y));
+	   points.push_back(Gdiplus::Point(mp.X, mp.Y - h));
+	   points.push_back(Gdiplus::Point(mp.X + w / 2, mp.Y));
+
+//1 - верхній правий кут
+	   mp.X = rect.X + rect.Width;
+	   mp.Y = rect.Y;
+
+       if (rand_h)
+		 h = GenerateRayHeight(min_ray_h, max_ray_h);
+
+	   w = rect.Height / 2;
+
+	   points.push_back(Gdiplus::Point(mp.X + h, mp.Y - h));
+	   points.push_back(Gdiplus::Point(mp.X, mp.Y + w / 2));
+
+//2 - правий бік прямокутника
+	   mp.X = rect.X + rect.Width;
+	   mp.Y = rect.Y + rect.Height / 2;
+
+       if (rand_h)
+		 h = GenerateRayHeight(min_ray_h, max_ray_h);
+
+	   w = rect.Height / 2;
+
+	   points.push_back(Gdiplus::Point(mp.X + h, mp.Y));
+	   points.push_back(Gdiplus::Point(mp.X, mp.Y + w / 2));
+
+//3 - нижній правий кут
+	   mp.X = rect.X + rect.Width;
+	   mp.Y = rect.Y + rect.Height;
+
+       if (rand_h)
+		 h = GenerateRayHeight(min_ray_h, max_ray_h);
+
+	   w = rect.Width / 2;
+
+	   points.push_back(Gdiplus::Point(mp.X + h, mp.Y + h));
+	   points.push_back(Gdiplus::Point(mp.X - w / 2, mp.Y));
+
+//4 - нижній бік прямокутника
+	   mp.X = rect.X + rect.Width / 2;
+	   mp.Y = rect.Y + rect.Height;
+
+       if (rand_h)
+		 h = GenerateRayHeight(min_ray_h, max_ray_h);
+
+	   w = rect.Width / 2;
+
+	   points.push_back(Gdiplus::Point(mp.X, mp.Y + h));
+	   points.push_back(Gdiplus::Point(mp.X - w / 2, mp.Y));
+
+//5 - нижній лівий кут
+	   mp.X = rect.X;
+	   mp.Y = rect.Y + rect.Height;
+
+       if (rand_h)
+		 h = GenerateRayHeight(min_ray_h, max_ray_h);
+
+	   w = rect.Height / 2;
+
+	   points.push_back(Gdiplus::Point(mp.X - h, mp.Y + h));
+	   points.push_back(Gdiplus::Point(mp.X, mp.Y - w / 2));
+
+//6 - лівий бік прямокутника
+	   mp.X = rect.X;
+	   mp.Y = rect.Y + rect.Height / 2;
+
+       if (rand_h)
+		 h = GenerateRayHeight(min_ray_h, max_ray_h);
+
+	   w = rect.Height / 2;
+
+	   points.push_back(Gdiplus::Point(mp.X - h, mp.Y));
+	   points.push_back(Gdiplus::Point(mp.X, mp.Y - w / 2));
+
+//7 - верхній лівий кут
+	   mp.X = rect.X;
+	   mp.Y = rect.Y;
+
+       if (rand_h)
+		 h = GenerateRayHeight(min_ray_h, max_ray_h);
+
+	   w = rect.Height / 2;
+
+	   points.push_back(Gdiplus::Point(mp.X - h, mp.Y - h));
+
+	   path->AddPolygon(points.data(), points.size());
+	 }
+  catch (Exception &e)
+	 {
+	   if (path)
+		 delete path;
+
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateBlastPolygon: " + e.ToString());
 	 }
 
   return path;
@@ -834,6 +994,48 @@ void DrawSpeechBubbleRectGDIPlus(int x, int y, int width, int height,
 }
 //---------------------------------------------------------------------------
 
+
+void DrawSpeechBlastGDIPlus(int x, int y, int width, int height,
+							int min_ray_h,
+							int max_ray_h,
+							bool rand_h,
+							Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
+							Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
+							float border_width = 1.0f,
+							bool shadow = false) //напівпрозора чорна тінь
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+
+//Створення основного шляху
+	   Gdiplus::Rect rect(x, y, width, height);
+	   std::unique_ptr<Gdiplus::GraphicsPath> path(CreateBlastPolygon(rect, min_ray_h, max_ray_h, rand_h));
+
+	   if (shadow) //Тінь
+		 DrawShadow(&graphics, path.get(), 5, Gdiplus::Color(100, 0, 0, 0));
+
+//зафарбовуємо і малюємо
+	   Gdiplus::SolidBrush brush(fill_color);
+	   graphics.FillPath(&brush, path.get());
+
+	   if (border_width > 0)
+		 {
+		   Gdiplus::Pen pen(border_color, border_width);
+		   graphics.DrawPath(&pen, path.get());
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawSpeechBlastGDIPlus: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
 LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   static int sx, sy; //розміри вікна
@@ -1023,6 +1225,28 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 						  CurrentText.Alignment,
 						  CurrentText.CenterVerticaly,
 						  CurrentText.WordWrap);
+
+		  LeaveCriticalSection(&cs);
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  break;
+		}
+
+	  case WM_KVL_DRAW_BLAST:
+		{
+		  EnterCriticalSection(&cs);
+
+		  DrawSpeechBlastGDIPlus(CurrentBlast.Left,
+								 CurrentBlast.Top,
+								 CurrentBlast.Width,
+								 CurrentBlast.Height,  	     //основний прямокутник
+								 CurrentBlast.MinRayHeight,  //мінімальна висота променю
+								 CurrentBlast.MaxRayHeight,  //максимальна висота променю
+                                 CurrentBlast.DynamicRays,   //варіативна висота променів
+								 CurrentBlast.Color,         //заливка
+								 CurrentBlast.BorderColor,   //рамка
+								 CurrentBlast.Border,        //товщина
+								 CurrentBlast.Shadow);       //увімкнути тінь);
 
 		  LeaveCriticalSection(&cs);
 
@@ -1817,6 +2041,71 @@ __declspec(dllexport) void __stdcall eDrawBubbleRect(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawBubbleRect: " + e.ToString());
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eDrawBlast(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw Exception("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Color object name!");
+
+	   String obj_bord = eIface->GetObjectProperty(obj.c_str(), L"Border");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border object name!");
+
+	   CurrentBlast.Left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentBlast.Top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   CurrentBlast.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentBlast.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+	   CurrentBlast.MinRayHeight = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"MinRayHeight"));
+	   CurrentBlast.MaxRayHeight = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"MaxRayHeight"));
+	   CurrentBlast.DynamicRays = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"DynamicRays"));
+
+	   CurrentBlast.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
+
+	   CurrentBlast.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   CurrentBlast.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
+
+	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border Color object name!");
+
+	   CurrentBlast.BorderColor = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   PostMessage(WHandle, WM_KVL_DRAW_BLAST, NULL, NULL);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawBlast: " + e.ToString());
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
