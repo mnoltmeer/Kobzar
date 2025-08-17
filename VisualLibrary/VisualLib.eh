@@ -6,7 +6,6 @@
   #property LibraryHandle = 0;
    
   #public property Initialised = 0;
-//===========================================================;
  
   #method Init()
   {
@@ -14,9 +13,7 @@
 
 	if (&$this.LibraryHandle != -1)
 	  {
-	    _ImportFunc(&$this.LibraryHandle, "eLoadFont", "_LoadFont", "sym pFile");
-		_ImportFunc(&$this.LibraryHandle, "eRemoveFont", "_RemoveFont", "sym pFile");
-		
+	    _ImportFunc(&$this.LibraryHandle, "eLoadFont", "_LoadFont", "sym pObjectName");		
 		_ImportFunc(&$this.LibraryHandle, "eCreateForm", "_CreateForm", "num pWidth,num pHeight,num pFullscreen");
 		_ImportFunc(&$this.LibraryHandle, "eDestroyForm", "_DestroyForm", "");
 		_ImportFunc(&$this.LibraryHandle, "eClearForm", "_ClearForm", "");
@@ -41,50 +38,35 @@
 		_throw("VisualLibrary: Error loading library!");
       } 
   }
-//===========================================================;
    
   #public method VisualLibrary()
   {
     &$this.Init();
 	
 	if (!&$this.Initialised)
-	   {_throw("VisualLibrary: not initialised!");}
+	  {_throw("VisualLibrary: not initialised!");}
   }
-//===========================================================;
  
   #public method ~VisualLibrary(){#protect {_FreeLib(&$this.LibraryHandle);}}
 }
 //===========================================================;
 
-#class RuntimeFont
+#class UserFont
 {
-  #property File = "";
+  #public property Source = "";
+  #public property Name = "Arial";  
   
-  #public method RuntimeFont($file)
+  #public method UserFont($file)
   {
-    #protect
-	{
-	  $res = _LoadFont($file);
-	  
-	  if ($res)
-	    {&$this.File = $file;}
-	}
-  }
-//===========================================================;
- 
-  #public method ~RuntimeFont()
-  {
-    #protect
-	{
-	  if (_streq(&$this.File, "") == 0)
-	    {_RemoveFont(&$this.File);}
-	}
+    &$this.Source = $file;
+	_LoadFont(&$this.GetName());
   }
 }
 //===========================================================;
 
 #class Font
 {
+  #public property UserFont = 0; //set 1 if assigned to UserFont;
   #public property Name = "Arial";
   #public property Style = r; //r  (Regular) = 0
 							  //b  (Bold) = 1,
@@ -93,7 +75,26 @@
 							  //u  (Underline) = 4,
 							  //s  (Strikeout) = 8;
   #public property Size = 10;
-  #public property Color = #class Color(255, 0, 0, 0);  
+  #public property Color = #class Color(255, 0, 0, 0);
+  
+  #public method Assign($userfont)
+  {
+    if (&$userfont.Exist())
+	  {
+		&$this.UserFont = 1;
+	    &$this.Name = &$userfont.Name;
+	  }
+	else
+	  {_throw("UserFont object [" $userfont "] doesn't exists!");}
+  }
+  
+  #public method Select($name)
+  {
+    &$this.UserFont = 0;
+	&$this.Name = $name;
+  }
+  
+  #public method Font($name){&$this.Select($name);}
 }
 //===========================================================;
 
@@ -300,10 +301,7 @@
 	&$this.Height = &$this.Text.Height + &$this.BeforeTextInterval + &$this.AfterTextInterval;
   }
   
-  #public method Frame($left, $top, $width, $height)
-  {
-    &$this.Object($left, $top, $width, $height);
-  }  
+  #public method Frame($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
 }
 //===========================================================;
 
@@ -356,12 +354,10 @@
 
 #class VisualScene
 {
-  #public method VisualScene($width, $height, $fullscreen){_CreateForm($width, $height, $fullscreen);}
-//===========================================================;
- 
-  #public method ~VisualScene(){#protect {_DestroyForm();}}
-//===========================================================;
-
   #public method Clear(){#return _ClearForm();}
-//===========================================================;  
+  
+  #public method VisualScene($width, $height, $fullscreen){_CreateForm($width, $height, $fullscreen);}
+ 
+  #public method ~VisualScene(){#protect {_DestroyForm();}}  
 }
+//===========================================================;

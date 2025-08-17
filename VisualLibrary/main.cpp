@@ -124,6 +124,7 @@ struct BLAST : MYRECT
 struct TEXT
 {
   Gdiplus::RectF Rect;
+  int UserFont = 0; //1 - використовується шрифт з колекції шрифтів, 0 - системний
   wchar_t FontName[32];
   int FontSize = 10;
   int FontStyle = 0;
@@ -145,6 +146,8 @@ HDC hMemDC = NULL;
 int WndWidth = 800, WndHeight = 600;
 bool FullScreen = 0;
 CRITICAL_SECTION cs;  //для безпечного доступу до пам’яті
+Gdiplus::PrivateFontCollection *UserFontCollection; //колекція користув. шрифтів для ф-ї eLoadFont()
+
 FRAME CurrentFrame; //для визначення параметрів поточного об'єкту типу Frame
 TEXT CurrentText; //для визначення параметрів поточного об'єкту типу Text
 BUBBLE CurrentBubble; //для визначення параметрів поточного об'єкту типу Bubble
@@ -251,6 +254,33 @@ void ClearVirtualWindow()
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::ClearVirtualWindow: " + e.ToString());
 	 }
+}
+//---------------------------------------------------------------------------
+
+//допоміжна функція для визначення імені доданого сімейства шрифтів
+wchar_t *GetFontFamilyName(const wchar_t *font_file)
+{
+  wchar_t *res = new wchar_t[LF_FACESIZE];
+
+  try
+	 {
+	   Gdiplus::PrivateFontCollection temp;
+	   Gdiplus::Status status = temp.AddFontFile(font_file);
+
+	   if (status != Gdiplus::Status::Ok)
+		 throw Exception("Error adding font from file: " + String(font_file));
+
+	   Gdiplus::FontFamily fm(L"", &temp);
+	   int found = 0;
+	   temp.GetFamilies(1, &fm, &found);
+	   fm.GetFamilyName(res);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::GetFontFamilyName: " + e.ToString());
+	 }
+
+  return res;
 }
 //---------------------------------------------------------------------------
 
@@ -436,6 +466,7 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::Rect rect,
 // Функція для вимірювання розміру тексту
 Gdiplus::RectF MeasureTextRect(const std::wstring &text,
 							   Gdiplus::RectF rect,
+                               int user_font = 0,
 							   const std::wstring &font_name = L"Segoe UI",
 							   float font_size = 10.0f,
 							   Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
@@ -451,10 +482,21 @@ Gdiplus::RectF MeasureTextRect(const std::wstring &text,
 		 throw Exception("Virtual buffer doesn't exists!");
 
 	   Gdiplus::Graphics graphics(hMemDC);
+	   std::unique_ptr<Gdiplus::FontFamily> font_family;
+
 	   graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
 
-	   Gdiplus::FontFamily font_family(font_name.c_str());
-	   Gdiplus::Font font(&font_family, font_size, font_style, Gdiplus::UnitPixel);
+	   if (user_font) //використовується користувацький шрифт
+		 {
+		   font_family.reset(new Gdiplus::FontFamily(font_name.c_str(), UserFontCollection));
+
+		   if (!font_family->IsAvailable())
+			 throw Exception("Invalid font family"); //якщо шрифта в колекції не знайшлось
+		 }
+	   else
+		 font_family.reset(new Gdiplus::FontFamily(font_name.c_str()));
+
+	   Gdiplus::Font font(font_family.get(), font_size, font_style, Gdiplus::UnitPixel);
 
 	   Gdiplus::StringFormat format;
 
@@ -630,6 +672,7 @@ void DrawEllipseGDIPlus(int x, int y,
 
 void DrawTextGDIPlus(const std::wstring &text,
 					 Gdiplus::RectF rect,
+					 int user_font = 0,
 					 const std::wstring &font_name = L"Segoe UI",
 					 float font_size = 10.0f,
 					 Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
@@ -644,12 +687,22 @@ void DrawTextGDIPlus(const std::wstring &text,
 		 throw Exception("Virtual buffer doesn't exists!");
 
 	   Gdiplus::Graphics graphics(hMemDC);
+	   std::unique_ptr<Gdiplus::FontFamily> font_family;
+
 	   graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
 
-	   Gdiplus::FontFamily font_family(font_name.c_str());
-	   Gdiplus::Font font(&font_family, font_size, font_style, Gdiplus::UnitPixel);
-	   Gdiplus::SolidBrush brush(color);
+	   if (user_font) //використовується користувацький шрифт
+		 {
+		   font_family.reset(new Gdiplus::FontFamily(font_name.c_str(), UserFontCollection));
 
+		   if (!font_family->IsAvailable())
+			 font_family.reset(new Gdiplus::FontFamily(L"Arial")); //якщо шрифта в колекції не знайшлось
+		 }
+	   else
+		 font_family.reset(new Gdiplus::FontFamily(font_name.c_str()));
+
+	   Gdiplus::Font font(font_family.get(), font_size, font_style, Gdiplus::UnitPixel);
+	   Gdiplus::SolidBrush brush(color);
 	   Gdiplus::StringFormat format;
 
 //Горизонтальне вирівнювання
@@ -1205,7 +1258,6 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 									  CurrentBubble.Border,       //товщина
 									  CurrentBubble.Shadow);      //увімкнути тінь
 
-
 		  LeaveCriticalSection(&cs);
 
 		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
@@ -1218,6 +1270,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  DrawTextGDIPlus((LPWSTR)wParam,
 						  CurrentText.Rect,
+						  CurrentText.UserFont,
 						  CurrentText.FontName,
 						  CurrentText.FontSize,
 						  (Gdiplus::FontStyle)CurrentText.FontStyle,
@@ -1305,6 +1358,7 @@ unsigned __stdcall CreateHostWindow(void*)
 	   Gdiplus::GdiplusStartupInput gdiplusStartupInput;
 	   ULONG_PTR gdiplusToken;
 	   Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+	   UserFontCollection = new Gdiplus::PrivateFontCollection; //ініціалізуємо колекцію шрифтів для вікна
 
 	   WNDCLASSEX wcex = {sizeof(WNDCLASSEX),
 						  CS_HREDRAW|CS_VREDRAW,
@@ -1343,10 +1397,12 @@ unsigned __stdcall CreateHostWindow(void*)
 
 //Очищення пам’яті
 		DeleteObject(hBitmap);
-	    DeleteDC(hMemDC);
+		DeleteDC(hMemDC);
 
 //Завершення роботи з GDI+
 		Gdiplus::GdiplusShutdown(gdiplusToken);
+
+		delete UserFontCollection;
 
 		UnregisterClass(L"KobzarVisualisation", DllHinst);
 		WHandle = NULL;
@@ -1404,41 +1460,37 @@ __declspec(dllexport) void __stdcall eLoadFont(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String file = eIface->GetParamToStr(L"pFile");
+       String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   String file = eIface->GetObjectProperty(obj.c_str(), L"Source");
+
+	   file = ParseString(file, ".\\", String(eIface->GetInitDir()) + "\\");
 
 	   if (!FileExists(file))
 		 throw Exception("Error loading file: " + file);
 
-	   String res = IntToStr(AddRuntimeFont(file));
+       eIface->SetObjectProperty(obj.c_str(), L"Source", file.c_str());
 
-	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
+	   std::unique_ptr<wchar_t[]> fname(GetFontFamilyName(file.c_str()));
+
+	   eIface->SetObjectProperty(obj.c_str(), L"Name", fname.get());
+
+	   Gdiplus::Status status = UserFontCollection->AddFontFile(file.c_str());
+
+	   if (status != Gdiplus::Status::Ok)
+		 throw Exception("Error adding font from file: " + file);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eLoadFont: " + e.ToString());
-	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
-	 }
-}
-//---------------------------------------------------------------------------
 
-__declspec(dllexport) void __stdcall eRemoveFont(void *p)
-{
-  try
-	 {
-	   eIface = static_cast<ELI_INTERFACE*>(p);
-
-	   String file = eIface->GetParamToStr(L"pFile");
-
-       if (!FileExists(file))
-		 throw Exception("Error loading file: " + file);
-
-	   String res = IntToStr(RemoveRuntimeFont(file));
-
-	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eRemoveFont: " + e.ToString());
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -1472,6 +1524,7 @@ __declspec(dllexport) void __stdcall eCreateForm(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eCreateForm: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -1493,6 +1546,7 @@ __declspec(dllexport) void __stdcall eDestroyForm(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDestroyForm: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -1514,6 +1568,7 @@ _declspec(dllexport) void __stdcall eClearForm(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eClearForm: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -1548,6 +1603,7 @@ __declspec(dllexport) void __stdcall eCalcTextArea(void *p)
 	   CheckedText.WordWrap = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"WordWrap"));
 	   String text = eIface->GetObjectProperty(obj.c_str(), L"Data");
 
+	   CheckedText.UserFont = _wtoi(eIface->GetObjectProperty(obj_font.c_str(), L"UserFont"));
 	   wcscpy(CheckedText.FontName, eIface->GetObjectProperty(obj_font.c_str(), L"Name"));
 	   CheckedText.FontSize = _wtoi(eIface->GetObjectProperty(obj_font.c_str(), L"Size"));
 
@@ -1568,6 +1624,7 @@ __declspec(dllexport) void __stdcall eCalcTextArea(void *p)
 
 	   CheckedText.Rect = MeasureTextRect(text.c_str(),
 										  CheckedText.Rect,
+										  CheckedText.UserFont,
 										  CheckedText.FontName,
 										  CheckedText.FontSize,
 										  (Gdiplus::FontStyle)CheckedText.FontStyle,
@@ -1583,6 +1640,7 @@ __declspec(dllexport) void __stdcall eCalcTextArea(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eGetTextArea: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -1627,6 +1685,7 @@ __declspec(dllexport) void __stdcall eDrawLine(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawLine: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -1673,6 +1732,7 @@ __declspec(dllexport) void __stdcall eDrawArc(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawArc: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -1744,6 +1804,7 @@ __declspec(dllexport) void __stdcall eDrawPoly(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawPolygon: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -1807,6 +1868,7 @@ __declspec(dllexport) void __stdcall eDrawEllipse(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawEllipse: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -1869,6 +1931,7 @@ __declspec(dllexport) void __stdcall eDrawRect(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawRect: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -1907,6 +1970,7 @@ __declspec(dllexport) void __stdcall eDrawImage(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawImage: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -1970,6 +2034,7 @@ __declspec(dllexport) void __stdcall eDrawFrame(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawFrame: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -2041,6 +2106,7 @@ __declspec(dllexport) void __stdcall eDrawBubbleRect(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawBubbleRect: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -2106,6 +2172,7 @@ __declspec(dllexport) void __stdcall eDrawBlast(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawBlast: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
@@ -2146,6 +2213,7 @@ __declspec(dllexport) void __stdcall eDrawText(void *p)
 	   CurrentText.WordWrap = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"WordWrap"));
 	   String text = eIface->GetObjectProperty(obj.c_str(), L"Data");
 
+	   CurrentText.UserFont = _wtoi(eIface->GetObjectProperty(obj_font.c_str(), L"UserFont"));
 	   wcscpy(CurrentText.FontName, eIface->GetObjectProperty(obj_font.c_str(), L"Name"));
 	   CurrentText.FontSize = _wtoi(eIface->GetObjectProperty(obj_font.c_str(), L"Size"));
 
@@ -2174,6 +2242,7 @@ __declspec(dllexport) void __stdcall eDrawText(void *p)
 
 	   CheckedText.Rect = MeasureTextRect(text.c_str(),
 										  CheckedText.Rect,
+                                          CheckedText.UserFont,
 										  CheckedText.FontName,
 										  CheckedText.FontSize,
 										  (Gdiplus::FontStyle)CheckedText.FontStyle,
@@ -2191,6 +2260,7 @@ __declspec(dllexport) void __stdcall eDrawText(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawText: " + e.ToString());
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
