@@ -230,23 +230,15 @@
 	  {_DrawImage(&$this.GetName());}
 	else if (_istreq(&$this.Type, "Text"))
 	  {_DrawText(&$this.GetName());}
-	else if (_istreq(&$this.Type, "Frame"))
+	else if (_istreq(&$this.Type, "CharLine"))
 	  {
-	    &$this.AdjustToText();
-		_DrawFrame(&$this.GetName());
-		_DrawText(&$this.Text.GetName());
-	  }
-	else if (_istreq(&$this.Type, "Bubble"))
-	  {
-	    &$this.AdjustToText();
-		_DrawBubble(&$this.GetName());
-		_DrawText(&$this.Text.GetName());
-	  }
-	else if (_istreq(&$this.Type, "Blast"))
-	  {
-	    &$this.AdjustToText();
-		_DrawBlast(&$this.GetName());
-		_DrawText(&$this.Text.GetName());
+	    $txtlen = _strlen(&$this.Text);
+		
+		if ($txtlen != 0) {&$this.AdjustToText();}
+		
+		_DrawFrame(&$this.GetName());		
+		
+		if ($txtlen != 0) {_DrawText(&$this.Text.GetName());}
 	  }
 	else
 	  {_throw("VisualLibrary: invalid object type");}
@@ -275,64 +267,6 @@
 }
 //===========================================================;
 
-#class Frame : Object
-{  
-  #public property Type = "Frame";
-  
-  #public property Color = #class Color(255, 255, 255, 255);
-  #public property Border = #class Border;
-  #public property Corner = 0; //set more than 0 to set corner radius;
-  #public property Shadow = 0;
-  #public property BeforeTextInterval = 5;
-  #public property AfterTextInterval = 5;
-  
-  #public property Text = #class Text;  
-  
-  #public method AdjustToText()
-  {
-	&$this.Text.Left = &$this.Left + &$this.BeforeTextInterval;
-	&$this.Text.Top = &$this.Top + &$this.AfterTextInterval;
-	&$this.Text.Width = &$this.Width - &$this.BeforeTextInterval - &$this.AfterTextInterval;
-	&$this.Text.Height = 0;
-		
-	&$this.Text.CalcAreaSize();
-	
-	&$this.Width = &$this.Text.Width + &$this.BeforeTextInterval + &$this.AfterTextInterval;
-	&$this.Height = &$this.Text.Height + &$this.BeforeTextInterval + &$this.AfterTextInterval;
-  }
-  
-  #public method Frame($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
-}
-//===========================================================;
-
-#class Bubble : Frame
-{  
-  #public property Type = "Bubble";
-  
-  #public property Tail = #class Point(0, 0);
-  
-  #public method Bubble($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
-}
-//===========================================================;
-
-#class Blast : Frame
-{  
-  #public property Type = "Blast";
-  
-  #public property MinRayHeight = 10;
-  #public property MaxRayHeight = 50; //max ray height or ray height if DynamicRays is 0;
-  #public property DynamicRays = 0; //set more than 0 to randomising ray height;
-   
-  #public method Blast($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
-}
-//===========================================================;
-
-#modify class Blast
-{  
-  #drop property Corner; 
-}
-//===========================================================;
-
 #class Text : Object
 {  
   #public property Type = "Text";
@@ -349,6 +283,64 @@
   {
     &$this.Object($left, $top, $width, $height); //set $width or $height to 0 for auto calculate;
   }
+}
+//===========================================================;
+
+#class CharLine : Object
+{
+  #public property Color = #class Color(255, 255, 255, 255);
+  #public property Border = #class Border;
+  #public property Shadow = 0;
+  #public property BeforeTextInterval = 5;
+  #public property AfterTextInterval = 5;
+  #public property Text = #class Text;  
+  
+  #public method AdjustToText()
+  {
+	&$this.Text.Left = &$this.Left + &$this.BeforeTextInterval;
+	&$this.Text.Top = &$this.Top + &$this.AfterTextInterval;
+	&$this.Text.Width = &$this.Width - &$this.BeforeTextInterval - &$this.AfterTextInterval;
+	&$this.Text.Height = 0;
+		
+	&$this.Text.CalcAreaSize();
+	
+	&$this.Width = &$this.Text.Width + &$this.BeforeTextInterval + &$this.AfterTextInterval;
+	&$this.Height = &$this.Text.Height + &$this.BeforeTextInterval + &$this.AfterTextInterval;
+  }
+  
+  #public method CharLine($left, $top, $width, $height) {&$this.Object($left, $top, $width, $height);}
+}
+//===========================================================;
+
+#class Plate : CharLine
+{  
+  #public property Type = "CharLine";  
+  
+  #public property Corner = 0; //set more than 0 to set corner radius;    
+  
+  #public method Plate($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
+}
+//===========================================================;
+
+#class Bubble : Plate
+{  
+  #public property Type = "CharLine";
+  
+  #public property Tail = #class Point(0, 0);
+  
+  #public method Bubble($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
+}
+//===========================================================;
+
+#class Blast : CharLine
+{  
+  #public property Type = "CharLine";
+  
+  #public property MinRayHeight = 10;
+  #public property MaxRayHeight = 50; //max ray height or ray height if DynamicRays is 0;
+  #public property DynamicRays = 0; //set more than 0 to randomising ray height;
+   
+  #public method Blast($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
 }
 //===========================================================;
 
