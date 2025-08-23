@@ -44,7 +44,7 @@ ELI_INTERFACE *eIface;
 #define WM_KVL_DRAW_ARC (WM_USER + 5)
 #define WM_KVL_DRAW_RECT (WM_USER + 6)
 #define WM_KVL_DRAW_IMAGE (WM_USER + 7)
-#define WM_KVL_DRAW_FRAME (WM_USER + 8)
+#define WM_KVL_DRAW_PLATE (WM_USER + 8)
 #define WM_KVL_DRAW_TEXT (WM_USER + 9)
 #define WM_KVL_DRAW_BUBBLE (WM_USER + 10)
 #define WM_KVL_DRAW_BLAST (WM_USER + 11)
@@ -104,12 +104,12 @@ struct MYRECT
   int Shadow = 0;
 };
 
-struct FRAME : MYRECT
+struct PLATE : MYRECT
 {
   int CornerRadius = 0;
 };
 
-struct BUBBLE : FRAME
+struct BUBBLE : PLATE
 {
   POINT Tail;
 };
@@ -148,7 +148,7 @@ bool FullScreen = 0;
 CRITICAL_SECTION cs;  //для безпечного доступу до пам’яті
 Gdiplus::PrivateFontCollection *UserFontCollection; //колекція користув. шрифтів для ф-ї eLoadFont()
 
-FRAME CurrentFrame; //для визначення параметрів поточного об'єкту типу Frame
+PLATE CurrentPlate; //для визначення параметрів поточного об'єкту типу Frame
 TEXT CurrentText; //для визначення параметрів поточного об'єкту типу Text
 BUBBLE CurrentBubble; //для визначення параметрів поточного об'єкту типу Bubble
 POLYGON CurrentPoly; //для визначення параметрів поточного об'єкту типу Poly
@@ -1221,19 +1221,19 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		  break;
 		}
 
-	  case WM_KVL_DRAW_FRAME:
+	  case WM_KVL_DRAW_PLATE:
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawRectangleGDIPlus(CurrentFrame.Left,
-							   CurrentFrame.Top,
-							   CurrentFrame.Width,
-							   CurrentFrame.Height,
-							   CurrentFrame.Color,
-							   CurrentFrame.BorderColor,
-							   CurrentFrame.Border,
-							   CurrentFrame.CornerRadius,
-							   CurrentFrame.Shadow);
+		  DrawRectangleGDIPlus(CurrentPlate.Left,
+							   CurrentPlate.Top,
+							   CurrentPlate.Width,
+							   CurrentPlate.Height,
+							   CurrentPlate.Color,
+							   CurrentPlate.BorderColor,
+							   CurrentPlate.Border,
+							   CurrentPlate.CornerRadius,
+							   CurrentPlate.Shadow);
 
 		  LeaveCriticalSection(&cs);
 
@@ -1976,7 +1976,7 @@ __declspec(dllexport) void __stdcall eDrawImage(void *p)
 }
 //---------------------------------------------------------------------------
 
-__declspec(dllexport) void __stdcall eDrawFrame(void *p)
+__declspec(dllexport) void __stdcall eDrawPlate(void *p)
 {
   try
 	 {
@@ -2002,38 +2002,38 @@ __declspec(dllexport) void __stdcall eDrawFrame(void *p)
 	   if (obj_bord == "")
 		 throw Exception("Can't get Border object name!");
 
-	   CurrentFrame.Left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
-	   CurrentFrame.Top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
-	   CurrentFrame.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
-	   CurrentFrame.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+	   CurrentPlate.Left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentPlate.Top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   CurrentPlate.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentPlate.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
-	   CurrentFrame.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
-	   CurrentFrame.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
+	   CurrentPlate.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
+	   CurrentPlate.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
 
-	   CurrentFrame.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+	   CurrentPlate.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
 										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
 										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
 										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
-	   CurrentFrame.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
+	   CurrentPlate.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
 
 	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
 
 	   if (obj_color == "")
 		 throw Exception("Can't get Border Color object name!");
 
-	   CurrentFrame.BorderColor = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+	   CurrentPlate.BorderColor = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
 												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
 												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
 												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
-	   PostMessage(WHandle, WM_KVL_DRAW_FRAME, NULL, NULL);
+	   PostMessage(WHandle, WM_KVL_DRAW_PLATE, NULL, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawFrame: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawPlate: " + e.ToString());
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }

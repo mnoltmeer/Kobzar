@@ -24,7 +24,7 @@
 		_ImportFunc(&$this.LibraryHandle, "eDrawEllipse", "_DrawEllipse", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawRect", "_DrawRect", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawImage", "_DrawImage", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawFrame", "_DrawFrame", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawPlate", "_DrawPlate", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawBubbleRect", "_DrawBubble", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawBlast", "_DrawBlast", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawText", "_DrawText", "sym pObjectName");
@@ -217,33 +217,10 @@
 
 #class Object
 {
-  #public property Type = "Object";
-  
   #public property Left = 0;
   #public property Top = 0;
   #public property Width = 0;
-  #public property Height = 0;
-  
-  #public method Draw()
-  {
-    if (_istreq(&$this.Type, "Image"))
-	  {_DrawImage(&$this.GetName());}
-	else if (_istreq(&$this.Type, "Text"))
-	  {_DrawText(&$this.GetName());}
-	else if (_istreq(&$this.Type, "CharLine"))
-	  {
-	    $txtlen = _strlen(&$this.Text);
-		
-		if ($txtlen != 0) {&$this.AdjustToText();}
-		
-		_DrawFrame(&$this.GetName());		
-		
-		if ($txtlen != 0) {_DrawText(&$this.Text.GetName());}
-	  }
-	else
-	  {_throw("VisualLibrary: invalid object type");}
-  }
-  
+  #public property Height = 0;  
   #public method SetPos($left, $top){&$this.Left = $left; &$this.Top = $top;}
   #public method SetSize($width, $height){&$this.Width = $width; &$this.Height = $height;}
   
@@ -259,9 +236,9 @@
 
 #class Image : Object
 {  
-  #public property Type = "Image";
-  
   #public property Source = ".\default.png";
+  
+  #public method Draw(){_DrawImage(&$this.GetName());}
   
   #public method Image($file){&$this.Source = $file;}
 }
@@ -269,8 +246,6 @@
 
 #class Text : Object
 {  
-  #public property Type = "Text";
-  
   #public property Font = #class Font;
   #public property Align = "justify"; //left, right, center, justify;
   #public property WordWrap = 0;
@@ -278,6 +253,8 @@
   #public property Data = "";
   
   #public method CalcAreaSize(){_CalcTextArea(&$this.GetName());}
+  
+  #public method Draw(){_DrawText(&$this.GetName());}
   
   #public method Text($left, $top, $width, $height) 
   {
@@ -314,9 +291,18 @@
 
 #class Plate : CharLine
 {  
-  #public property Type = "CharLine";  
-  
-  #public property Corner = 0; //set more than 0 to set corner radius;    
+  #public property Corner = 0; //set more than 0 to set corner radius;
+
+  #public method Draw()
+  {
+	$txtlen = _strlen(&$this.Text.Data);
+		
+	if ($txtlen != 0) {&$this.AdjustToText();}
+		
+	_DrawPlate(&$this.GetName());		
+		
+	if ($txtlen != 0) {_DrawText(&$this.Text.GetName());}
+  }  
   
   #public method Plate($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
 }
@@ -324,9 +310,18 @@
 
 #class Bubble : Plate
 {  
-  #public property Type = "CharLine";
-  
   #public property Tail = #class Point(0, 0);
+  
+  #public method Draw()
+  {
+	$txtlen = _strlen(&$this.Text.Data);
+		
+	if ($txtlen != 0) {&$this.AdjustToText();}
+		
+	_DrawBubble(&$this.GetName());		
+		
+	if ($txtlen != 0) {_DrawText(&$this.Text.GetName());}
+  }
   
   #public method Bubble($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
 }
@@ -334,11 +329,20 @@
 
 #class Blast : CharLine
 {  
-  #public property Type = "CharLine";
-  
   #public property MinRayHeight = 10;
   #public property MaxRayHeight = 50; //max ray height or ray height if DynamicRays is 0;
   #public property DynamicRays = 0; //set more than 0 to randomising ray height;
+  
+  #public method Draw()
+  {
+	$txtlen = _strlen(&$this.Text.Data);
+		
+	if ($txtlen != 0) {&$this.AdjustToText();}
+		
+	_DrawBlast(&$this.GetName());		
+		
+	if ($txtlen != 0) {_DrawText(&$this.Text.GetName());}
+  }
    
   #public method Blast($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
 }
