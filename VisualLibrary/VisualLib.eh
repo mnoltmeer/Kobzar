@@ -9,7 +9,7 @@
  
   #method Init()
   {
-    &$this.LibraryHandle = _ConnectLib(.\VisualLib.dll);
+    &$this.LibraryHandle = _ConnectLib(C:\Users\mnolt\OneDrive\GIT\Kobzar\VisualLibrary\Win32\Release\VisualLib.dll);
 
 	if (&$this.LibraryHandle != -1)
 	  {
@@ -25,8 +25,9 @@
 		_ImportFunc(&$this.LibraryHandle, "eDrawRect", "_DrawRect", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawImage", "_DrawImage", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawPlate", "_DrawPlate", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawBubbleRect", "_DrawBubble", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawBubble", "_DrawBubble", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawBlast", "_DrawBlast", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawBalloon", "_DrawBalloon", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawText", "_DrawText", "sym pObjectName");
 
         &$this.Initialised = 1;		
@@ -345,6 +346,28 @@
   }
    
   #public method Blast($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
+}
+//===========================================================;
+
+#class Balloon : Bubble
+{
+  #public method Draw()
+  {
+	$txtlen = _strlen(&$this.Text.Data);
+		
+	if ($txtlen != 0) {&$this.AdjustToText();}
+		
+	_DrawBalloon(&$this.GetName());		
+		
+	if ($txtlen != 0) {_DrawText(&$this.Text.GetName());}
+  }
+  
+  #public method Balloon($left, $top, $width, $height)
+  {
+    &$this.Object($left, $top, $width, $height);
+	&$this.BeforeTextInterval = 20;
+	&$this.AfterTextInterval = 20;
+  }
 }
 //===========================================================;
 

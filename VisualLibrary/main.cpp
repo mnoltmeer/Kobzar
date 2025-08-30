@@ -48,6 +48,7 @@ ELI_INTERFACE *eIface;
 #define WM_KVL_DRAW_TEXT (WM_USER + 9)
 #define WM_KVL_DRAW_BUBBLE (WM_USER + 10)
 #define WM_KVL_DRAW_BLAST (WM_USER + 11)
+#define WM_KVL_DRAW_BALLOON (WM_USER + 12)
 
 struct LINE
 {
@@ -157,6 +158,7 @@ ARC CurrentArc; //для визначення параметрів поточного об'єкту типу Arc
 ELLIPSE CurrentEllipse; //для визначення параметрів поточного об'єкту типу Ellipse
 MYRECT CurrentRect; //для визначення параметрів поточного об'єкту типу Rect
 BLAST CurrentBlast; //для визначення параметрів поточного об'єкту типу Blast
+BUBBLE CurrentBalloon; //для визначення параметрів поточного об'єкту типу Balloon
 
 //Функція створення віртуального вікна (буфера)
 void CreateVirtualWindow(HWND hWnd, int width, int height)
@@ -370,7 +372,7 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::Rect rect,
 	   mp.X = rect.X + rect.Width;
 	   mp.Y = rect.Y;
 
-       if (rand_h)
+	   if (rand_h)
 		 h = GenerateRayHeight(min_ray_h, max_ray_h);
 
 	   w = rect.Height / 2;
@@ -382,7 +384,7 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::Rect rect,
 	   mp.X = rect.X + rect.Width;
 	   mp.Y = rect.Y + rect.Height / 2;
 
-       if (rand_h)
+	   if (rand_h)
 		 h = GenerateRayHeight(min_ray_h, max_ray_h);
 
 	   w = rect.Height / 2;
@@ -394,7 +396,7 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::Rect rect,
 	   mp.X = rect.X + rect.Width;
 	   mp.Y = rect.Y + rect.Height;
 
-       if (rand_h)
+	   if (rand_h)
 		 h = GenerateRayHeight(min_ray_h, max_ray_h);
 
 	   w = rect.Width / 2;
@@ -463,10 +465,56 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::Rect rect,
 }
 //---------------------------------------------------------------------------
 
-// Функція для вимірювання розміру тексту
+//визначає кут променя від центру еліпсу до точки
+double GetRayAngle(double xc, double yc, double a, double b,
+                   double xp, double yp)
+{
+  return std::atan2((yp - yc) / b, (xp - xc) / a);
+}
+//---------------------------------------------------------------------------
+
+//повертає точку перетину променя з еліпсом
+Gdiplus::PointF GetEllipseIntersection(double xc, double yc, double a, double b,
+                              		   double xp, double yp)
+{
+  double theta = GetRayAngle(xc, yc, a, b, xp, yp);
+
+  return Gdiplus::PointF(static_cast<float>(xc + a * std::cos(theta)),
+						 static_cast<float>(yc + b * std::sin(theta)));
+}
+//---------------------------------------------------------------------------
+
+//повертає кути до сусідніх точок від точки перетину еліпса з променем до точки хвостика
+std::pair<double, double> GetIntersectionWithNeighbors(Gdiplus::Rect &rect,
+													   const Gdiplus::PointF &tail,
+													   int N = 360, // кількість дискретних точок еліпса
+													   int k = 10)  // зсув у кількості точок)
+{
+  float a = rect.Width / 2,
+		b = rect.Height / 2,
+		xc = rect.X + a,
+		yc = rect.Y + b;
+
+  double theta = GetRayAngle(xc, yc, a, b, tail.X, tail.Y); //кут від центру до точки хвостика
+  double step = 1.0 * M_PI / N; //крок по куту 1 градус
+
+  Gdiplus::PointF prev(static_cast<float>(xc + a * std::cos(theta - k * step)),
+					   static_cast<float>(yc + b * std::sin(theta - k * step)));
+
+  Gdiplus::PointF next(static_cast<float>(xc + a * std::cos(theta + k * step)),
+					   static_cast<float>(yc + b * std::sin(theta + k * step)));
+
+  double theta_prev = GetRayAngle(xc, yc, a, b, prev.X, prev.Y);
+  double theta_next = GetRayAngle(xc, yc, a, b, next.X, next.Y);
+
+  return {theta_prev, theta_next};
+}
+//---------------------------------------------------------------------------
+
+//функція для вимірювання розміру тексту
 Gdiplus::RectF MeasureTextRect(const std::wstring &text,
 							   Gdiplus::RectF rect,
-                               int user_font = 0,
+							   int user_font = 0,
 							   const std::wstring &font_name = L"Segoe UI",
 							   float font_size = 10.0f,
 							   Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
@@ -1047,7 +1095,6 @@ void DrawSpeechBubbleRectGDIPlus(int x, int y, int width, int height,
 }
 //---------------------------------------------------------------------------
 
-
 void DrawSpeechBlastGDIPlus(int x, int y, int width, int height,
 							int min_ray_h,
 							int max_ray_h,
@@ -1085,6 +1132,72 @@ void DrawSpeechBlastGDIPlus(int x, int y, int width, int height,
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawSpeechBlastGDIPlus: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+void DrawSpeechBalloonGDIPlus(int x, int y, int width, int height,
+							  const Gdiplus::PointF& tail_point,
+							  Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
+							  Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
+							  float border_width = 1.0f,
+							  bool shadow = false) //напівпрозора чорна тінь
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+
+//Створення основного шляху
+	   Gdiplus::Rect rect(x, y, width, height);
+	   Gdiplus::GraphicsPath path;
+
+	   float a = width / 2,
+			 b = height / 2; //осі прямокутника
+
+//отримуємо кути до точок основи хвостика,
+//360 - кількість дискретних точок еліпса
+//15 - крок зсуву по дузі ~ кількість пікселів
+	   auto [prev_angle, next_angle] = GetIntersectionWithNeighbors(rect, tail_point, 360, 15);
+
+//обчислюємо кути для дуги
+	   float start = (float)(prev_angle * 180 / M_PI); //конвертуємо радіани в градуси
+	   float end = (float)(next_angle * 180 / M_PI);   
+	   float sweep = end - start;
+
+	   if (sweep <= 0)
+		 sweep += 360.0f;
+
+	   sweep -= 360.0f;
+
+	   Gdiplus::PointF lp;
+
+//будуємо дугу та хвостик
+	   path.AddArc(rect, start, sweep);
+	   path.GetLastPoint(&lp);
+	   path.AddLine(lp, tail_point);
+
+	   path.CloseFigure();
+
+	   if (shadow) //Тінь
+		 DrawShadow(&graphics, &path, 5, Gdiplus::Color(100, 0, 0, 0));
+
+//зафарбовуємо і малюємо
+	   Gdiplus::SolidBrush brush(fill_color);
+	   graphics.FillPath(&brush, &path);
+
+	   if (border_width > 0)
+		 {
+		   Gdiplus::Pen pen(border_color, border_width);
+		   graphics.DrawPath(&pen, &path);
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawSpeechBalloonGDIPlus: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -1300,6 +1413,28 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 								 CurrentBlast.BorderColor,   //рамка
 								 CurrentBlast.Border,        //товщина
 								 CurrentBlast.Shadow);       //увімкнути тінь);
+
+		  LeaveCriticalSection(&cs);
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  break;
+		}
+
+	  case WM_KVL_DRAW_BALLOON:
+		{
+		  EnterCriticalSection(&cs);
+
+		  Gdiplus::PointF tail(CurrentBalloon.Tail.x, CurrentBalloon.Tail.y);
+
+		  DrawSpeechBalloonGDIPlus(CurrentBalloon.Left,
+								   CurrentBalloon.Top,
+								   CurrentBalloon.Width,
+								   CurrentBalloon.Height,  	    //основний прямокутник
+								   tail, 					    //координати кінчика хвостика
+								   CurrentBalloon.Color,        //заливка
+								   CurrentBalloon.BorderColor,  //рамка
+								   CurrentBalloon.Border,       //товщина
+								   CurrentBalloon.Shadow);      //увімкнути тінь
 
 		  LeaveCriticalSection(&cs);
 
@@ -2040,7 +2175,7 @@ __declspec(dllexport) void __stdcall eDrawPlate(void *p)
 }
 //---------------------------------------------------------------------------
 
-__declspec(dllexport) void __stdcall eDrawBubbleRect(void *p)
+__declspec(dllexport) void __stdcall eDrawBubble(void *p)
 {
   try
 	 {
@@ -2105,7 +2240,7 @@ __declspec(dllexport) void __stdcall eDrawBubbleRect(void *p)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawBubbleRect: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawBubble: " + e.ToString());
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
@@ -2172,6 +2307,78 @@ __declspec(dllexport) void __stdcall eDrawBlast(void *p)
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawBlast: " + e.ToString());
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eDrawBalloon(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw Exception("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Color object name!");
+
+	   String obj_bord = eIface->GetObjectProperty(obj.c_str(), L"Border");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border object name!");
+
+	   String obj_tail = eIface->GetObjectProperty(obj.c_str(), L"Tail");
+
+	   if (obj_tail == "")
+		 throw Exception("Can't get Tail object name!");
+
+	   CurrentBalloon.Left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentBalloon.Top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   CurrentBalloon.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentBalloon.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+
+	   CurrentBalloon.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
+	   CurrentBalloon.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
+
+	   CurrentBalloon.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+											 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+											 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+											 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   CurrentBalloon.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
+
+	   CurrentBalloon.Tail.x = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"X"));
+	   CurrentBalloon.Tail.y = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"Y"));
+
+	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border Color object name!");
+
+	   CurrentBalloon.BorderColor = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+												   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+												   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+												   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   PostMessage(WHandle, WM_KVL_DRAW_BALLOON, NULL, NULL);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawBalloon: " + e.ToString());
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
