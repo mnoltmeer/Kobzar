@@ -28,6 +28,7 @@
 		_ImportFunc(&$this.LibraryHandle, "eDrawBubble", "_DrawBubble", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawBlast", "_DrawBlast", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawBalloon", "_DrawBalloon", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawCloud", "_DrawCloud", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawText", "_DrawText", "sym pObjectName");
 
         &$this.Initialised = 1;		
@@ -367,6 +368,28 @@
     &$this.Object($left, $top, $width, $height);
 	&$this.BeforeTextInterval = 20;
 	&$this.AfterTextInterval = 20;
+  }
+}
+//===========================================================;
+
+#class Cloud : Bubble
+{
+  #public method Draw()
+  {
+	$txtlen = _strlen(&$this.Text.Data);
+		
+	if ($txtlen != 0) {&$this.AdjustToText();}
+		
+	_DrawCloud(&$this.GetName());		
+		
+	if ($txtlen != 0) {_DrawText(&$this.Text.GetName());}
+  }
+  
+  #public method Cloud($left, $top, $width, $height)
+  {
+    &$this.Object($left, $top, $width, $height);
+	&$this.BeforeTextInterval = 10;
+	&$this.AfterTextInterval = 10;
   }
 }
 //===========================================================;

@@ -34,7 +34,11 @@ This file is part of Kobzar Engine.
 
 #pragma comment(lib, "gdiplus.lib")
 
-ELI_INTERFACE *eIface;
+//для визначення сторін прямокутника вздовж яких йде обчислення
+#define SDTOP 0
+#define SDRIGHT 1
+#define SDBOTTOM 2
+#define SDLEFT 3
 
 //Власне повідомлення для роботи з вікном
 #define WM_KVL_CLEAR_WINDOW (WM_USER + 1)
@@ -49,6 +53,9 @@ ELI_INTERFACE *eIface;
 #define WM_KVL_DRAW_BUBBLE (WM_USER + 10)
 #define WM_KVL_DRAW_BLAST (WM_USER + 11)
 #define WM_KVL_DRAW_BALLOON (WM_USER + 12)
+#define WM_KVL_DRAW_CLOUD (WM_USER + 13)
+
+ELI_INTERFACE *eIface;
 
 struct LINE
 {
@@ -159,6 +166,7 @@ ELLIPSE CurrentEllipse; //для визначення параметрів поточного об'єкту типу Ellip
 MYRECT CurrentRect; //для визначення параметрів поточного об'єкту типу Rect
 BLAST CurrentBlast; //для визначення параметрів поточного об'єкту типу Blast
 BUBBLE CurrentBalloon; //для визначення параметрів поточного об'єкту типу Balloon
+BUBBLE CurrentCloud; //для визначення параметрів поточного об'єкту типу Cloud
 
 //Функція створення віртуального вікна (буфера)
 void CreateVirtualWindow(HWND hWnd, int width, int height)
@@ -286,7 +294,7 @@ wchar_t *GetFontFamilyName(const wchar_t *font_file)
 }
 //---------------------------------------------------------------------------
 
-//Допоміжна функція для побудови прямокутника із закругленими кутами
+//допоміжна функція для побудови прямокутника із закругленими кутами
 Gdiplus::GraphicsPath *CreateRoundedRectPath(Gdiplus::Rect rect, int radius)
 {
   Gdiplus::GraphicsPath *path = new Gdiplus::GraphicsPath();
@@ -321,7 +329,7 @@ int GenerateRayHeight(int min_ray_h, int max_ray_h)
 
   try
 	 {
-	   res = Random(max_ray_h);
+	   res = rand() % max_ray_h;
 
 	   if (res < min_ray_h)
 		 res = min_ray_h;
@@ -465,9 +473,128 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::Rect rect,
 }
 //---------------------------------------------------------------------------
 
+// Хмаринка через перекриті еліпси з випадковими зсувами
+//rect – прямокутник, у якому має розташовуватись хмаринка
+//countX/Y – кількість "пузирів" по горизонталі та вертикалі
+//chaotic – коефіцієнт "хаотичності" параметрів точок (0.0f – рівна сітка, 1.0f – дуже розкидано)
+bool CreateCloudBase(std::vector<Gdiplus::PointF> &points, const Gdiplus::RectF &rect,
+					 int countX = 3, int countY = 1, float chaotic = 0.25f)
+{
+  bool res = false;
+
+  try
+	 {
+	   float stepX = rect.Width / (float)countX;
+	   float stepY = rect.Height / (float)countY;
+	   float rectX = rect.X,
+			 rectY = rect.Y;
+
+//лямбда, що вираховує координати основи кривої, згідно номера відрізку
+	   auto GetCurveBase = [rectX, rectY, stepX, stepY](int indX, int indY)
+	   {
+		 return Gdiplus::PointF(rectX + stepX * indX, rectY + stepY * indY);
+	   };
+
+//лямбда, що модифікує параметр на основі хаотичного коефіцієнту
+	   auto ChaoticParam = [&chaotic](float delta, float prm)
+	   {
+		 float chaos = (rand() % 10 + 1) * chaotic / 100;
+
+		 return float(prm * (delta + chaos));
+	   };
+
+//лямбда, що вираховує набір точок кривої, згідно номера відрізку
+	  auto AddCurvePoints = [rectX, rectY, stepX, stepY, &chaotic, &GetCurveBase, &ChaoticParam]
+	  						(std::vector<Gdiplus::PointF> &points, int indX, int indY, int side)
+	   {
+		 float w = 0.0f, h = 0.0f, fluff = 1.0f;
+
+         auto base = GetCurveBase(indX, indY);
+		 Gdiplus::PointF vert;
+		 Gdiplus::PointF l_ext;
+		 Gdiplus::PointF r_ext;
+
+		 switch (side)
+		   {
+			 case SDTOP : w = stepX * 0.5f;
+						  h = -stepX * 0.3f * ChaoticParam(1.0f, fluff);
+						  l_ext = Gdiplus::PointF(base.X + ChaoticParam(0.4f, w),
+												  base.Y + ChaoticParam(0.7f, h));
+						  r_ext = Gdiplus::PointF(base.X + ChaoticParam(1.6f, w),
+												  base.Y + ChaoticParam(0.7f, h));
+						  break;    //верх
+
+			 case SDRIGHT : w = stepY * 0.2f * ChaoticParam(1.3f, fluff);
+							h = stepY * 0.5f;
+							l_ext = Gdiplus::PointF(base.X + ChaoticParam(0.7f, w),
+													base.Y + ChaoticParam(0.4f, h));
+							r_ext = Gdiplus::PointF(base.X + ChaoticParam(0.7f, w),
+													base.Y + ChaoticParam(1.6f, h));
+							break;   //право
+
+			 case SDBOTTOM : w = -stepX * 0.5f;
+							 h = stepX * 0.3f * ChaoticParam(1.0f, fluff);
+							 l_ext = Gdiplus::PointF(base.X + ChaoticParam(0.4f, w),
+													 base.Y + ChaoticParam(0.7f, h));
+							 r_ext = Gdiplus::PointF(base.X + ChaoticParam(1.6f, w),
+													 base.Y + ChaoticParam(0.7f, h));
+							 break; //низ
+
+			 case SDLEFT : w = -stepY * 0.2f * ChaoticParam(1.3f, fluff);
+						   h = -stepY * 0.5f;
+						   l_ext = Gdiplus::PointF(base.X + ChaoticParam(0.7f, w),
+												   base.Y + ChaoticParam(0.4f, h));
+						   r_ext = Gdiplus::PointF(base.X + ChaoticParam(0.7f, w),
+												   base.Y + ChaoticParam(1.6f, h));
+						   break;  //ліво
+		   }
+
+		 vert = Gdiplus::PointF(base.X + w, base.Y + h);
+
+		 points.push_back(base);
+		 points.push_back(l_ext);
+		 points.push_back(vert);
+		 points.push_back(r_ext);
+	   };
+
+//починаємо заповнювати масив точок, рухаючись від лівого верхнього краю прямокутника
+	   for (int i = 0; i < countX; i++)
+		  AddCurvePoints(points, i, 0, SDTOP);
+
+	   points.push_back(Gdiplus::PointF(rect.X + rect.Width - 0.1f * stepX,
+										rect.Y - 0.1f * stepY)); //проміжна точка для плавного з'єднання
+
+	   for (int i = 0; i < countY; i++)
+		  AddCurvePoints(points, countX, i, SDRIGHT);
+
+	   points.push_back(Gdiplus::PointF(rect.X + rect.Width,
+										rect.Y + rect.Height)); //проміжна точка для плавного з'єднання
+
+	   for (int i = countX; i > 0; i--)
+		  AddCurvePoints(points, i, countY, SDBOTTOM);
+
+	   points.push_back(Gdiplus::PointF(rect.X + 0.1f * stepX,
+										rect.Y + rect.Height + 0.1f * stepY)); //проміжна точка для плавного з'єднання
+
+	   for (int i = countY; i > 0; i--)
+		  AddCurvePoints(points, 0, i, SDLEFT);
+
+	   points.push_back(Gdiplus::PointF(rect.X, rect.Y)); //проміжна точка для плавного з'єднання
+
+	   res = true;
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateCloudBase: " + e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
 //визначає кут променя від центру еліпсу до точки
 double GetRayAngle(double xc, double yc, double a, double b,
-                   double xp, double yp)
+				   double xp, double yp)
 {
   return std::atan2((yp - yc) / b, (xp - xc) / a);
 }
@@ -475,7 +602,7 @@ double GetRayAngle(double xc, double yc, double a, double b,
 
 //повертає точку перетину променя з еліпсом
 Gdiplus::PointF GetEllipseIntersection(double xc, double yc, double a, double b,
-                              		   double xp, double yp)
+									   double xp, double yp)
 {
   double theta = GetRayAngle(xc, yc, a, b, xp, yp);
 
@@ -1202,6 +1329,53 @@ void DrawSpeechBalloonGDIPlus(int x, int y, int width, int height,
 }
 //---------------------------------------------------------------------------
 
+void DrawSpeechCloudGDIPlus(int x, int y, int width, int height,
+							  const Gdiplus::PointF& tail_point,
+							  Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
+							  Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
+							  float border_width = 1.0f,
+							  bool shadow = false) //напівпрозора чорна тінь
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
+
+//створення основного шляху
+	   Gdiplus::RectF rect(x, y, width, height);
+	   Gdiplus::GraphicsPath path;
+	   std::vector<Gdiplus::PointF> points;
+
+	   if (!CreateCloudBase(points, rect, 3, 1, 0.3f))
+		 throw Exception("Can't build cloud base");
+
+//формуємо плавний шлях
+	   path.AddCurve(points.data(), (int)points.size(), 0.5f); // 0.5f – натяг кривої
+	   //path.CloseFigure();
+
+	   //if (shadow) //Тінь
+		 //DrawShadow(&graphics, &path, 5, Gdiplus::Color(100, 0, 0, 0));
+
+//зафарбовуємо і малюємо
+	   //Gdiplus::SolidBrush brush(fill_color);
+	   //graphics.FillPath(&brush, &path);
+
+	   if (border_width > 0)
+		 {
+		   Gdiplus::Pen pen(border_color, border_width);
+		   graphics.DrawPath(&pen, &path);
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawSpeechCloudGDIPlus: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
 LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
   static int sx, sy; //розміри вікна
@@ -1377,27 +1551,6 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		  break;
 		}
 
-	  case WM_KVL_DRAW_TEXT:
-		{
-		  EnterCriticalSection(&cs);
-
-		  DrawTextGDIPlus((LPWSTR)wParam,
-						  CurrentText.Rect,
-						  CurrentText.UserFont,
-						  CurrentText.FontName,
-						  CurrentText.FontSize,
-						  (Gdiplus::FontStyle)CurrentText.FontStyle,
-						  CurrentText.FontColor,
-						  CurrentText.Alignment,
-						  CurrentText.CenterVerticaly,
-						  CurrentText.WordWrap);
-
-		  LeaveCriticalSection(&cs);
-
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
-		  break;
-		}
-
 	  case WM_KVL_DRAW_BLAST:
 		{
 		  EnterCriticalSection(&cs);
@@ -1435,6 +1588,49 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 								   CurrentBalloon.BorderColor,  //рамка
 								   CurrentBalloon.Border,       //товщина
 								   CurrentBalloon.Shadow);      //увімкнути тінь
+
+		  LeaveCriticalSection(&cs);
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  break;
+		}
+
+	  case WM_KVL_DRAW_CLOUD:
+		{
+		  EnterCriticalSection(&cs);
+
+		  Gdiplus::PointF tail(CurrentCloud.Tail.x, CurrentCloud.Tail.y);
+
+		  DrawSpeechCloudGDIPlus(CurrentCloud.Left,
+								 CurrentCloud.Top,
+								 CurrentCloud.Width,
+								 CurrentCloud.Height,  	    //основний прямокутник
+								 tail, 					    //координати кінчика хвостика
+								 CurrentCloud.Color,        //заливка
+								 CurrentCloud.BorderColor,  //рамка
+								 CurrentCloud.Border,       //товщина
+								 CurrentCloud.Shadow);      //увімкнути тінь
+
+		  LeaveCriticalSection(&cs);
+
+		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  break;
+		}
+
+      case WM_KVL_DRAW_TEXT:
+		{
+		  EnterCriticalSection(&cs);
+
+		  DrawTextGDIPlus((LPWSTR)wParam,
+						  CurrentText.Rect,
+						  CurrentText.UserFont,
+						  CurrentText.FontName,
+						  CurrentText.FontSize,
+						  (Gdiplus::FontStyle)CurrentText.FontStyle,
+						  CurrentText.FontColor,
+						  CurrentText.Alignment,
+						  CurrentText.CenterVerticaly,
+						  CurrentText.WordWrap);
 
 		  LeaveCriticalSection(&cs);
 
@@ -2385,6 +2581,78 @@ __declspec(dllexport) void __stdcall eDrawBalloon(void *p)
 }
 //---------------------------------------------------------------------------
 
+__declspec(dllexport) void __stdcall eDrawCloud(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw Exception("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   String obj_color = eIface->GetObjectProperty(obj.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Color object name!");
+
+	   String obj_bord = eIface->GetObjectProperty(obj.c_str(), L"Border");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border object name!");
+
+	   String obj_tail = eIface->GetObjectProperty(obj.c_str(), L"Tail");
+
+	   if (obj_tail == "")
+		 throw Exception("Can't get Tail object name!");
+
+	   CurrentCloud.Left = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentCloud.Top = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   CurrentCloud.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   CurrentCloud.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+
+	   CurrentCloud.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
+	   CurrentCloud.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
+
+	   CurrentCloud.Color = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+										   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   CurrentCloud.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
+
+	   CurrentCloud.Tail.x = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"X"));
+	   CurrentCloud.Tail.y = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"Y"));
+
+	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
+
+	   if (obj_color == "")
+		 throw Exception("Can't get Border Color object name!");
+
+	   CurrentCloud.BorderColor = Gdiplus::Color(_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Alpha")),
+												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Red")),
+												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
+												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
+
+	   PostMessage(WHandle, WM_KVL_DRAW_CLOUD, NULL, NULL);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eDrawCloud: " + e.ToString());
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
 __declspec(dllexport) void __stdcall eDrawText(void *p)
 {
   try
@@ -2477,7 +2745,10 @@ __declspec(dllexport) void __stdcall eDrawText(void *p)
 int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved)
 {
   if (reason == DLL_PROCESS_ATTACH)
-	DllHinst = hinst;
+	{
+	  DllHinst = hinst;
+	  srand(time(NULL)); //ініціалізуємо генератор випадкових чисел для всіх викликів rand()
+	}
   else if (reason == DLL_PROCESS_DETACH)
 	StopWork();
 
