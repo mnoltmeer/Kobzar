@@ -473,11 +473,10 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::Rect rect,
 }
 //---------------------------------------------------------------------------
 
-// ’маринка через перекрит≥ ел≥пси з випадковими зсувами
 //rect Ц пр€мокутник, у €кому маЇ розташовуватись хмаринка
 //countX/Y Ц к≥льк≥сть "пузир≥в" по горизонтал≥ та вертикал≥
 //chaotic Ц коеф≥ц≥Їнт "хаотичност≥" параметр≥в точок (0.0f Ц р≥вна с≥тка, 1.0f Ц дуже розкидано)
-bool CreateCloudBase(std::vector<Gdiplus::PointF> &points, const Gdiplus::RectF &rect,
+/*bool CreateCloudBase(std::vector<Gdiplus::PointF> &points, const Gdiplus::RectF &rect,
 					 int countX = 3, int countY = 1, float chaotic = 0.25f)
 {
   bool res = false;
@@ -504,8 +503,8 @@ bool CreateCloudBase(std::vector<Gdiplus::PointF> &points, const Gdiplus::RectF 
 	   };
 
 //л€мбда, що вираховуЇ наб≥р точок кривоњ, зг≥дно номера в≥др≥зку
-	  auto AddCurvePoints = [rectX, rectY, stepX, stepY, &chaotic, &GetCurveBase, &ChaoticParam]
-	  						(std::vector<Gdiplus::PointF> &points, int indX, int indY, int side)
+	  auto AddCurvePoints = [rectX, rectY, stepX, stepY, &countX, &chaotic, &GetCurveBase, &ChaoticParam]
+							(std::vector<Gdiplus::PointF> &points, int indX, int indY, int side)
 	   {
 		 float w = 0.0f, h = 0.0f, fluff = 1.0f;
 
@@ -578,6 +577,157 @@ bool CreateCloudBase(std::vector<Gdiplus::PointF> &points, const Gdiplus::RectF 
 
 	   for (int i = countY; i > 0; i--)
 		  AddCurvePoints(points, 0, i, SDLEFT);
+
+	   points.push_back(Gdiplus::PointF(rect.X, rect.Y)); //пром≥жна точка дл€ плавного з'Їднанн€
+
+	   res = true;
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateCloudBase: " + e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+*/
+//rect Ц пр€мокутник, у €кому маЇ розташовуватись хмаринка
+//countX/Y Ц к≥льк≥сть "пузир≥в" по горизонтал≥ та вертикал≥
+//chaotic Ц коеф≥ц≥Їнт "хаотичност≥" параметр≥в точок (0.0f Ц р≥вна с≥тка, 1.0f Ц дуже розкидано)
+bool CreateCloudBase2(std::vector<Gdiplus::PointF> &points, const Gdiplus::RectF &rect, float chaotic = 0.25f)
+{
+  bool res = false;
+
+  try
+	 {
+	   float rectX = rect.X,
+			 rectY = rect.Y,
+			 sizeX = rect.Width,
+			 sizeY = rect.Height,
+			 stepX = sizeX / 3;
+
+//л€мбда, що модиф≥куЇ параметр на основ≥ хаотичного коеф≥ц≥Їнту
+	   auto ChaoticParam = [&chaotic](float k, float prm)
+	   {
+		 float chaos = (rand() % 10 + 1) * chaotic / 100;
+
+		 return float(prm * (k + chaos));
+	   };
+
+//л€мбда, що вираховуЇ координати основи кривоњ, зг≥дно номера в≥др≥зку
+	   auto GetCurveBase = [&rectX, &rectY, &sizeX, sizeY, &stepX, &ChaoticParam](int side, int ind)
+	   {
+		 Gdiplus::PointF l_base, r_base;
+         float h = 0.0f;
+		 float w = rectX + stepX * ind;
+
+		 if (ind == 1) //середн≥й пузир робимо повище
+		   h = ChaoticParam(0.2f, stepX);
+
+		 if (side == SDTOP)
+		   {
+			 l_base = Gdiplus::PointF(w, rectY - h);
+			 r_base = Gdiplus::PointF(w + stepX, rectY - h);
+		   }
+		 else if (side == SDBOTTOM)
+           {
+			 l_base = Gdiplus::PointF(w + stepX, rectY + sizeY + h);
+			 r_base = Gdiplus::PointF(w, rectY + sizeY + h);
+		   }
+		 else if (side == SDRIGHT)
+		   {
+			 l_base = Gdiplus::PointF(rectX + sizeX, rectY + 0.2f * sizeY);
+			 r_base = Gdiplus::PointF(rectX + sizeX, rectY + 0.8f * sizeY);
+		   }
+		 else
+		   {
+			 l_base = Gdiplus::PointF(rectX, rectY + 0.8f * sizeY);
+			 r_base = Gdiplus::PointF(rectX, rectY + 0.2f * sizeY);
+		   }
+
+		 return std::pair<Gdiplus::PointF, Gdiplus::PointF>(l_base, r_base);
+	   };
+
+	   auto GetCurveExtVertex = [&ChaoticParam](int x, int y, int width, int height, int side)
+	   {
+		 Gdiplus::PointF left, right;
+
+		 if ((side == SDTOP) || (side == SDBOTTOM))
+		   {
+			 left = Gdiplus::PointF(x + ChaoticParam(0.4f, width), y + ChaoticParam(0.7f, height));
+			 right = Gdiplus::PointF(x + ChaoticParam(1.6f, width), y + ChaoticParam(0.7f, height));
+		   }
+		 else
+		   {
+			 left = Gdiplus::PointF(x + ChaoticParam(0.7f, width), y + ChaoticParam(0.4f, height));
+			 right = Gdiplus::PointF(x + ChaoticParam(0.7f, width), y + ChaoticParam(1.6f, height));
+           }
+
+		 return std::pair<Gdiplus::PointF, Gdiplus::PointF>(left, right);
+	   };
+
+//л€мбда, що вираховуЇ наб≥р точок кривоњ, зг≥дно сторони пр€мокутника
+	  auto AddCurvePoints = [&rectX, &rectY, &stepX, &sizeY, &chaotic,
+							 &GetCurveBase, &GetCurveExtVertex, &ChaoticParam]
+							(std::vector<Gdiplus::PointF> &points, int side, int ind)
+	   {
+		 float w = 0.0f, h = 0.0f, fluff = 1.0f;
+
+         if (ind == 1) //середн≥й пузир робимо повище
+		   fluff = ChaoticParam(1.2f, 1.0f);
+
+		 auto [l_base, r_base] = GetCurveBase(side, ind);
+
+		 switch (side)
+		   {
+			 case SDTOP : w = stepX * 0.5f;
+						  h = -stepX * 0.3f * ChaoticParam(1.0f, fluff);
+						  break;    //верх
+
+			 case SDRIGHT : w = sizeY * 0.3f * ChaoticParam(1.0f, fluff);
+							h = sizeY * 0.3f;
+							break;   //право
+
+			 case SDBOTTOM : w = -stepX * 0.5f;
+							 h = stepX * 0.3f * ChaoticParam(1.0f, fluff);
+							 break; //низ
+
+			 case SDLEFT : w = -sizeY * 0.3f * ChaoticParam(1.0f, fluff);
+						   h = -sizeY * 0.3f;
+						   break;  //л≥во
+		   }
+
+		 auto [l_ext, r_ext] = GetCurveExtVertex(l_base.X, l_base.Y, w, h, side);
+		 Gdiplus::PointF vert(l_base.X + w, l_base.Y + h);
+
+		 points.push_back(l_base);
+		 points.push_back(l_ext);
+		 points.push_back(vert);
+		 points.push_back(r_ext);
+		 points.push_back(r_base);
+
+		 //for (auto p : points)
+			//std::wcout << "[" << p.X << " | " << p.Y << std::endl;
+	   };
+
+//починаЇмо заповнювати масив точок, рухаючись в≥д л≥вого верхнього краю пр€мокутника
+	   for (int i = 0; i < 3; i++)
+		  AddCurvePoints(points, SDTOP, i);
+
+	   //points.push_back(Gdiplus::PointF(rectX + sizeX, rectY + 0.15f * sizeY)); //пром≥жна точка дл€ плавного з'Їднанн€
+
+	   AddCurvePoints(points, SDRIGHT, 0);
+
+	   //points.push_back(Gdiplus::PointF(rect.X + rect.Width,
+										//rect.Y + rect.Height)); //пром≥жна точка дл€ плавного з'Їднанн€
+
+	   for (int i = 2; i >= 0; i--)
+		  AddCurvePoints(points, SDBOTTOM, i);
+
+	   //points.push_back(Gdiplus::PointF(rect.X,
+										//rect.Y + rect.Height)); //пром≥жна точка дл€ плавного з'Їднанн€
+
+	   AddCurvePoints(points, SDLEFT, 0);
 
 	   points.push_back(Gdiplus::PointF(rect.X, rect.Y)); //пром≥жна точка дл€ плавного з'Їднанн€
 
@@ -1349,7 +1499,7 @@ void DrawSpeechCloudGDIPlus(int x, int y, int width, int height,
 	   Gdiplus::GraphicsPath path;
 	   std::vector<Gdiplus::PointF> points;
 
-	   if (!CreateCloudBase(points, rect, 3, 1, 0.3f))
+	   if (!CreateCloudBase2(points, rect, 0.3f))
 		 throw Exception("Can't build cloud base");
 
 //формуЇмо плавний шл€х
