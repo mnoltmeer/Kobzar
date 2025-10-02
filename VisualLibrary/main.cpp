@@ -35,10 +35,15 @@ This file is part of Kobzar Engine.
 #pragma comment(lib, "gdiplus.lib")
 
 //дл€ визначенн€ стор≥н пр€мокутника вздовж €ких йде обчисленн€
-#define SDTOP 0
-#define SDRIGHT 1
-#define SDBOTTOM 2
-#define SDLEFT 3
+#define SDTOPLEFT 0
+#define SDTOP 1
+#define SDTOPRIGHT 2
+#define SDRIGHT 3
+#define SDBOTTOMRIGHT 4
+#define SDBOTTOM 5
+#define SDBOTTOMLEFT 6
+#define SDLEFT 7
+
 
 //¬ласне пов≥домленн€ дл€ роботи з в≥кном
 #define WM_KVL_CLEAR_WINDOW (WM_USER + 1)
@@ -119,7 +124,8 @@ struct PLATE : MYRECT
 
 struct BUBBLE : PLATE
 {
-  POINT Tail;
+  Gdiplus::PointF Tail;
+  int TailWidth = 10;
 };
 
 struct BLAST : MYRECT
@@ -476,121 +482,60 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::Rect rect,
 //rect Ц пр€мокутник, у €кому маЇ розташовуватись хмаринка
 //countX/Y Ц к≥льк≥сть "пузир≥в" по горизонтал≥ та вертикал≥
 //chaotic Ц коеф≥ц≥Їнт "хаотичност≥" параметр≥в точок (0.0f Ц р≥вна с≥тка, 1.0f Ц дуже розкидано)
-/*bool CreateCloudBase(std::vector<Gdiplus::PointF> &points, const Gdiplus::RectF &rect,
-					 int countX = 3, int countY = 1, float chaotic = 0.25f)
+Gdiplus::GraphicsPath *CreateCloudBase(const Gdiplus::RectF &rect, int countX = 3, int countY = 2, float chaotic = 0.25f)
 {
-  bool res = false;
+  if (rect.Width <= 0 || rect.Height <= 0) return nullptr;
+
+  Gdiplus::GraphicsPath* res = new Gdiplus::GraphicsPath();
 
   try
 	 {
-	   float stepX = rect.Width / (float)countX;
-	   float stepY = rect.Height / (float)countY;
-	   float rectX = rect.X,
-			 rectY = rect.Y;
-
-//л€мбда, що вираховуЇ координати основи кривоњ, зг≥дно номера в≥др≥зку
-	   auto GetCurveBase = [rectX, rectY, stepX, stepY](int indX, int indY)
-	   {
-		 return Gdiplus::PointF(rectX + stepX * indX, rectY + stepY * indY);
-	   };
+	   float stepX = rect.Width / countX;
+	   float stepY = rect.Height / countY;
+	   float baseR = min(stepX, stepY) * 0.9f; // рад≥ус ел≥пс≥в
 
 //л€мбда, що модиф≥куЇ параметр на основ≥ хаотичного коеф≥ц≥Їнту
-	   auto ChaoticParam = [&chaotic](float delta, float prm)
+	   auto ChaoticParam = [&chaotic](float mltp, float prm)
 	   {
 		 float chaos = (rand() % 10 + 1) * chaotic / 100;
 
-		 return float(prm * (delta + chaos));
+		 return float(prm * (mltp + chaos));
 	   };
 
-//л€мбда, що вираховуЇ наб≥р точок кривоњ, зг≥дно номера в≥др≥зку
-	  auto AddCurvePoints = [rectX, rectY, stepX, stepY, &countX, &chaotic, &GetCurveBase, &ChaoticParam]
-							(std::vector<Gdiplus::PointF> &points, int indX, int indY, int side)
-	   {
-		 float w = 0.0f, h = 0.0f, fluff = 1.0f;
+	   for (int iy = 0; iy < countY; iy++)
+		  {
+			for (int ix = 0; ix < countX; ix++)
+			   {
+				 float cx = rect.X + (ix + 0.5f) * stepX;
+				 float cy = rect.Y + (iy + 0.5f) * stepY;
 
-         auto base = GetCurveBase(indX, indY);
-		 Gdiplus::PointF vert;
-		 Gdiplus::PointF l_ext;
-		 Gdiplus::PointF r_ext;
+				 float dx = stepX;
+				 float dy = stepY;
 
-		 switch (side)
-		   {
-			 case SDTOP : w = stepX * 0.5f;
-						  h = -stepX * 0.3f * ChaoticParam(1.0f, fluff);
-						  l_ext = Gdiplus::PointF(base.X + ChaoticParam(0.4f, w),
-												  base.Y + ChaoticParam(0.7f, h));
-						  r_ext = Gdiplus::PointF(base.X + ChaoticParam(1.6f, w),
-												  base.Y + ChaoticParam(0.7f, h));
-						  break;    //верх
+				 float r = baseR * 5;
 
-			 case SDRIGHT : w = stepY * 0.2f * ChaoticParam(1.3f, fluff);
-							h = stepY * 0.5f;
-							l_ext = Gdiplus::PointF(base.X + ChaoticParam(0.7f, w),
-													base.Y + ChaoticParam(0.4f, h));
-							r_ext = Gdiplus::PointF(base.X + ChaoticParam(0.7f, w),
-													base.Y + ChaoticParam(1.6f, h));
-							break;   //право
+				 //float dx = stepX * ChaoticParam(1.0f, 1.0f);
+				 //float dy = stepY * ChaoticParam(1.0f, 1.0f);
 
-			 case SDBOTTOM : w = -stepX * 0.5f;
-							 h = stepX * 0.3f * ChaoticParam(1.0f, fluff);
-							 l_ext = Gdiplus::PointF(base.X + ChaoticParam(0.4f, w),
-													 base.Y + ChaoticParam(0.7f, h));
-							 r_ext = Gdiplus::PointF(base.X + ChaoticParam(1.6f, w),
-													 base.Y + ChaoticParam(0.7f, h));
-							 break; //низ
+				 //float r = baseR * ChaoticParam(1.0f, 1.0f);
 
-			 case SDLEFT : w = -stepY * 0.2f * ChaoticParam(1.3f, fluff);
-						   h = -stepY * 0.5f;
-						   l_ext = Gdiplus::PointF(base.X + ChaoticParam(0.7f, w),
-												   base.Y + ChaoticParam(0.4f, h));
-						   r_ext = Gdiplus::PointF(base.X + ChaoticParam(0.7f, w),
-												   base.Y + ChaoticParam(1.6f, h));
-						   break;  //л≥во
-		   }
+				 res->AddEllipse(Gdiplus::RectF(cx + dx - r/2, cy + dy - r/2, r, r));
+			   }
+		  }
 
-		 vert = Gdiplus::PointF(base.X + w, base.Y + h);
-
-		 points.push_back(base);
-		 points.push_back(l_ext);
-		 points.push_back(vert);
-		 points.push_back(r_ext);
-	   };
-
-//починаЇмо заповнювати масив точок, рухаючись в≥д л≥вого верхнього краю пр€мокутника
-	   for (int i = 0; i < countX; i++)
-		  AddCurvePoints(points, i, 0, SDTOP);
-
-	   points.push_back(Gdiplus::PointF(rect.X + rect.Width - 0.1f * stepX,
-										rect.Y - 0.1f * stepY)); //пром≥жна точка дл€ плавного з'Їднанн€
-
-	   for (int i = 0; i < countY; i++)
-		  AddCurvePoints(points, countX, i, SDRIGHT);
-
-	   points.push_back(Gdiplus::PointF(rect.X + rect.Width,
-										rect.Y + rect.Height)); //пром≥жна точка дл€ плавного з'Їднанн€
-
-	   for (int i = countX; i > 0; i--)
-		  AddCurvePoints(points, i, countY, SDBOTTOM);
-
-	   points.push_back(Gdiplus::PointF(rect.X + 0.1f * stepX,
-										rect.Y + rect.Height + 0.1f * stepY)); //пром≥жна точка дл€ плавного з'Їднанн€
-
-	   for (int i = countY; i > 0; i--)
-		  AddCurvePoints(points, 0, i, SDLEFT);
-
-	   points.push_back(Gdiplus::PointF(rect.X, rect.Y)); //пром≥жна точка дл€ плавного з'Їднанн€
-
-	   res = true;
+	   res->Outline();
 	 }
   catch (Exception &e)
 	 {
+	   if (res) delete res;
+
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateCloudBase: " + e.ToString());
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
-*/
+
 //rect Ц пр€мокутник, у €кому маЇ розташовуватись хмаринка
 //countX/Y Ц к≥льк≥сть "пузир≥в" по горизонтал≥ та вертикал≥
 //chaotic Ц коеф≥ц≥Їнт "хаотичност≥" параметр≥в точок (0.0f Ц р≥вна с≥тка, 1.0f Ц дуже розкидано)
@@ -615,34 +560,59 @@ bool CreateCloudBase2(std::vector<Gdiplus::PointF> &points, const Gdiplus::RectF
 	   };
 
 //л€мбда, що вираховуЇ координати основи кривоњ, зг≥дно номера в≥др≥зку
-	   auto GetCurveBase = [&rectX, &rectY, &sizeX, sizeY, &stepX, &ChaoticParam](int side, int ind)
+	   auto GetCurveBase = [&rectX, &rectY, &sizeX, sizeY, &stepX, &ChaoticParam](int side)
 	   {
 		 Gdiplus::PointF l_base, r_base;
-         float h = 0.0f;
-		 float w = rectX + stepX * ind;
 
-		 if (ind == 1) //середн≥й пузир робимо повище
-		   h = ChaoticParam(0.2f, stepX);
+		 switch (side)
+		   {
+			 case SDTOPLEFT : l_base = Gdiplus::PointF(rectX + ChaoticParam(0.2f, stepX),
+													   rectY - ChaoticParam(0.05f, stepX));
+							  r_base = Gdiplus::PointF(rectX + stepX - ChaoticParam(0.05f, stepX),
+													   rectY - ChaoticParam(0.1f, stepX));
+							  break;
 
-		 if (side == SDTOP)
-		   {
-			 l_base = Gdiplus::PointF(w, rectY - h);
-			 r_base = Gdiplus::PointF(w + stepX, rectY - h);
-		   }
-		 else if (side == SDBOTTOM)
-           {
-			 l_base = Gdiplus::PointF(w + stepX, rectY + sizeY + h);
-			 r_base = Gdiplus::PointF(w, rectY + sizeY + h);
-		   }
-		 else if (side == SDRIGHT)
-		   {
-			 l_base = Gdiplus::PointF(rectX + sizeX, rectY + 0.2f * sizeY);
-			 r_base = Gdiplus::PointF(rectX + sizeX, rectY + 0.8f * sizeY);
-		   }
-		 else
-		   {
-			 l_base = Gdiplus::PointF(rectX, rectY + 0.8f * sizeY);
-			 r_base = Gdiplus::PointF(rectX, rectY + 0.2f * sizeY);
+			 case SDTOP : l_base = Gdiplus::PointF(rectX + stepX + ChaoticParam(0.05f, stepX),
+												   rectY - ChaoticParam(0.15f, stepX));
+						  r_base = Gdiplus::PointF(rectX + stepX * 2 - ChaoticParam(0.05f, stepX),
+												   rectY - ChaoticParam(0.15f, stepX));
+						  break;
+
+			 case SDTOPRIGHT : l_base = Gdiplus::PointF(rectX + stepX * 2 + ChaoticParam(0.05f, stepX),
+														rectY - ChaoticParam(0.1f, stepX));
+							   r_base = Gdiplus::PointF(rectX + stepX * 3 - ChaoticParam(0.2f, stepX),
+														rectY - ChaoticParam(0.05f, stepX));
+							   break;
+
+			 case SDRIGHT : l_base = Gdiplus::PointF(rectX + sizeX + ChaoticParam(0.05f, stepX),
+													 rectY + ChaoticParam(-0.0f, sizeY));
+							r_base = Gdiplus::PointF(rectX + sizeX + ChaoticParam(0.05f, stepX),
+													 rectY + ChaoticParam(1.0f, sizeY));
+							break;
+
+			 case SDBOTTOMRIGHT : l_base = Gdiplus::PointF(rectX + stepX * 3 - ChaoticParam(0.2f, stepX),
+														   rectY + sizeY + ChaoticParam(0.05f, stepX));
+								  r_base = Gdiplus::PointF(rectX + stepX * 2 + ChaoticParam(0.05f, stepX),
+														   rectY + sizeY + ChaoticParam(0.1f, stepX));
+								  break;
+
+			 case SDBOTTOM : l_base = Gdiplus::PointF(rectX + stepX * 2 - ChaoticParam(0.05f, stepX),
+													  rectY + sizeY + ChaoticParam(0.1f, stepX));
+							 r_base = Gdiplus::PointF(rectX + stepX + ChaoticParam(0.05f, stepX),
+													  rectY + sizeY + ChaoticParam(0.1f, stepX));
+							 break;
+
+			 case SDBOTTOMLEFT : l_base = Gdiplus::PointF(rectX + stepX - ChaoticParam(0.05f, stepX),
+														  rectY + sizeY + ChaoticParam(0.1f, stepX));
+								 r_base = Gdiplus::PointF(rectX + ChaoticParam(0.2f, stepX),
+														  rectY + sizeY + ChaoticParam(0.05f, stepX));
+								 break;
+
+			 case SDLEFT : l_base = Gdiplus::PointF(rectX - ChaoticParam(0.05f, stepX),
+													rectY + ChaoticParam(1.0f, sizeY));
+						   r_base = Gdiplus::PointF(rectX - ChaoticParam(0.05f, stepX),
+													rectY + ChaoticParam(0.0f, sizeY));
+						   break;
 		   }
 
 		 return std::pair<Gdiplus::PointF, Gdiplus::PointF>(l_base, r_base);
@@ -652,54 +622,91 @@ bool CreateCloudBase2(std::vector<Gdiplus::PointF> &points, const Gdiplus::RectF
 	   {
 		 Gdiplus::PointF left, right;
 
-		 if ((side == SDTOP) || (side == SDBOTTOM))
+		 if ((side == SDLEFT) || (side == SDRIGHT))
+		   {
+			 left = Gdiplus::PointF(x + ChaoticParam(0.6f, width), y + ChaoticParam(0.4f, height));
+			 right = Gdiplus::PointF(x + ChaoticParam(0.6f, width), y + ChaoticParam(1.4f, height));
+		   }
+		 else if ((side == SDTOP) || (side == SDBOTTOM))
 		   {
 			 left = Gdiplus::PointF(x + ChaoticParam(0.4f, width), y + ChaoticParam(0.7f, height));
-			 right = Gdiplus::PointF(x + ChaoticParam(1.6f, width), y + ChaoticParam(0.7f, height));
+			 right = Gdiplus::PointF(x + ChaoticParam(1.4f, width), y + ChaoticParam(0.7f, height));
 		   }
 		 else
 		   {
-			 left = Gdiplus::PointF(x + ChaoticParam(0.7f, width), y + ChaoticParam(0.4f, height));
-			 right = Gdiplus::PointF(x + ChaoticParam(0.7f, width), y + ChaoticParam(1.6f, height));
-           }
+			 left = Gdiplus::PointF(x + ChaoticParam(0.4f, width), y + ChaoticParam(0.6f, height));
+			 right = Gdiplus::PointF(x + ChaoticParam(1.4f, width), y + ChaoticParam(0.6f, height));
+		   }
 
 		 return std::pair<Gdiplus::PointF, Gdiplus::PointF>(left, right);
 	   };
 
+	   auto GetCurveVertex = [&ChaoticParam](int x, int y, int width, int height, int side)
+	   {
+		 Gdiplus::PointF res;
+
+		 if ((side == SDLEFT) || (side == SDRIGHT))
+		   res = Gdiplus::PointF(x + ChaoticParam(1.0f, width), y + ChaoticParam(1.0f, height));
+		 else if ((side == SDTOP) || (side == SDBOTTOM))
+		   res = Gdiplus::PointF(x + ChaoticParam(1.0f, width), y + ChaoticParam(1.1f, height));
+		 else
+		   res = Gdiplus::PointF(x + ChaoticParam(1.0f, width), y + ChaoticParam(1.0f, height));
+
+		 return res;
+	   };
+
 //л€мбда, що вираховуЇ наб≥р точок кривоњ, зг≥дно сторони пр€мокутника
 	  auto AddCurvePoints = [&rectX, &rectY, &stepX, &sizeY, &chaotic,
-							 &GetCurveBase, &GetCurveExtVertex, &ChaoticParam]
-							(std::vector<Gdiplus::PointF> &points, int side, int ind)
+							 &GetCurveBase, &GetCurveExtVertex, &GetCurveVertex, &ChaoticParam]
+							(std::vector<Gdiplus::PointF> &points, int side)
 	   {
 		 float w = 0.0f, h = 0.0f, fluff = 1.0f;
 
-         if (ind == 1) //середн≥й пузир робимо повище
-		   fluff = ChaoticParam(1.2f, 1.0f);
+//визначаЇмо точки основи
+		 auto [l_base, r_base] = GetCurveBase(side);
 
-		 auto [l_base, r_base] = GetCurveBase(side, ind);
-
+//визначаЇмо допом≥жн≥ точки
 		 switch (side)
 		   {
-			 case SDTOP : w = stepX * 0.5f;
-						  h = -stepX * 0.3f * ChaoticParam(1.0f, fluff);
-						  break;    //верх
+			 case SDTOPLEFT : w = stepX * 0.4f;
+							  h = -stepX * 0.2f * ChaoticParam(1.0f, fluff);
+							  break;
 
-			 case SDRIGHT : w = sizeY * 0.3f * ChaoticParam(1.0f, fluff);
-							h = sizeY * 0.3f;
-							break;   //право
+			 case SDTOP : w = stepX * 0.5f;
+						  h = -stepX * 0.2f * ChaoticParam(1.3f, fluff);
+						  break;
+
+			 case SDTOPRIGHT : w = stepX * 0.4f;
+							   h = -stepX * 0.2f * ChaoticParam(1.0f, fluff);
+							   break;
+
+			 case SDRIGHT : w = sizeY * 0.2f * ChaoticParam(1.1f, fluff);
+							h = sizeY * 0.5f;
+							break;
+
+			 case SDBOTTOMRIGHT : w = -stepX * 0.4f;
+								  h = stepX * 0.2f * ChaoticParam(1.0f, fluff);
+								  break;
 
 			 case SDBOTTOM : w = -stepX * 0.5f;
-							 h = stepX * 0.3f * ChaoticParam(1.0f, fluff);
-							 break; //низ
+							 h = stepX * 0.2f * ChaoticParam(1.3f, fluff);
+							 break;
 
-			 case SDLEFT : w = -sizeY * 0.3f * ChaoticParam(1.0f, fluff);
-						   h = -sizeY * 0.3f;
-						   break;  //л≥во
+			 case SDBOTTOMLEFT : w = -stepX * 0.4f;
+								 h = stepX * 0.2f * ChaoticParam(1.0f, fluff);
+								 break;
+
+			 case SDLEFT : w = -sizeY * 0.2f * ChaoticParam(1.1f, fluff);
+						   h = -sizeY * 0.5f;
+						   break;
 		   }
 
 		 auto [l_ext, r_ext] = GetCurveExtVertex(l_base.X, l_base.Y, w, h, side);
-		 Gdiplus::PointF vert(l_base.X + w, l_base.Y + h);
 
+//визначаЇмо точку вершини кривоњ
+		 auto vert = GetCurveVertex(l_base.X, l_base.Y, w, h, side);
+
+//додаЇмо в масив
 		 points.push_back(l_base);
 		 points.push_back(l_ext);
 		 points.push_back(vert);
@@ -711,23 +718,8 @@ bool CreateCloudBase2(std::vector<Gdiplus::PointF> &points, const Gdiplus::RectF
 	   };
 
 //починаЇмо заповнювати масив точок, рухаючись в≥д л≥вого верхнього краю пр€мокутника
-	   for (int i = 0; i < 3; i++)
-		  AddCurvePoints(points, SDTOP, i);
-
-	   //points.push_back(Gdiplus::PointF(rectX + sizeX, rectY + 0.15f * sizeY)); //пром≥жна точка дл€ плавного з'Їднанн€
-
-	   AddCurvePoints(points, SDRIGHT, 0);
-
-	   //points.push_back(Gdiplus::PointF(rect.X + rect.Width,
-										//rect.Y + rect.Height)); //пром≥жна точка дл€ плавного з'Їднанн€
-
-	   for (int i = 2; i >= 0; i--)
-		  AddCurvePoints(points, SDBOTTOM, i);
-
-	   //points.push_back(Gdiplus::PointF(rect.X,
-										//rect.Y + rect.Height)); //пром≥жна точка дл€ плавного з'Їднанн€
-
-	   AddCurvePoints(points, SDLEFT, 0);
+	   for (int i = SDTOPLEFT; i <= SDLEFT; i++)
+		  AddCurvePoints(points, i);
 
 	   points.push_back(Gdiplus::PointF(rect.X, rect.Y)); //пром≥жна точка дл€ плавного з'Їднанн€
 
@@ -761,11 +753,11 @@ Gdiplus::PointF GetEllipseIntersection(double xc, double yc, double a, double b,
 }
 //---------------------------------------------------------------------------
 
-//повертаЇ кути до сус≥дн≥х точок в≥д точки перетину ел≥пса з променем до точки хвостика
-std::pair<double, double> GetIntersectionWithNeighbors(Gdiplus::Rect &rect,
-													   const Gdiplus::PointF &tail,
-													   int N = 360, // к≥льк≥сть дискретних точок ел≥пса
-													   int k = 10)  // зсув у к≥лькост≥ точок)
+//повертаЇ координати сус≥дн≥х точок в≥д м≥сц€ перетину ел≥пса з променем до точки хвостика
+std::pair<Gdiplus::PointF, Gdiplus::PointF> GetIntersectionNeighborsPoints(Gdiplus::Rect &rect,
+																		   const Gdiplus::PointF &tail,
+																		   int n = 360, // к≥льк≥сть дискретних точок ел≥пса
+																		   int k = 10)  // зсув у к≥лькост≥ точок)
 {
   float a = rect.Width / 2,
 		b = rect.Height / 2,
@@ -773,13 +765,30 @@ std::pair<double, double> GetIntersectionWithNeighbors(Gdiplus::Rect &rect,
 		yc = rect.Y + b;
 
   double theta = GetRayAngle(xc, yc, a, b, tail.X, tail.Y); //кут в≥д центру до точки хвостика
-  double step = 1.0 * M_PI / N; //крок по куту 1 градус
+  double step = 1.0 * M_PI / n; //крок по куту 1 градус
 
   Gdiplus::PointF prev(static_cast<float>(xc + a * std::cos(theta - k * step)),
 					   static_cast<float>(yc + b * std::sin(theta - k * step)));
 
   Gdiplus::PointF next(static_cast<float>(xc + a * std::cos(theta + k * step)),
 					   static_cast<float>(yc + b * std::sin(theta + k * step)));
+
+  return {prev, next};
+}
+//---------------------------------------------------------------------------
+
+//повертаЇ кути до сус≥дн≥х точок в≥д точки перетину ел≥пса з променем до точки хвостика
+std::pair<double, double> GetIntersectionNeighborsAngles(Gdiplus::Rect &rect,
+														 const Gdiplus::PointF &tail,
+														 int n = 360, // к≥льк≥сть дискретних точок ел≥пса
+														 int k = 10)  // зсув у к≥лькост≥ точок)
+{
+  float a = rect.Width / 2,
+		b = rect.Height / 2,
+		xc = rect.X + a,
+		yc = rect.Y + b;
+
+  auto [prev, next] = GetIntersectionNeighborsPoints(rect, tail, n, k);
 
   double theta_prev = GetRayAngle(xc, yc, a, b, prev.X, prev.Y);
   double theta_next = GetRayAngle(xc, yc, a, b, next.X, next.Y);
@@ -1126,7 +1135,8 @@ void DrawRectangleGDIPlus(int x, int y, int width, int height,
 //---------------------------------------------------------------------------
 
 void DrawSpeechBubbleRectGDIPlus(int x, int y, int width, int height,
-								 const Gdiplus::Point& tail_point,
+								 Gdiplus::PointF& tail_point,
+								 int tail_width = 10, //ширина основи хвостика
 								 int corner_radius = 10,
 								 Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255),
 								 Gdiplus::Color border_color = Gdiplus::Color(0, 0, 0),
@@ -1141,228 +1151,32 @@ void DrawSpeechBubbleRectGDIPlus(int x, int y, int width, int height,
 	   Gdiplus::Graphics graphics(hMemDC);
 	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
 
-	   Gdiplus::GraphicsPath path;
+	   std::unique_ptr<Gdiplus::GraphicsPath> path(new Gdiplus::GraphicsPath());
 	   Gdiplus::Rect rect(x, y, width, height);
 
-	   int tail_width = 30, //ширина основи хвостика
-		   tail_base_pos = 0; //позиц≥€ центра основи хвостика
-
 	   if (corner_radius > 0) //заокруглений пр€мокутник
-		 {
-		   int r = corner_radius * 2;
-		   int x = rect.X, y = rect.Y, w = rect.Width, h = rect.Height;
-		   int lw = w - r * 2, lh = h - r * 2; //висота та ширина дл€ л≥н≥й м≥ж дугами
+		 path.reset(CreateRoundedRectPath(rect, corner_radius));
+	   else
+		 path->AddRectangle(rect);
 
-//точки нумеруютьс€ за годинниковою стр≥лкою
-		   Gdiplus::Point TopLeft1(rect.X, rect.Y + r);
-		   Gdiplus::Point TopLeft2(TopLeft1.X + r, rect.Y);
-		   Gdiplus::Point TopRight1(TopLeft2.X + lw, TopLeft2.Y);
-		   Gdiplus::Point TopRight2(TopRight1.X + r, TopRight1.Y + r);
-		   Gdiplus::Point BottomRight1(TopRight2.X, TopRight2.Y + lh);
-		   Gdiplus::Point BottomRight2(BottomRight1.X - r, BottomRight1.Y + r);
-		   Gdiplus::Point BottomLeft1(BottomRight2.X - lw, BottomRight2.Y);
-		   Gdiplus::Point BottomLeft2(BottomLeft1.X - r, BottomLeft1.Y - r);
+	   auto [base1, base2] = GetIntersectionNeighborsPoints(rect, tail_point, 360, tail_width);
 
-//малюЇмо ф≥гуру
-		   path.AddArc(x, y, r, r, 180, 90); //верхн≥й л≥вий кут
+	   Gdiplus::PointF tail[3] = {base1, tail_point, base2};
 
-		   if ((tail_point.X > TopRight2.X) &&
-			   InRange(tail_point.Y, TopRight2.Y, TopRight2.Y + lh)) //хвостик вказуЇ вправо
-			 {
-			   if (tail_point.Y <= (TopRight2.Y + lh / 2)) //ближче до верхнього кута
-				 tail_base_pos = TopRight2.Y + lh / 3 - tail_width / 2;
-			   else //ближче до нижнього кута
-				 tail_base_pos = BottomRight1.Y - lh / 3 - tail_width / 2;
+	   path->AddLines(tail, 3);
+	   path->Outline(NULL, 1.0f);
 
-			   Gdiplus::Point TailBaseLeft(TopRight2.X, tail_base_pos);
-			   Gdiplus::Point TailBaseRight(TailBaseLeft.X, TailBaseLeft.Y + tail_width);
+       if (shadow) //т≥нь
+		 DrawShadow(&graphics, path.get(), 5, Gdiplus::Color(100, 0, 0, 0));
 
-			   path.AddLine(TopLeft2, TopRight1);                //в-л -> в-п
-			   path.AddArc(x + w - r, y, r, r, 270, 90);         //верхн≥й правий кут
-
-			   path.AddLine(TopRight2, TailBaseLeft);
-			   path.AddLine(TailBaseLeft, tail_point);
-			   path.AddLine(tail_point, TailBaseRight);
-			   path.AddLine(TailBaseRight, BottomRight1);
-
-			   path.AddArc(x + w - r, y + h - r, r, r, 0, 90);   //нижн≥й правий кут
-			   path.AddLine(BottomRight2, BottomLeft1); 		 //н-п -> н-л
-			   path.AddArc(x, y + h - r, r, r, 90, 90);          //нижн≥й л≥вий кут
-			   path.AddLine(BottomLeft2, TopLeft1);              //н-л -> в-л
-			 }
-		   else if ((tail_point.X < TopLeft1.X) &&
-					InRange(tail_point.Y, TopLeft1.Y, TopLeft1.Y + lh)) //хвостик вказуЇ вл≥во
-			 {
-			   if (tail_point.Y <= (TopLeft2.Y + lh / 2)) //ближче до верхнього кута
-				 tail_base_pos = TopLeft2.Y + lh / 3 + tail_width / 2;
-			   else //ближче до нижнього кута
-				 tail_base_pos = BottomLeft2.Y - lh / 3 + tail_width / 2;
-
-			   Gdiplus::Point TailBaseLeft(TopLeft1.X, tail_base_pos);
-			   Gdiplus::Point TailBaseRight(TailBaseLeft.X, TailBaseLeft.Y - tail_width);
-
-			   path.AddLine(TopLeft2, TopRight1);                //в-л -> в-п
-			   path.AddArc(x + w - r, y, r, r, 270, 90);         //верхн≥й правий кут
-			   path.AddLine(TopRight2, BottomRight1); 			 //в-п -> н-п
-			   path.AddArc(x + w - r, y + h - r, r, r, 0, 90);   //нижн≥й правий кут
-			   path.AddLine(BottomRight2, BottomLeft1); 		 //н-п -> н-л
-			   path.AddArc(x, y + h - r, r, r, 90, 90);          //нижн≥й л≥вий кут
-
-			   path.AddLine(BottomLeft2, TailBaseLeft);
-			   path.AddLine(TailBaseLeft, tail_point);
-			   path.AddLine(tail_point, TailBaseRight);
-			   path.AddLine(TailBaseRight, TopLeft1);
-			 }
-           else if (tail_point.Y < TopLeft2.Y) //хвостик вказуЇ вверх
-			 {
-			   if (tail_point.X <= (BottomLeft1.X + lw / 2)) //ближче до л≥вого кута
-				 tail_base_pos = TopLeft2.X + lw / 3 - tail_width / 2;
-			   else //ближче до правого кута
-				 tail_base_pos = TopRight1.X - lw / 3 - tail_width / 2;
-
-			   Gdiplus::Point TailBaseLeft(tail_base_pos, TopLeft2.Y);
-			   Gdiplus::Point TailBaseRight(TailBaseLeft.X + tail_width, TailBaseLeft.Y);
-
-			   path.AddLine(TopLeft2, TailBaseLeft);
-			   path.AddLine(TailBaseLeft, tail_point);
-			   path.AddLine(tail_point, TailBaseRight);
-			   path.AddLine(TailBaseRight, TopRight1);
-
-			   path.AddArc(x + w - r, y, r, r, 270, 90);         //верхн≥й правий кут
-			   path.AddLine(TopRight2, BottomRight1); 			 //в-п -> н-п
-			   path.AddArc(x + w - r, y + h - r, r, r, 0, 90);   //нижн≥й правий кут
-			   path.AddLine(BottomRight2, BottomLeft1);          //н-п -> н-л
-			   path.AddArc(x, y + h - r, r, r, 90, 90);          //нижн≥й л≥вий кут
-			   path.AddLine(BottomLeft2, TopLeft1);              //н-л -> в-л
-			 }
-		   else //хвостик вказуЇ вниз
-			 {
-			   if (tail_point.X <= (BottomLeft1.X + lw / 2)) //ближче до л≥вого кута
-				 tail_base_pos = BottomLeft1.X + lw / 3 + tail_width / 2;
-			   else //ближче до правого кута
-				 tail_base_pos = BottomRight2.X - lw / 3 + tail_width / 2;
-
-			   Gdiplus::Point TailBaseLeft(tail_base_pos, BottomRight2.Y);
-			   Gdiplus::Point TailBaseRight(TailBaseLeft.X - tail_width, TailBaseLeft.Y);
-
-			   path.AddLine(TopLeft2, TopRight1);                //в-л -> в-п
-			   path.AddArc(x + w - r, y, r, r, 270, 90);         //верхн≥й правий кут
-			   path.AddLine(TopRight2, BottomRight1); 			 //в-п -> н-п
-			   path.AddArc(x + w - r, y + h - r, r, r, 0, 90);   //нижн≥й правий кут
-
-			   path.AddLine(BottomRight2, TailBaseLeft);
-			   path.AddLine(TailBaseLeft, tail_point);
-			   path.AddLine(tail_point, TailBaseRight);
-			   path.AddLine(TailBaseRight, BottomLeft1);
-
-			   path.AddArc(x, y + h - r, r, r, 90, 90);          //нижн≥й л≥вий кут
-			   path.AddLine(BottomLeft2, TopLeft1);              //н-л -> в-л
-			 }
-
-		   path.CloseFigure();
-		 }
-	   else //малюЇмо складний пол≥гон по точкам, за основу беремо пр€мокутник
-		 {
-		   Gdiplus::Point BaseLeftUp(x, y);
-		   Gdiplus::Point BaseRightUp(x + width, y);
-		   Gdiplus::Point BaseRightDown(x + width, y + height);
-		   Gdiplus::Point BaseLeftDown(x, y + height);
-
-		   if ((tail_point.X > BaseRightUp.X) &&
-			   InRange(tail_point.Y, BaseRightUp.Y, BaseRightUp.Y + height)) //хвостик вказуЇ вправо
-			 {
-			   if (tail_point.Y <= (BaseRightUp.Y + height / 2)) //ближче до верхнього кута
-				 tail_base_pos = BaseRightUp.Y + height / 3 - tail_width / 2;
-			   else //ближче до нижнього кута
-				 tail_base_pos = BaseRightDown.Y - height / 3 - tail_width / 2;
-
-			   Gdiplus::Point TailBaseLeft(BaseRightDown.X, tail_base_pos);
-			   Gdiplus::Point TailBaseRight(TailBaseLeft.X, TailBaseLeft.Y + tail_width);
-
-               Gdiplus::Point poly[7] = {BaseLeftUp,
-										 BaseRightUp,
-                                         TailBaseLeft,
-										 tail_point,
-										 TailBaseRight,
-										 BaseRightDown,
-										 BaseLeftDown};
-
-               path.AddPolygon(poly, 7);
-			 }
-		   else if ((tail_point.X < BaseLeftUp.X) &&
-					InRange(tail_point.Y, BaseLeftUp.Y, BaseLeftUp.Y + height)) //хвостик вказуЇ вл≥во
-			 {
-			   if (tail_point.Y <= (BaseLeftUp.Y + height / 2)) //ближче до верхнього кута
-				 tail_base_pos = BaseLeftUp.Y + height / 3 + tail_width / 2;
-			   else //ближче до нижнього кута
-				 tail_base_pos = BaseLeftDown.Y - height / 3 + tail_width / 2;
-
-			   Gdiplus::Point TailBaseLeft(BaseLeftDown.X, tail_base_pos);
-			   Gdiplus::Point TailBaseRight(TailBaseLeft.X, TailBaseLeft.Y - tail_width);
-
-               Gdiplus::Point poly[7] = {BaseLeftUp,
-										 BaseRightUp,
-										 BaseRightDown,
-										 BaseLeftDown,
-										 TailBaseLeft,
-										 tail_point,
-										 TailBaseRight};
-
-			   path.AddPolygon(poly, 7);
-			 }
-		   else if (tail_point.Y < BaseLeftUp.Y) //хвостик вказуЇ вверх
-			 {
-			   if (tail_point.X <= (BaseLeftUp.X + width / 2)) //ближче до л≥вого кута
-				 tail_base_pos = BaseLeftUp.X + width / 3 - tail_width / 2;
-			   else //ближче до правого кута
-				 tail_base_pos = BaseRightUp.X - width / 3 - tail_width / 2;
-
-			   Gdiplus::Point TailBaseLeft(tail_base_pos, BaseLeftUp.Y);
-			   Gdiplus::Point TailBaseRight(TailBaseLeft.X + tail_width, TailBaseLeft.Y);
-
-			   Gdiplus::Point poly[7] = {BaseLeftUp,
-										 TailBaseLeft,
-										 tail_point,
-										 TailBaseRight,
-                                         BaseRightUp,
-										 BaseRightDown,
-										 BaseLeftDown};
-
-			   path.AddPolygon(poly, 7);
-			 }
-		   else //хвостик вказуЇ вниз
-			 {
-			   if (tail_point.X <= (BaseLeftDown.X + width / 2)) //ближче до л≥вого кута
-				 tail_base_pos = BaseLeftDown.X + width / 3 + tail_width / 2;
-			   else //ближче до правого кута
-				 tail_base_pos = BaseRightDown.X - width / 3 + tail_width / 2;
-
-			   Gdiplus::Point TailBaseLeft(tail_base_pos, BaseRightDown.Y);
-			   Gdiplus::Point TailBaseRight(TailBaseLeft.X - tail_width, TailBaseLeft.Y);
-
-			   Gdiplus::Point poly[7] = {BaseLeftUp,
-										 BaseRightUp,
-										 BaseRightDown,
-										 TailBaseLeft,
-										 tail_point,
-										 TailBaseRight,
-										 BaseLeftDown};
-
-			   path.AddPolygon(poly, 7);
-			 }
-		 }
-
-	   if (shadow) //т≥нь
-		 DrawShadow(&graphics, &path, 5, Gdiplus::Color(100, 0, 0, 0));
-
-//зафарбовуЇмо ≥ малюЇмо
+//зафарбовуЇмо щоб отримати суц≥льний об'Їкт
 	   Gdiplus::SolidBrush brush(fill_color);
-	   graphics.FillPath(&brush, &path);
+	   graphics.FillPath(&brush, path.get());
 
 	   if (border_width > 0)
 		 {
 		   Gdiplus::Pen pen(border_color, border_width);
-		   graphics.DrawPath(&pen, &path);
+		   graphics.DrawPath(&pen, path.get());
 		 }
 	 }
   catch (Exception &e)
@@ -1415,6 +1229,7 @@ void DrawSpeechBlastGDIPlus(int x, int y, int width, int height,
 
 void DrawSpeechBalloonGDIPlus(int x, int y, int width, int height,
 							  const Gdiplus::PointF& tail_point,
+							  int tail_width = 10, //ширина основи хвостика
 							  Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
 							  Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
 							  float border_width = 1.0f,
@@ -1438,7 +1253,7 @@ void DrawSpeechBalloonGDIPlus(int x, int y, int width, int height,
 //отримуЇмо кути до точок основи хвостика,
 //360 - к≥льк≥сть дискретних точок ел≥пса
 //15 - крок зсуву по дуз≥ ~ к≥льк≥сть п≥ксел≥в
-	   auto [prev_angle, next_angle] = GetIntersectionWithNeighbors(rect, tail_point, 360, 15);
+	   auto [prev_angle, next_angle] = GetIntersectionNeighborsAngles(rect, tail_point, 360, tail_width);
 
 //обчислюЇмо кути дл€ дуги
 	   float start = (float)(prev_angle * 180 / M_PI); //конвертуЇмо рад≥ани в градуси
@@ -1481,6 +1296,7 @@ void DrawSpeechBalloonGDIPlus(int x, int y, int width, int height,
 
 void DrawSpeechCloudGDIPlus(int x, int y, int width, int height,
 							  const Gdiplus::PointF& tail_point,
+                              int tail_width = 10, //ширина основи хвостика
 							  Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
 							  Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
 							  float border_width = 1.0f,
@@ -1496,27 +1312,27 @@ void DrawSpeechCloudGDIPlus(int x, int y, int width, int height,
 
 //створенн€ основного шл€ху
 	   Gdiplus::RectF rect(x, y, width, height);
-	   Gdiplus::GraphicsPath path;
+	   std::unique_ptr<Gdiplus::GraphicsPath> path(CreateCloudBase(rect, 4, 3, 0.3f));
 	   std::vector<Gdiplus::PointF> points;
 
-	   if (!CreateCloudBase2(points, rect, 0.3f))
+	   if (!path)
 		 throw Exception("Can't build cloud base");
 
 //формуЇмо плавний шл€х
-	   path.AddCurve(points.data(), (int)points.size(), 0.5f); // 0.5f Ц нат€г кривоњ
+	   //path.AddCurve(points.data(), (int)points.size(), 0.5f); // 0.5f Ц нат€г кривоњ
 	   //path.CloseFigure();
 
 	   //if (shadow) //“≥нь
 		 //DrawShadow(&graphics, &path, 5, Gdiplus::Color(100, 0, 0, 0));
 
 //зафарбовуЇмо ≥ малюЇмо
-	   //Gdiplus::SolidBrush brush(fill_color);
-	   //graphics.FillPath(&brush, &path);
+	   Gdiplus::SolidBrush brush(fill_color);
+	   graphics.FillPath(&brush, path.get());
 
 	   if (border_width > 0)
 		 {
 		   Gdiplus::Pen pen(border_color, border_width);
-		   graphics.DrawPath(&pen, &path);
+		   graphics.DrawPath(&pen, path.get());
 		 }
 	 }
   catch (Exception &e)
@@ -1682,13 +1498,12 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  Gdiplus::Point tail(CurrentBubble.Tail.x, CurrentBubble.Tail.y);
-
 		  DrawSpeechBubbleRectGDIPlus(CurrentBubble.Left,
 									  CurrentBubble.Top,
 									  CurrentBubble.Width,
 									  CurrentBubble.Height,  	  //основний пр€мокутник
-									  tail, 					  //координати к≥нчика хвостика
+									  CurrentBubble.Tail, 		  //координати к≥нчика хвостика
+									  CurrentBubble.TailWidth,    //ширина основи хвостика
 									  CurrentBubble.CornerRadius, //рад≥ус заокругленн€
 									  CurrentBubble.Color,        //заливка
 									  CurrentBubble.BorderColor,  //рамка
@@ -1727,13 +1542,12 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  Gdiplus::PointF tail(CurrentBalloon.Tail.x, CurrentBalloon.Tail.y);
-
 		  DrawSpeechBalloonGDIPlus(CurrentBalloon.Left,
 								   CurrentBalloon.Top,
 								   CurrentBalloon.Width,
 								   CurrentBalloon.Height,  	    //основний пр€мокутник
-								   tail, 					    //координати к≥нчика хвостика
+								   CurrentBalloon.Tail, 		//координати к≥нчика хвостика
+								   CurrentBalloon.TailWidth,    //ширина основи хвостика
 								   CurrentBalloon.Color,        //заливка
 								   CurrentBalloon.BorderColor,  //рамка
 								   CurrentBalloon.Border,       //товщина
@@ -1749,13 +1563,12 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  Gdiplus::PointF tail(CurrentCloud.Tail.x, CurrentCloud.Tail.y);
-
 		  DrawSpeechCloudGDIPlus(CurrentCloud.Left,
 								 CurrentCloud.Top,
 								 CurrentCloud.Width,
 								 CurrentCloud.Height,  	    //основний пр€мокутник
-								 tail, 					    //координати к≥нчика хвостика
+								 CurrentCloud.Tail, 		//координати к≥нчика хвостика
+                                 CurrentCloud.TailWidth,    //ширина основи хвостика
 								 CurrentCloud.Color,        //заливка
 								 CurrentCloud.BorderColor,  //рамка
 								 CurrentCloud.Border,       //товщина
@@ -2557,6 +2370,7 @@ __declspec(dllexport) void __stdcall eDrawBubble(void *p)
 	   CurrentBubble.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
 	   CurrentBubble.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
+	   CurrentBubble.TailWidth = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"TailWidth"));
 	   CurrentBubble.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
 	   CurrentBubble.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
 
@@ -2567,8 +2381,8 @@ __declspec(dllexport) void __stdcall eDrawBubble(void *p)
 
 	   CurrentBubble.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
 
-	   CurrentBubble.Tail.x = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"X"));
-	   CurrentBubble.Tail.y = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"Y"));
+	   CurrentBubble.Tail.X = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"X"));
+	   CurrentBubble.Tail.Y = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"Y"));
 
 	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
 
@@ -2695,6 +2509,7 @@ __declspec(dllexport) void __stdcall eDrawBalloon(void *p)
 	   CurrentBalloon.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
 	   CurrentBalloon.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
+	   CurrentBalloon.TailWidth = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"TailWidth"));
 	   CurrentBalloon.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
 	   CurrentBalloon.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
 
@@ -2705,8 +2520,8 @@ __declspec(dllexport) void __stdcall eDrawBalloon(void *p)
 
 	   CurrentBalloon.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
 
-	   CurrentBalloon.Tail.x = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"X"));
-	   CurrentBalloon.Tail.y = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"Y"));
+	   CurrentBalloon.Tail.X = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"X"));
+	   CurrentBalloon.Tail.Y = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"Y"));
 
 	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
 
@@ -2767,6 +2582,7 @@ __declspec(dllexport) void __stdcall eDrawCloud(void *p)
 	   CurrentCloud.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
 	   CurrentCloud.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
+       CurrentCloud.TailWidth = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"TailWidth"));
 	   CurrentCloud.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
 	   CurrentCloud.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
 
@@ -2777,8 +2593,8 @@ __declspec(dllexport) void __stdcall eDrawCloud(void *p)
 
 	   CurrentCloud.Border = _wtoi(eIface->GetObjectProperty(obj_bord.c_str(), L"Size"));
 
-	   CurrentCloud.Tail.x = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"X"));
-	   CurrentCloud.Tail.y = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"Y"));
+	   CurrentCloud.Tail.X = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"X"));
+	   CurrentCloud.Tail.Y = _wtoi(eIface->GetObjectProperty(obj_tail.c_str(), L"Y"));
 
 	   obj_color = eIface->GetObjectProperty(obj_bord.c_str(), L"Color");
 
