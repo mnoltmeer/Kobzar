@@ -313,6 +313,7 @@
 #class Bubble : Plate
 {  
   #public property Tail = #class Point(0, 0);
+  #public property TailWidth = 15;
   
   #public method Draw()
   {
@@ -388,8 +389,8 @@
   #public method Cloud($left, $top, $width, $height)
   {
     &$this.Object($left, $top, $width, $height);
-	&$this.BeforeTextInterval = 10;
-	&$this.AfterTextInterval = 10;
+	&$this.BeforeTextInterval = 5;
+	&$this.AfterTextInterval = 5;
   }
 }
 //===========================================================;
