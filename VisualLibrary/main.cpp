@@ -44,7 +44,6 @@ This file is part of Kobzar Engine.
 #define SDBOTTOMLEFT 6
 #define SDLEFT 7
 
-
 //Власне повідомлення для роботи з вікном
 #define WM_KVL_CLEAR_WINDOW (WM_USER + 1)
 #define WM_KVL_DRAW_POLYGON (WM_USER + 2)
@@ -301,7 +300,7 @@ wchar_t *GetFontFamilyName(const wchar_t *font_file)
 //---------------------------------------------------------------------------
 
 //допоміжна функція для побудови прямокутника із закругленими кутами
-Gdiplus::GraphicsPath *CreateRoundedRectPath(Gdiplus::Rect rect, int radius)
+Gdiplus::GraphicsPath *CreateRoundedRectPath(Gdiplus::RectF rect, int radius)
 {
   Gdiplus::GraphicsPath *path = new Gdiplus::GraphicsPath();
 
@@ -328,6 +327,153 @@ Gdiplus::GraphicsPath *CreateRoundedRectPath(Gdiplus::Rect rect, int radius)
 }
 //---------------------------------------------------------------------------
 
+//визначає кут променя від центру еліпсу до точки
+inline double GetRayAngle(double xc, double yc, double a, double b, double xp, double yp)
+{
+  return std::atan2((yp - yc) / b, (xp - xc) / a);
+}
+//---------------------------------------------------------------------------
+
+//повертає точку перетину променя з еліпсом
+Gdiplus::PointF GetEllipseIntersection(Gdiplus::RectF &rect, const Gdiplus::PointF &target)
+{
+  float a = rect.Width / 2,
+		b = rect.Height / 2,
+		xc = rect.X + a,
+		yc = rect.Y + b;
+
+  double theta = GetRayAngle(xc, yc, a, b, target.X, target.Y);
+
+  return Gdiplus::PointF(static_cast<float>(xc + a * std::cos(theta)),
+						 static_cast<float>(yc + b * std::sin(theta)));
+}
+//---------------------------------------------------------------------------
+
+//повертає координати сусідніх точок від місця перетину еліпса з променем до точки хвостика
+std::pair<Gdiplus::PointF, Gdiplus::PointF> GetIntersectionNeighborsPoints(Gdiplus::RectF &rect,
+																		   const Gdiplus::PointF &tail,
+																		   int n = 360, // кількість дискретних точок еліпса
+																		   int k = 10)  // зсув у кількості точок)
+{
+  float a = rect.Width / 2,
+		b = rect.Height / 2,
+		xc = rect.X + a,
+		yc = rect.Y + b;
+
+  double theta = GetRayAngle(xc, yc, a, b, tail.X, tail.Y); //кут від центру до точки хвостика
+  double step = 1.0 * M_PI / n; //крок по куту 1 градус
+
+  Gdiplus::PointF prev(static_cast<float>(xc + a * std::cos(theta - k * step)),
+					   static_cast<float>(yc + b * std::sin(theta - k * step)));
+
+  Gdiplus::PointF next(static_cast<float>(xc + a * std::cos(theta + k * step)),
+					   static_cast<float>(yc + b * std::sin(theta + k * step)));
+
+  return {prev, next};
+}
+//---------------------------------------------------------------------------
+
+//повертає кути до сусідніх точок від точки перетину еліпса з променем до точки хвостика
+std::pair<double, double> GetIntersectionNeighborsAngles(Gdiplus::RectF &rect,
+														 const Gdiplus::PointF &tail,
+														 int n = 360, // кількість дискретних точок еліпса
+														 int k = 10)  // зсув у кількості точок)
+{
+  float a = rect.Width / 2,
+		b = rect.Height / 2,
+		xc = rect.X + a,
+		yc = rect.Y + b;
+
+  auto [prev, next] = GetIntersectionNeighborsPoints(rect, tail, n, k);
+
+  double theta_prev = GetRayAngle(xc, yc, a, b, prev.X, prev.Y);
+  double theta_next = GetRayAngle(xc, yc, a, b, next.X, next.Y);
+
+  return {theta_prev, theta_next};
+}
+//---------------------------------------------------------------------------
+
+//функція для вимірювання розміру тексту
+Gdiplus::RectF MeasureTextRect(const std::wstring &text,
+							   Gdiplus::RectF rect,
+							   int user_font = 0,
+							   const std::wstring &font_name = L"Segoe UI",
+							   float font_size = 10.0f,
+							   Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
+							   const std::wstring &align = L"left", // "left", "center", "right"
+							   bool center_vertically = false,
+							   bool word_wrap = true)
+{
+  Gdiplus::RectF layout_rect;
+
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   std::unique_ptr<Gdiplus::FontFamily> font_family;
+
+	   graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
+
+	   if (user_font) //використовується користувацький шрифт
+		 {
+		   font_family.reset(new Gdiplus::FontFamily(font_name.c_str(), UserFontCollection));
+
+		   if (!font_family->IsAvailable())
+			 throw Exception("Invalid font family"); //якщо шрифта в колекції не знайшлось
+		 }
+	   else
+		 font_family.reset(new Gdiplus::FontFamily(font_name.c_str()));
+
+	   Gdiplus::Font font(font_family.get(), font_size, font_style, Gdiplus::UnitPixel);
+
+	   Gdiplus::StringFormat format;
+
+//Горизонтальне вирівнювання
+	   if (align == L"center")
+		 format.SetAlignment(Gdiplus::StringAlignmentCenter);
+	   else if (align == L"right")
+		 format.SetAlignment(Gdiplus::StringAlignmentFar);
+	   else if (align == L"justify")
+		 {
+		   format.SetAlignment(Gdiplus::StringAlignmentNear);
+		   format.SetFormatFlags(format.GetFormatFlags() |
+								 Gdiplus::StringFormatFlagsLineLimit |
+								 Gdiplus::StringFormatFlagsNoFitBlackBox);
+		   format.SetTrimming(Gdiplus::StringTrimmingNone);
+		 }
+	   else
+		 format.SetAlignment(Gdiplus::StringAlignmentNear); //left
+
+//Вертикальне вирівнювання
+	   format.SetLineAlignment(center_vertically ? Gdiplus::StringAlignmentCenter : Gdiplus::StringAlignmentNear);
+
+//Перенос рядків
+	   if (!word_wrap)
+		 format.SetFormatFlags(Gdiplus::StringFormatFlagsNoWrap);
+
+	   if (rect.Width == 0)
+		 rect.Width = 10000;
+	   else
+		 rect.Width++;
+
+	   if (rect.Height == 0)
+		 rect.Height = 10000;
+	   else
+		 rect.Height++;
+
+	   graphics.MeasureString(text.c_str(), -1, &font, rect, &format, &layout_rect);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::MeasureTextRect: " + e.ToString());
+	 }
+
+  return layout_rect;
+}
+//---------------------------------------------------------------------------
+
 int GenerateRayHeight(int min_ray_h, int max_ray_h)
 
 {
@@ -335,7 +481,7 @@ int GenerateRayHeight(int min_ray_h, int max_ray_h)
 
   try
 	 {
-	   res = rand() % max_ray_h;
+	   res = Random(max_ray_h);
 
 	   if (res < min_ray_h)
 		 res = min_ray_h;
@@ -352,7 +498,7 @@ int GenerateRayHeight(int min_ray_h, int max_ray_h)
 //---------------------------------------------------------------------------
 
 //Допоміжна функція для побудови полігона, що імітує спалах або вибух
-Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::Rect rect,
+Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::RectF rect,
 										  int min_ray_h, //мінімальна висота променю
 										  int max_ray_h, //максимальна висота променю
 										  bool rand_h = false)
@@ -362,110 +508,60 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::Rect rect,
 
   try
 	 {
-	   std::vector<Gdiplus::Point> points;
-
-	   int max_ray_w = (rect.Width + rect.Height) / 2; //максимальна ширина основи променю
+	   int max_w = (rect.Width + rect.Height) / 2;
 	   int h = max_ray_h; //висота кожного променю
-	   int w = 0; //ширина основи променю, динамічна в межах max_ray_w
-	   Gdiplus::Point mp; //середина основи променю, від неї відкладається висота
+	   int w = max_w; //ширина основи променю
 
-//0 - верхній бік прямокутника
-	   mp.X = rect.X + rect.Width / 2;
-	   mp.Y = rect.Y;
+	   path->AddRectangle(rect); //додаємо основний прямокутник
 
-	   if (rand_h)
-		 h = GenerateRayHeight(min_ray_h, max_ray_h);
+	   struct PointVector
+	   {
+		 Gdiplus::PointF Point;
+		 int VX = 0; //вказують куди йде зсув по координатам (-1, 0, +1)
+		 int VY = 0;
 
-	   w = rect.Width / 2;
+		 PointVector(float px, float py, int vx, int vy)
+		 {
+		   Point = Gdiplus::PointF(px, py);
+		   VX = vx;
+		   VY = vy;
+         }
+       };
+//будуємо промені
+	   std::vector<PointVector> vectors;
 
-	   points.push_back(Gdiplus::Point(mp.X - w / 2, mp.Y));
-	   points.push_back(Gdiplus::Point(mp.X, mp.Y - h));
-	   points.push_back(Gdiplus::Point(mp.X + w / 2, mp.Y));
+	   vectors.push_back(PointVector(rect.X, rect.Y, -1, -1));
+	   vectors.push_back(PointVector(rect.X + rect.Width / 2, rect.Y, 0, -1));
+	   vectors.push_back(PointVector(rect.X + rect.Width, rect.Y, 1, -1));
+	   vectors.push_back(PointVector(rect.X + rect.Width, rect.Y + rect.Height / 2, 1, 0));
+	   vectors.push_back(PointVector(rect.X + rect.Width, rect.Y + rect.Height, 1, 1));
+	   vectors.push_back(PointVector(rect.X + rect.Width / 2, rect.Y + rect.Height, 0, 1));
+	   vectors.push_back(PointVector(rect.X, rect.Y + rect.Height, -1, 1));
+	   vectors.push_back(PointVector(rect.X, rect.Y + rect.Height / 2, -1, 0));
 
-//1 - верхній правий кут
-	   mp.X = rect.X + rect.Width;
-	   mp.Y = rect.Y;
+	   for (auto v : vectors)
+		  {
+			Gdiplus::PointF center = GetEllipseIntersection(rect, v.Point); //отримуємо точку на еліпсі
 
-	   if (rand_h)
-		 h = GenerateRayHeight(min_ray_h, max_ray_h);
+			if (rand_h)
+			  {
+				h = GenerateRayHeight(min_ray_h, max_ray_h);
+				w = GenerateRayHeight(10, max_w);
+			  }
 
-	   w = rect.Height / 2;
+			Gdiplus::PointF vertex = Gdiplus::PointF(center.X + h * v.VX,
+													 center.Y + h * v.VY); //знаходимо вершину променя
 
-	   points.push_back(Gdiplus::Point(mp.X + h, mp.Y - h));
-	   points.push_back(Gdiplus::Point(mp.X, mp.Y + w / 2));
+			auto [base1, base2] = GetIntersectionNeighborsPoints(rect, vertex, 360, w);
 
-//2 - правий бік прямокутника
-	   mp.X = rect.X + rect.Width;
-	   mp.Y = rect.Y + rect.Height / 2;
+			Gdiplus::PointF ray[3] = {Gdiplus::PointF(base1),
+									  Gdiplus::PointF(vertex),
+									  Gdiplus::PointF(base2)
+									  };
+			path->AddPolygon(ray, 3);
+		  }
 
-	   if (rand_h)
-		 h = GenerateRayHeight(min_ray_h, max_ray_h);
-
-	   w = rect.Height / 2;
-
-	   points.push_back(Gdiplus::Point(mp.X + h, mp.Y));
-	   points.push_back(Gdiplus::Point(mp.X, mp.Y + w / 2));
-
-//3 - нижній правий кут
-	   mp.X = rect.X + rect.Width;
-	   mp.Y = rect.Y + rect.Height;
-
-	   if (rand_h)
-		 h = GenerateRayHeight(min_ray_h, max_ray_h);
-
-	   w = rect.Width / 2;
-
-	   points.push_back(Gdiplus::Point(mp.X + h, mp.Y + h));
-	   points.push_back(Gdiplus::Point(mp.X - w / 2, mp.Y));
-
-//4 - нижній бік прямокутника
-	   mp.X = rect.X + rect.Width / 2;
-	   mp.Y = rect.Y + rect.Height;
-
-       if (rand_h)
-		 h = GenerateRayHeight(min_ray_h, max_ray_h);
-
-	   w = rect.Width / 2;
-
-	   points.push_back(Gdiplus::Point(mp.X, mp.Y + h));
-	   points.push_back(Gdiplus::Point(mp.X - w / 2, mp.Y));
-
-//5 - нижній лівий кут
-	   mp.X = rect.X;
-	   mp.Y = rect.Y + rect.Height;
-
-       if (rand_h)
-		 h = GenerateRayHeight(min_ray_h, max_ray_h);
-
-	   w = rect.Height / 2;
-
-	   points.push_back(Gdiplus::Point(mp.X - h, mp.Y + h));
-	   points.push_back(Gdiplus::Point(mp.X, mp.Y - w / 2));
-
-//6 - лівий бік прямокутника
-	   mp.X = rect.X;
-	   mp.Y = rect.Y + rect.Height / 2;
-
-       if (rand_h)
-		 h = GenerateRayHeight(min_ray_h, max_ray_h);
-
-	   w = rect.Height / 2;
-
-	   points.push_back(Gdiplus::Point(mp.X - h, mp.Y));
-	   points.push_back(Gdiplus::Point(mp.X, mp.Y - w / 2));
-
-//7 - верхній лівий кут
-	   mp.X = rect.X;
-	   mp.Y = rect.Y;
-
-       if (rand_h)
-		 h = GenerateRayHeight(min_ray_h, max_ray_h);
-
-	   w = rect.Height / 2;
-
-	   points.push_back(Gdiplus::Point(mp.X - h, mp.Y - h));
-
-	   path->AddPolygon(points.data(), points.size());
+	   path->Outline(NULL, 1.0f);
 	 }
   catch (Exception &e)
 	 {
@@ -482,7 +578,7 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::Rect rect,
 //rect – прямокутник, у якому має розташовуватись хмаринка
 //countX/Y – кількість "пузирів" по горизонталі та вертикалі
 //chaotic – коефіцієнт "хаотичності" параметрів точок (0.0f – рівна сітка, 1.0f – дуже розкидано)
-Gdiplus::GraphicsPath *CreateCloudBase(const Gdiplus::RectF &rect, int countX = 3, int countY = 2, float chaotic = 0.25f)
+Gdiplus::GraphicsPath *CreateCloudBase(Gdiplus::RectF &rect, int countX = 3, int countY = 2, float chaotic = 0.25f)
 {
   if (rect.Width <= 0 || rect.Height <= 0) return nullptr;
 
@@ -492,36 +588,58 @@ Gdiplus::GraphicsPath *CreateCloudBase(const Gdiplus::RectF &rect, int countX = 
 	 {
 	   float stepX = rect.Width / countX;
 	   float stepY = rect.Height / countY;
-	   float baseR = min(stepX, stepY) * 0.9f; // радіус еліпсів
+	   float baseR = min(stepX, stepY) * 5.2f; // радіус еліпсів
+
+	   res->AddEllipse(rect);
 
 //лямбда, що модифікує параметр на основі хаотичного коефіцієнту
 	   auto ChaoticParam = [&chaotic](float mltp, float prm)
 	   {
-		 float chaos = (rand() % 10 + 1) * chaotic / 100;
+		 float chaos = (Random(10) + 1) * chaotic / 100;
 
 		 return float(prm * (mltp + chaos));
 	   };
 
-	   for (int iy = 0; iy < countY; iy++)
+	   /*for (int iy = 0; iy < countY; iy++)
 		  {
 			for (int ix = 0; ix < countX; ix++)
 			   {
-				 float cx = rect.X + (ix + 0.5f) * stepX;
-				 float cy = rect.Y + (iy + 0.5f) * stepY;
+				 float cx = rect.X - stepX / 2 + ix * stepX;
+				 float cy = rect.Y - stepY / 2 + iy * stepY;
 
 				 float dx = stepX;
 				 float dy = stepY;
 
-				 float r = baseR * 5;
+				 float r = baseR * (0.85f + 0.3f * ((rand() % 200 - 100) / 100.0f));
 
-				 //float dx = stepX * ChaoticParam(1.0f, 1.0f);
-				 //float dy = stepY * ChaoticParam(1.0f, 1.0f);
+				 Gdiplus::RectFF ellipse(cx, cy, r, r);
 
-				 //float r = baseR * ChaoticParam(1.0f, 1.0f);
-
-				 res->AddEllipse(Gdiplus::RectF(cx + dx - r/2, cy + dy - r/2, r, r));
+				 res->AddEllipse(ellipse);
 			   }
-		  }
+		  }*/
+
+	   std::vector<Gdiplus::PointF> points;
+
+	   points.push_back(Gdiplus::PointF(rect.X, rect.Y));
+	   points.push_back(Gdiplus::PointF(rect.X + rect.Width / 2, rect.Y));
+	   points.push_back(Gdiplus::PointF(rect.X + rect.Width, rect.Y));
+	   points.push_back(Gdiplus::PointF(rect.X + rect.Width, rect.Y + rect.Height / 2));
+	   points.push_back(Gdiplus::PointF(rect.X + rect.Width, rect.Y + rect.Height));
+	   points.push_back(Gdiplus::PointF(rect.X + rect.Width / 2, rect.Y + rect.Height));
+	   points.push_back(Gdiplus::PointF(rect.X, rect.Y + rect.Height));
+	   points.push_back(Gdiplus::PointF(rect.X, rect.Y + rect.Height / 2));
+
+	   float bbl_w = ChaoticParam(0.25f, rect.Width),
+			 bbl_h = ChaoticParam(0.5f, rect.Height),
+			 bbl_r = min(bbl_w, bbl_h) * 1.2f;
+
+	   for (auto p : points)
+		  {
+			Gdiplus::PointF center = GetEllipseIntersection(rect, p); //отримуємо точку на еліпсі
+			Gdiplus::RectF bubble(p.X - bbl_w / 2, p.Y - bbl_h / 2, bbl_w, bbl_h);
+
+			res->AddEllipse(bubble);
+          }
 
 	   res->Outline();
 	 }
@@ -731,150 +849,6 @@ bool CreateCloudBase2(std::vector<Gdiplus::PointF> &points, const Gdiplus::RectF
 	 }
 
   return res;
-}
-//---------------------------------------------------------------------------
-
-//визначає кут променя від центру еліпсу до точки
-double GetRayAngle(double xc, double yc, double a, double b,
-				   double xp, double yp)
-{
-  return std::atan2((yp - yc) / b, (xp - xc) / a);
-}
-//---------------------------------------------------------------------------
-
-//повертає точку перетину променя з еліпсом
-Gdiplus::PointF GetEllipseIntersection(double xc, double yc, double a, double b,
-									   double xp, double yp)
-{
-  double theta = GetRayAngle(xc, yc, a, b, xp, yp);
-
-  return Gdiplus::PointF(static_cast<float>(xc + a * std::cos(theta)),
-						 static_cast<float>(yc + b * std::sin(theta)));
-}
-//---------------------------------------------------------------------------
-
-//повертає координати сусідніх точок від місця перетину еліпса з променем до точки хвостика
-std::pair<Gdiplus::PointF, Gdiplus::PointF> GetIntersectionNeighborsPoints(Gdiplus::Rect &rect,
-																		   const Gdiplus::PointF &tail,
-																		   int n = 360, // кількість дискретних точок еліпса
-																		   int k = 10)  // зсув у кількості точок)
-{
-  float a = rect.Width / 2,
-		b = rect.Height / 2,
-		xc = rect.X + a,
-		yc = rect.Y + b;
-
-  double theta = GetRayAngle(xc, yc, a, b, tail.X, tail.Y); //кут від центру до точки хвостика
-  double step = 1.0 * M_PI / n; //крок по куту 1 градус
-
-  Gdiplus::PointF prev(static_cast<float>(xc + a * std::cos(theta - k * step)),
-					   static_cast<float>(yc + b * std::sin(theta - k * step)));
-
-  Gdiplus::PointF next(static_cast<float>(xc + a * std::cos(theta + k * step)),
-					   static_cast<float>(yc + b * std::sin(theta + k * step)));
-
-  return {prev, next};
-}
-//---------------------------------------------------------------------------
-
-//повертає кути до сусідніх точок від точки перетину еліпса з променем до точки хвостика
-std::pair<double, double> GetIntersectionNeighborsAngles(Gdiplus::Rect &rect,
-														 const Gdiplus::PointF &tail,
-														 int n = 360, // кількість дискретних точок еліпса
-														 int k = 10)  // зсув у кількості точок)
-{
-  float a = rect.Width / 2,
-		b = rect.Height / 2,
-		xc = rect.X + a,
-		yc = rect.Y + b;
-
-  auto [prev, next] = GetIntersectionNeighborsPoints(rect, tail, n, k);
-
-  double theta_prev = GetRayAngle(xc, yc, a, b, prev.X, prev.Y);
-  double theta_next = GetRayAngle(xc, yc, a, b, next.X, next.Y);
-
-  return {theta_prev, theta_next};
-}
-//---------------------------------------------------------------------------
-
-//функція для вимірювання розміру тексту
-Gdiplus::RectF MeasureTextRect(const std::wstring &text,
-							   Gdiplus::RectF rect,
-							   int user_font = 0,
-							   const std::wstring &font_name = L"Segoe UI",
-							   float font_size = 10.0f,
-							   Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
-							   const std::wstring &align = L"left", // "left", "center", "right"
-							   bool center_vertically = false,
-							   bool word_wrap = true)
-{
-  Gdiplus::RectF layout_rect;
-
-  try
-	 {
-	   if (!hMemDC)
-		 throw Exception("Virtual buffer doesn't exists!");
-
-	   Gdiplus::Graphics graphics(hMemDC);
-	   std::unique_ptr<Gdiplus::FontFamily> font_family;
-
-	   graphics.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAlias);
-
-	   if (user_font) //використовується користувацький шрифт
-		 {
-		   font_family.reset(new Gdiplus::FontFamily(font_name.c_str(), UserFontCollection));
-
-		   if (!font_family->IsAvailable())
-			 throw Exception("Invalid font family"); //якщо шрифта в колекції не знайшлось
-		 }
-	   else
-		 font_family.reset(new Gdiplus::FontFamily(font_name.c_str()));
-
-	   Gdiplus::Font font(font_family.get(), font_size, font_style, Gdiplus::UnitPixel);
-
-	   Gdiplus::StringFormat format;
-
-//Горизонтальне вирівнювання
-	   if (align == L"center")
-		 format.SetAlignment(Gdiplus::StringAlignmentCenter);
-	   else if (align == L"right")
-		 format.SetAlignment(Gdiplus::StringAlignmentFar);
-	   else if (align == L"justify")
-		 {
-		   format.SetAlignment(Gdiplus::StringAlignmentNear);
-		   format.SetFormatFlags(format.GetFormatFlags() |
-								 Gdiplus::StringFormatFlagsLineLimit |
-								 Gdiplus::StringFormatFlagsNoFitBlackBox);
-		   format.SetTrimming(Gdiplus::StringTrimmingNone);
-		 }
-	   else
-		 format.SetAlignment(Gdiplus::StringAlignmentNear); //left
-
-//Вертикальне вирівнювання
-	   format.SetLineAlignment(center_vertically ? Gdiplus::StringAlignmentCenter : Gdiplus::StringAlignmentNear);
-
-//Перенос рядків
-	   if (!word_wrap)
-		 format.SetFormatFlags(Gdiplus::StringFormatFlagsNoWrap);
-
-	   if (rect.Width == 0)
-		 rect.Width = 10000;
-	   else
-		 rect.Width++;
-
-	   if (rect.Height == 0)
-		 rect.Height = 10000;
-	   else
-		 rect.Height++;
-
-	   graphics.MeasureString(text.c_str(), -1, &font, rect, &format, &layout_rect);
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::MeasureTextRect: " + e.ToString());
-	 }
-
-  return layout_rect;
 }
 //---------------------------------------------------------------------------
 
@@ -1102,7 +1076,7 @@ void DrawRectangleGDIPlus(int x, int y, int width, int height,
 
 //Створення основного шляху
 	   Gdiplus::GraphicsPath path;
-	   Gdiplus::Rect rect(x, y, width, height);
+	   Gdiplus::RectF rect(x, y, width, height);
 
 	   if (corner_radius > 0)
 		 {
@@ -1152,7 +1126,7 @@ void DrawSpeechBubbleRectGDIPlus(int x, int y, int width, int height,
 	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
 
 	   std::unique_ptr<Gdiplus::GraphicsPath> path(new Gdiplus::GraphicsPath());
-	   Gdiplus::Rect rect(x, y, width, height);
+	   Gdiplus::RectF rect(x, y, width, height);
 
 	   if (corner_radius > 0) //заокруглений прямокутник
 		 path.reset(CreateRoundedRectPath(rect, corner_radius));
@@ -1204,7 +1178,7 @@ void DrawSpeechBlastGDIPlus(int x, int y, int width, int height,
 	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
 
 //Створення основного шляху
-	   Gdiplus::Rect rect(x, y, width, height);
+	   Gdiplus::RectF rect(x, y, width, height);
 	   std::unique_ptr<Gdiplus::GraphicsPath> path(CreateBlastPolygon(rect, min_ray_h, max_ray_h, rand_h));
 
 	   if (shadow) //Тінь
@@ -1244,7 +1218,7 @@ void DrawSpeechBalloonGDIPlus(int x, int y, int width, int height,
 	   graphics.SetSmoothingMode(Gdiplus::SmoothingModeAntiAlias);
 
 //Створення основного шляху
-	   Gdiplus::Rect rect(x, y, width, height);
+	   Gdiplus::RectF rect(x, y, width, height);
 	   Gdiplus::GraphicsPath path;
 
 	   float a = width / 2,
@@ -2582,7 +2556,7 @@ __declspec(dllexport) void __stdcall eDrawCloud(void *p)
 	   CurrentCloud.Width = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
 	   CurrentCloud.Height = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
-       CurrentCloud.TailWidth = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"TailWidth"));
+	   CurrentCloud.TailWidth = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"TailWidth"));
 	   CurrentCloud.CornerRadius = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Corner"));
 	   CurrentCloud.Shadow = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Shadow"));
 
@@ -2713,7 +2687,6 @@ int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved
   if (reason == DLL_PROCESS_ATTACH)
 	{
 	  DllHinst = hinst;
-	  srand(time(NULL)); //ініціалізуємо генератор випадкових чисел для всіх викликів rand()
 	}
   else if (reason == DLL_PROCESS_DETACH)
 	StopWork();
