@@ -557,7 +557,8 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::RectF rect,
 			Gdiplus::PointF ray[3] = {Gdiplus::PointF(base1),
 									  Gdiplus::PointF(vertex),
 									  Gdiplus::PointF(base2)
-									  };
+									 };
+
 			path->AddPolygon(ray, 3);
 		  }
 
@@ -578,7 +579,7 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::RectF rect,
 //rect Ц пр€мокутник, у €кому маЇ розташовуватись хмаринка
 //countX/Y Ц к≥льк≥сть "пузир≥в" по горизонтал≥ та вертикал≥
 //chaotic Ц коеф≥ц≥Їнт "хаотичност≥" параметр≥в точок (0.0f Ц р≥вна с≥тка, 1.0f Ц дуже розкидано)
-Gdiplus::GraphicsPath *CreateCloudBase(Gdiplus::RectF &rect, int countX = 3, int countY = 2, float chaotic = 0.25f)
+Gdiplus::GraphicsPath *CreateCloudBase(Gdiplus::RectF &rect, float chaotic = 0.25f)
 {
   if (rect.Width <= 0 || rect.Height <= 0) return nullptr;
 
@@ -586,12 +587,6 @@ Gdiplus::GraphicsPath *CreateCloudBase(Gdiplus::RectF &rect, int countX = 3, int
 
   try
 	 {
-	   float stepX = rect.Width / countX;
-	   float stepY = rect.Height / countY;
-	   float baseR = min(stepX, stepY) * 5.2f; // рад≥ус ел≥пс≥в
-
-	   res->AddEllipse(rect);
-
 //л€мбда, що модиф≥куЇ параметр на основ≥ хаотичного коеф≥ц≥Їнту
 	   auto ChaoticParam = [&chaotic](float mltp, float prm)
 	   {
@@ -600,38 +595,30 @@ Gdiplus::GraphicsPath *CreateCloudBase(Gdiplus::RectF &rect, int countX = 3, int
 		 return float(prm * (mltp + chaos));
 	   };
 
-	   /*for (int iy = 0; iy < countY; iy++)
-		  {
-			for (int ix = 0; ix < countX; ix++)
-			   {
-				 float cx = rect.X - stepX / 2 + ix * stepX;
-				 float cy = rect.Y - stepY / 2 + iy * stepY;
+	   res->AddEllipse(rect); //додаЇмо основний ел≥пс, в €кому буде текст
 
-				 float dx = stepX;
-				 float dy = stepY;
-
-				 float r = baseR * (0.85f + 0.3f * ((rand() % 200 - 100) / 100.0f));
-
-				 Gdiplus::RectFF ellipse(cx, cy, r, r);
-
-				 res->AddEllipse(ellipse);
-			   }
-		  }*/
-
+//малюЇмо бульбашки хмарки
 	   std::vector<Gdiplus::PointF> points;
 
-	   points.push_back(Gdiplus::PointF(rect.X, rect.Y));
-	   points.push_back(Gdiplus::PointF(rect.X + rect.Width / 2, rect.Y));
-	   points.push_back(Gdiplus::PointF(rect.X + rect.Width, rect.Y));
-	   points.push_back(Gdiplus::PointF(rect.X + rect.Width, rect.Y + rect.Height / 2));
-	   points.push_back(Gdiplus::PointF(rect.X + rect.Width, rect.Y + rect.Height));
-	   points.push_back(Gdiplus::PointF(rect.X + rect.Width / 2, rect.Y + rect.Height));
-	   points.push_back(Gdiplus::PointF(rect.X, rect.Y + rect.Height));
-	   points.push_back(Gdiplus::PointF(rect.X, rect.Y + rect.Height / 2));
+	   points.push_back(Gdiplus::PointF(rect.X + ChaoticParam(0.25f, rect.Width),
+										rect.Y + ChaoticParam(0.05f, rect.Height)));
+	   points.push_back(Gdiplus::PointF(rect.X + ChaoticParam(0.50f, rect.Width),
+										rect.Y - ChaoticParam(0.07f, rect.Height)));
+	   points.push_back(Gdiplus::PointF(rect.X + ChaoticParam(0.75f, rect.Width),
+										rect.Y + ChaoticParam(0.05f, rect.Height)));
+	   points.push_back(Gdiplus::PointF(rect.X + ChaoticParam(0.75f, rect.Width),
+										rect.Y + ChaoticParam(0.50f, rect.Height)));
+	   points.push_back(Gdiplus::PointF(rect.X + ChaoticParam(0.75f, rect.Width),
+										rect.Y + ChaoticParam(0.95f, rect.Height)));
+	   points.push_back(Gdiplus::PointF(rect.X + ChaoticParam(0.50f, rect.Width),
+										rect.Y + ChaoticParam(1.07f, rect.Height)));
+	   points.push_back(Gdiplus::PointF(rect.X + ChaoticParam(0.25f, rect.Width),
+										rect.Y + ChaoticParam(0.95f, rect.Height)));
+	   points.push_back(Gdiplus::PointF(rect.X + ChaoticParam(0.25f, rect.Width),
+										rect.Y + ChaoticParam(0.50f, rect.Height)));
 
-	   float bbl_w = ChaoticParam(0.25f, rect.Width),
-			 bbl_h = ChaoticParam(0.5f, rect.Height),
-			 bbl_r = min(bbl_w, bbl_h) * 1.2f;
+	   float bbl_w = ChaoticParam(0.3f, rect.Width),
+			 bbl_h = ChaoticParam(0.55f, rect.Height);
 
 	   for (auto p : points)
 		  {
@@ -641,210 +628,12 @@ Gdiplus::GraphicsPath *CreateCloudBase(Gdiplus::RectF &rect, int countX = 3, int
 			res->AddEllipse(bubble);
           }
 
-	   res->Outline();
+       res->Outline(NULL, 0.01f);
 	 }
   catch (Exception &e)
 	 {
 	   if (res) delete res;
 
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateCloudBase: " + e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-//rect Ц пр€мокутник, у €кому маЇ розташовуватись хмаринка
-//countX/Y Ц к≥льк≥сть "пузир≥в" по горизонтал≥ та вертикал≥
-//chaotic Ц коеф≥ц≥Їнт "хаотичност≥" параметр≥в точок (0.0f Ц р≥вна с≥тка, 1.0f Ц дуже розкидано)
-bool CreateCloudBase2(std::vector<Gdiplus::PointF> &points, const Gdiplus::RectF &rect, float chaotic = 0.25f)
-{
-  bool res = false;
-
-  try
-	 {
-	   float rectX = rect.X,
-			 rectY = rect.Y,
-			 sizeX = rect.Width,
-			 sizeY = rect.Height,
-			 stepX = sizeX / 3;
-
-//л€мбда, що модиф≥куЇ параметр на основ≥ хаотичного коеф≥ц≥Їнту
-	   auto ChaoticParam = [&chaotic](float k, float prm)
-	   {
-		 float chaos = (rand() % 10 + 1) * chaotic / 100;
-
-		 return float(prm * (k + chaos));
-	   };
-
-//л€мбда, що вираховуЇ координати основи кривоњ, зг≥дно номера в≥др≥зку
-	   auto GetCurveBase = [&rectX, &rectY, &sizeX, sizeY, &stepX, &ChaoticParam](int side)
-	   {
-		 Gdiplus::PointF l_base, r_base;
-
-		 switch (side)
-		   {
-			 case SDTOPLEFT : l_base = Gdiplus::PointF(rectX + ChaoticParam(0.2f, stepX),
-													   rectY - ChaoticParam(0.05f, stepX));
-							  r_base = Gdiplus::PointF(rectX + stepX - ChaoticParam(0.05f, stepX),
-													   rectY - ChaoticParam(0.1f, stepX));
-							  break;
-
-			 case SDTOP : l_base = Gdiplus::PointF(rectX + stepX + ChaoticParam(0.05f, stepX),
-												   rectY - ChaoticParam(0.15f, stepX));
-						  r_base = Gdiplus::PointF(rectX + stepX * 2 - ChaoticParam(0.05f, stepX),
-												   rectY - ChaoticParam(0.15f, stepX));
-						  break;
-
-			 case SDTOPRIGHT : l_base = Gdiplus::PointF(rectX + stepX * 2 + ChaoticParam(0.05f, stepX),
-														rectY - ChaoticParam(0.1f, stepX));
-							   r_base = Gdiplus::PointF(rectX + stepX * 3 - ChaoticParam(0.2f, stepX),
-														rectY - ChaoticParam(0.05f, stepX));
-							   break;
-
-			 case SDRIGHT : l_base = Gdiplus::PointF(rectX + sizeX + ChaoticParam(0.05f, stepX),
-													 rectY + ChaoticParam(-0.0f, sizeY));
-							r_base = Gdiplus::PointF(rectX + sizeX + ChaoticParam(0.05f, stepX),
-													 rectY + ChaoticParam(1.0f, sizeY));
-							break;
-
-			 case SDBOTTOMRIGHT : l_base = Gdiplus::PointF(rectX + stepX * 3 - ChaoticParam(0.2f, stepX),
-														   rectY + sizeY + ChaoticParam(0.05f, stepX));
-								  r_base = Gdiplus::PointF(rectX + stepX * 2 + ChaoticParam(0.05f, stepX),
-														   rectY + sizeY + ChaoticParam(0.1f, stepX));
-								  break;
-
-			 case SDBOTTOM : l_base = Gdiplus::PointF(rectX + stepX * 2 - ChaoticParam(0.05f, stepX),
-													  rectY + sizeY + ChaoticParam(0.1f, stepX));
-							 r_base = Gdiplus::PointF(rectX + stepX + ChaoticParam(0.05f, stepX),
-													  rectY + sizeY + ChaoticParam(0.1f, stepX));
-							 break;
-
-			 case SDBOTTOMLEFT : l_base = Gdiplus::PointF(rectX + stepX - ChaoticParam(0.05f, stepX),
-														  rectY + sizeY + ChaoticParam(0.1f, stepX));
-								 r_base = Gdiplus::PointF(rectX + ChaoticParam(0.2f, stepX),
-														  rectY + sizeY + ChaoticParam(0.05f, stepX));
-								 break;
-
-			 case SDLEFT : l_base = Gdiplus::PointF(rectX - ChaoticParam(0.05f, stepX),
-													rectY + ChaoticParam(1.0f, sizeY));
-						   r_base = Gdiplus::PointF(rectX - ChaoticParam(0.05f, stepX),
-													rectY + ChaoticParam(0.0f, sizeY));
-						   break;
-		   }
-
-		 return std::pair<Gdiplus::PointF, Gdiplus::PointF>(l_base, r_base);
-	   };
-
-	   auto GetCurveExtVertex = [&ChaoticParam](int x, int y, int width, int height, int side)
-	   {
-		 Gdiplus::PointF left, right;
-
-		 if ((side == SDLEFT) || (side == SDRIGHT))
-		   {
-			 left = Gdiplus::PointF(x + ChaoticParam(0.6f, width), y + ChaoticParam(0.4f, height));
-			 right = Gdiplus::PointF(x + ChaoticParam(0.6f, width), y + ChaoticParam(1.4f, height));
-		   }
-		 else if ((side == SDTOP) || (side == SDBOTTOM))
-		   {
-			 left = Gdiplus::PointF(x + ChaoticParam(0.4f, width), y + ChaoticParam(0.7f, height));
-			 right = Gdiplus::PointF(x + ChaoticParam(1.4f, width), y + ChaoticParam(0.7f, height));
-		   }
-		 else
-		   {
-			 left = Gdiplus::PointF(x + ChaoticParam(0.4f, width), y + ChaoticParam(0.6f, height));
-			 right = Gdiplus::PointF(x + ChaoticParam(1.4f, width), y + ChaoticParam(0.6f, height));
-		   }
-
-		 return std::pair<Gdiplus::PointF, Gdiplus::PointF>(left, right);
-	   };
-
-	   auto GetCurveVertex = [&ChaoticParam](int x, int y, int width, int height, int side)
-	   {
-		 Gdiplus::PointF res;
-
-		 if ((side == SDLEFT) || (side == SDRIGHT))
-		   res = Gdiplus::PointF(x + ChaoticParam(1.0f, width), y + ChaoticParam(1.0f, height));
-		 else if ((side == SDTOP) || (side == SDBOTTOM))
-		   res = Gdiplus::PointF(x + ChaoticParam(1.0f, width), y + ChaoticParam(1.1f, height));
-		 else
-		   res = Gdiplus::PointF(x + ChaoticParam(1.0f, width), y + ChaoticParam(1.0f, height));
-
-		 return res;
-	   };
-
-//л€мбда, що вираховуЇ наб≥р точок кривоњ, зг≥дно сторони пр€мокутника
-	  auto AddCurvePoints = [&rectX, &rectY, &stepX, &sizeY, &chaotic,
-							 &GetCurveBase, &GetCurveExtVertex, &GetCurveVertex, &ChaoticParam]
-							(std::vector<Gdiplus::PointF> &points, int side)
-	   {
-		 float w = 0.0f, h = 0.0f, fluff = 1.0f;
-
-//визначаЇмо точки основи
-		 auto [l_base, r_base] = GetCurveBase(side);
-
-//визначаЇмо допом≥жн≥ точки
-		 switch (side)
-		   {
-			 case SDTOPLEFT : w = stepX * 0.4f;
-							  h = -stepX * 0.2f * ChaoticParam(1.0f, fluff);
-							  break;
-
-			 case SDTOP : w = stepX * 0.5f;
-						  h = -stepX * 0.2f * ChaoticParam(1.3f, fluff);
-						  break;
-
-			 case SDTOPRIGHT : w = stepX * 0.4f;
-							   h = -stepX * 0.2f * ChaoticParam(1.0f, fluff);
-							   break;
-
-			 case SDRIGHT : w = sizeY * 0.2f * ChaoticParam(1.1f, fluff);
-							h = sizeY * 0.5f;
-							break;
-
-			 case SDBOTTOMRIGHT : w = -stepX * 0.4f;
-								  h = stepX * 0.2f * ChaoticParam(1.0f, fluff);
-								  break;
-
-			 case SDBOTTOM : w = -stepX * 0.5f;
-							 h = stepX * 0.2f * ChaoticParam(1.3f, fluff);
-							 break;
-
-			 case SDBOTTOMLEFT : w = -stepX * 0.4f;
-								 h = stepX * 0.2f * ChaoticParam(1.0f, fluff);
-								 break;
-
-			 case SDLEFT : w = -sizeY * 0.2f * ChaoticParam(1.1f, fluff);
-						   h = -sizeY * 0.5f;
-						   break;
-		   }
-
-		 auto [l_ext, r_ext] = GetCurveExtVertex(l_base.X, l_base.Y, w, h, side);
-
-//визначаЇмо точку вершини кривоњ
-		 auto vert = GetCurveVertex(l_base.X, l_base.Y, w, h, side);
-
-//додаЇмо в масив
-		 points.push_back(l_base);
-		 points.push_back(l_ext);
-		 points.push_back(vert);
-		 points.push_back(r_ext);
-		 points.push_back(r_base);
-
-		 //for (auto p : points)
-			//std::wcout << "[" << p.X << " | " << p.Y << std::endl;
-	   };
-
-//починаЇмо заповнювати масив точок, рухаючись в≥д л≥вого верхнього краю пр€мокутника
-	   for (int i = SDTOPLEFT; i <= SDLEFT; i++)
-		  AddCurvePoints(points, i);
-
-	   points.push_back(Gdiplus::PointF(rect.X, rect.Y)); //пром≥жна точка дл€ плавного з'Їднанн€
-
-	   res = true;
-	 }
-  catch (Exception &e)
-	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateCloudBase: " + e.ToString());
 	 }
 
@@ -1286,18 +1075,33 @@ void DrawSpeechCloudGDIPlus(int x, int y, int width, int height,
 
 //створенн€ основного шл€ху
 	   Gdiplus::RectF rect(x, y, width, height);
-	   std::unique_ptr<Gdiplus::GraphicsPath> path(CreateCloudBase(rect, 4, 3, 0.3f));
-	   std::vector<Gdiplus::PointF> points;
+	   std::unique_ptr<Gdiplus::GraphicsPath> path(CreateCloudBase(rect, 0.3f));
 
 	   if (!path)
 		 throw Exception("Can't build cloud base");
 
-//формуЇмо плавний шл€х
-	   //path.AddCurve(points.data(), (int)points.size(), 0.5f); // 0.5f Ц нат€г кривоњ
-	   //path.CloseFigure();
+//малюЇмо хвостик
+	   Gdiplus::PointF tail_base = GetEllipseIntersection(rect, tail_point);
 
-	   //if (shadow) //“≥нь
-		 //DrawShadow(&graphics, &path, 5, Gdiplus::Color(100, 0, 0, 0));
+	   float dx = tail_point.X - tail_base.X,
+			 dy = tail_point.Y - tail_base.Y; //знаходимо довжину вектора м≥ж основою та вершиною хвостика
+
+//спускаЇмось по вектору до точок, де будуть бульбашки хвостика
+	   Gdiplus::PointF p1 = Gdiplus::PointF(tail_base.X + 0.5f * dx, tail_base.Y + 0.5f * dy),
+					   p2 = Gdiplus::PointF(tail_base.X + 0.9f * dx, tail_base.Y + 0.9f * dy);
+
+	   float w = 0.15f * rect.Width, h = 0.15f * rect.Height;
+
+
+	   path->AddEllipse(Gdiplus::RectF(p1.X - 0.5f * w, p1.Y - 0.5f * h, w, h));
+
+	   w = 0.5f * w;
+	   h = 0.5f * h;
+
+	   path->AddEllipse(Gdiplus::RectF(p2.X - 0.5f * w, p2.Y - 0.5f * h, w, h));
+
+	   if (shadow) //“≥нь
+		 DrawShadow(&graphics, path.get(), 5, Gdiplus::Color(100, 0, 0, 0));
 
 //зафарбовуЇмо ≥ малюЇмо
 	   Gdiplus::SolidBrush brush(fill_color);

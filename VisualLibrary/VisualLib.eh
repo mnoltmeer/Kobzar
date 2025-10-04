@@ -389,8 +389,8 @@
   #public method Cloud($left, $top, $width, $height)
   {
     &$this.Object($left, $top, $width, $height);
-	&$this.BeforeTextInterval = 5;
-	&$this.AfterTextInterval = 5;
+	&$this.BeforeTextInterval = 15;
+	&$this.AfterTextInterval = 15;
   }
 }
 //===========================================================;
