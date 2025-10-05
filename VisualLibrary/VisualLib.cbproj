@@ -63,12 +63,12 @@
         <ILINK_TranslatedLibraryPath>$(BDSLIB)\$(PLATFORM)\release\$(LANGDIR);$(ILINK_TranslatedLibraryPath)</ILINK_TranslatedLibraryPath>
         <ProjectType>CppDynamicLibrary</ProjectType>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;$(DCC_Namespace)</DCC_Namespace>
-        <AllPackageLibs>rtl.lib;vcl.lib;IndyProtocols.lib;IndyCore.lib;IndySystem.lib;fmx.lib</AllPackageLibs>
+        <AllPackageLibs>rtl.lib;vcl.lib;IndyProtocols.lib;IndyCore.lib;IndySystem.lib;fmx.lib;vclimg.lib</AllPackageLibs>
         <Multithreaded>true</Multithreaded>
         <ILINK_GenerateImportLibrary>true</ILINK_GenerateImportLibrary>
         <_TCHARMapping>wchar_t</_TCHARMapping>
-        <IncludePath>..\Engine\;..\..\work-functions\;..\..\ELI\;..\;$(IncludePath)</IncludePath>
-        <ILINK_LibraryPath>..\Engine\;..\..\work-functions\;..\..\ELI\;..\;$(ILINK_LibraryPath)</ILINK_LibraryPath>
+        <IncludePath>..\..\;..\Engine\;..\..\work-functions\;..\..\ELI\;..\;$(IncludePath)</IncludePath>
+        <ILINK_LibraryPath>..\..\;..\Engine\;..\..\work-functions\;..\..\ELI\;..\;$(ILINK_LibraryPath)</ILINK_LibraryPath>
         <SanitizedProjectName>VisualLib</SanitizedProjectName>
         <VerInfo_Locale>1058</VerInfo_Locale>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
@@ -142,7 +142,7 @@
         <VerInfo_Keys>CompanyName=;FileDescription=Visualisation library for Kobzar engine;FileVersion=1.0.0.1;InternalName=;LegalCopyright=Copyright 2024 Maxim Noltmeer (m.noltmeer@gmail.com);LegalTrademarks=;OriginalFilename=;ProgramID=com.embarcadero.$(MSBuildProjectName);ProductName=Kobzar Engine;ProductVersion=1.0.3.4;Comments=</VerInfo_Keys>
         <VerInfo_AutoIncVersion>true</VerInfo_AutoIncVersion>
         <DynamicRTL>false</DynamicRTL>
-        <LinkPackageStatics>rtl.lib;vcl.lib;IndyProtocols.lib;IndyCore.lib;IndySystem.lib;fmx.lib</LinkPackageStatics>
+        <LinkPackageStatics>rtl.lib;vcl.lib;IndyProtocols.lib;IndyCore.lib;IndySystem.lib;fmx.lib;vclimg.lib</LinkPackageStatics>
         <UsePackages>false</UsePackages>
         <VerInfo_Build>1</VerInfo_Build>
         <AppDPIAwarenessMode>none</AppDPIAwarenessMode>
@@ -153,14 +153,15 @@
             <BuildOrder>2</BuildOrder>
         </None>
         <CppCompile Include="main.cpp">
-            <BuildOrder>1</BuildOrder>
+            <DependentOn>main.h</DependentOn>
+            <BuildOrder>4</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="..\..\work-functions\Data.cpp">
+            <DependentOn>..\..\work-functions\Data.h</DependentOn>
+            <BuildOrder>4</BuildOrder>
         </CppCompile>
         <CppCompile Include="..\..\work-functions\Logs.cpp">
             <DependentOn>..\..\work-functions\Logs.h</DependentOn>
-            <BuildOrder>4</BuildOrder>
-        </CppCompile>
-        <CppCompile Include="..\..\work-functions\MyFunc.cpp">
-            <DependentOn>..\..\work-functions\MyFunc.h</DependentOn>
             <BuildOrder>4</BuildOrder>
         </CppCompile>
         <BuildConfiguration Include="Base">

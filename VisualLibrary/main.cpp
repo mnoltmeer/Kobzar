@@ -18,134 +18,16 @@ This file is part of Kobzar Engine.
 */
 //---------------------------------------------------------------------------
 
-#include <vcl.h>
-#include <windows.h>
-#include <process.h>
-#include <gdiplus.h>
-
+#include <System.Math.hpp>
 #pragma hdrstop
 #pragma argsused
 
-#include <System.Math.hpp>
-
 #include "eli_interface.h"
-#include "..\..\work-functions\MyFunc.h"
+#include "..\..\work-functions\Data.h"
 #include "..\..\work-functions\Logs.h"
-
-#pragma comment(lib, "gdiplus.lib")
-
-//для визначення сторін прямокутника вздовж яких йде обчислення
-#define SDTOPLEFT 0
-#define SDTOP 1
-#define SDTOPRIGHT 2
-#define SDRIGHT 3
-#define SDBOTTOMRIGHT 4
-#define SDBOTTOM 5
-#define SDBOTTOMLEFT 6
-#define SDLEFT 7
-
-//Власне повідомлення для роботи з вікном
-#define WM_KVL_CLEAR_WINDOW (WM_USER + 1)
-#define WM_KVL_DRAW_POLYGON (WM_USER + 2)
-#define WM_KVL_DRAW_ELLIPSE (WM_USER + 3)
-#define WM_KVL_DRAW_LINE (WM_USER + 4)
-#define WM_KVL_DRAW_ARC (WM_USER + 5)
-#define WM_KVL_DRAW_RECT (WM_USER + 6)
-#define WM_KVL_DRAW_IMAGE (WM_USER + 7)
-#define WM_KVL_DRAW_PLATE (WM_USER + 8)
-#define WM_KVL_DRAW_TEXT (WM_USER + 9)
-#define WM_KVL_DRAW_BUBBLE (WM_USER + 10)
-#define WM_KVL_DRAW_BLAST (WM_USER + 11)
-#define WM_KVL_DRAW_BALLOON (WM_USER + 12)
-#define WM_KVL_DRAW_CLOUD (WM_USER + 13)
+#include "main.h"
 
 ELI_INTERFACE *eIface;
-
-struct LINE
-{
-  int X1 = 0;
-  int Y1 = 0;
-  int X2 = 0;
-  int Y2 = 0;
-  Gdiplus::Color Color;
-  int Size = 1;
-};
-
-struct ARC
-{
-  int Left = 0;
-  int Top = 0;
-  int Width = 0;
-  int Height = 0;
-  int StartAngle = 0;
-  int SweepAngle = 0;
-  Gdiplus::Color Color;
-  int Size = 1;
-};
-
-struct POLYGON
-{
-  std::vector<Gdiplus::Point> Points;
-  Gdiplus::Color Color;
-  int Border = 1;
-  Gdiplus::Color BorderColor;
-  int Shadow = 0;
-};
-
-struct ELLIPSE
-{
-  int Left = 0;
-  int Top = 0;
-  int Width = 0;
-  int Height = 0;
-  Gdiplus::Color Color;
-  int Border = 1;
-  Gdiplus::Color BorderColor;
-  int Shadow = 0;
-};
-
-struct MYRECT
-{
-  int Left = 0;
-  int Top = 0;
-  int Width = 0;
-  int Height = 0;
-  Gdiplus::Color Color;
-  int Border = 1;
-  Gdiplus::Color BorderColor;
-  int Shadow = 0;
-};
-
-struct PLATE : MYRECT
-{
-  int CornerRadius = 0;
-};
-
-struct BUBBLE : PLATE
-{
-  Gdiplus::PointF Tail;
-  int TailWidth = 10;
-};
-
-struct BLAST : MYRECT
-{
-  int MinRayHeight = 10;
-  int MaxRayHeight = 50;
-  int DynamicRays = 0;
-};
-
-struct TEXT
-{
-  Gdiplus::RectF Rect;
-  int UserFont = 0; //1 - використовується шрифт з колекції шрифтів, 0 - системний
-  wchar_t FontName[32];
-  int FontSize = 10;
-  int FontStyle = 0;
-  Gdiplus::Color FontColor;
-  wchar_t Alignment[8];
-  int CenterVerticaly = 0;
-  int WordWrap = 0;
-};
 
 HINSTANCE DllHinst;
 HANDLE WndThread;
@@ -174,7 +56,7 @@ BUBBLE CurrentBalloon; //для визначення параметрів поточного об'єкту типу Balloo
 BUBBLE CurrentCloud; //для визначення параметрів поточного об'єкту типу Cloud
 
 //Функція створення віртуального вікна (буфера)
-void CreateVirtualWindow(HWND hWnd, int width, int height)
+void CreateVirtualWindow(HWND hWnd, HBITMAP &hBitmap, HDC &hMemDC, int width, int height)
 {
   try
 	 {
@@ -192,59 +74,14 @@ void CreateVirtualWindow(HWND hWnd, int width, int height)
 }
 //---------------------------------------------------------------------------
 
-//Функція малювання у віртуальному вікні
-void DrawToVirtualWindow(const wchar_t *file, int x, int y)
+//Функція копіювання вмісту віртуального вікна в основне
+void CopyVirtualToMain(HDC hMemDC, HDC hdc)
 {
   try
 	 {
-	   if (!hMemDC)
+       if (!hMemDC)
 		 throw Exception("Virtual buffer doesn't exists!");
 
-//Завантаження зображення через GDI+
-	   Gdiplus::Graphics graphics(hMemDC);
-	   Gdiplus::Image image(file);
-
-	   if (image.GetLastStatus() == Gdiplus::Ok)
-		 graphics.DrawImage(&image, x, y);
-	   else
-		 throw Exception("GDI+ not initialised!");
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawToVirtualWindow: " + e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-//Функція малювання тіні для основної фігури
-void DrawShadow(Gdiplus::Graphics *graphics,
-				Gdiplus::GraphicsPath *main_path,
-				int offset = 5,
-				Gdiplus::Color color = Gdiplus::Color(100, 0, 0, 0))
-{
-  try
-	 {
-	   Gdiplus::GraphicsPath ShadowPath;
-	   Gdiplus::Matrix ShadowMatrix;
-	   ShadowMatrix.Translate((float)offset, (float)offset);
-	   ShadowPath.AddPath(main_path, FALSE);
-	   ShadowPath.Transform(&ShadowMatrix);
-
-	   Gdiplus::SolidBrush ShadowBrush(color);
-	   graphics->FillPath(&ShadowBrush, &ShadowPath);
-	 }
-  catch (Exception &e)
-	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawShadow: " + e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-//Функція копіювання вмісту віртуального вікна в основне
-void CopyVirtualToMain(HDC hdc)
-{
-  try
-	 {
 	   BitBlt(hdc, 0, 0, WndWidth, WndHeight, hMemDC, 0, 0, SRCCOPY);
 	 }
   catch (Exception &e)
@@ -255,14 +92,14 @@ void CopyVirtualToMain(HDC hdc)
 //---------------------------------------------------------------------------
 
 //очистка віртуального буферу
-void ClearVirtualWindow()
+void ClearVirtualWindow(HDC hMemDC, int width, int height)
 {
   try
 	 {
 	   if (!hMemDC)
 		 throw Exception("Virtual buffer doesn't exists!");
 
-	   RECT rect = {0, 0, WndWidth, WndHeight};
+	   RECT rect = {0, 0, width, height};
 	   FillRect(hMemDC, &rect, (HBRUSH)(COLOR_WINDOW+1));
 	 }
   catch (Exception &e)
@@ -299,6 +136,30 @@ wchar_t *GetFontFamilyName(const wchar_t *font_file)
 }
 //---------------------------------------------------------------------------
 
+//Функція малювання тіні для основної фігури
+void DrawShadow(Gdiplus::Graphics *graphics,
+				Gdiplus::GraphicsPath *main_path,
+				int offset,
+				Gdiplus::Color color)
+{
+  try
+	 {
+	   Gdiplus::GraphicsPath ShadowPath;
+	   Gdiplus::Matrix ShadowMatrix;
+	   ShadowMatrix.Translate((float)offset, (float)offset);
+	   ShadowPath.AddPath(main_path, FALSE);
+	   ShadowPath.Transform(&ShadowMatrix);
+
+	   Gdiplus::SolidBrush ShadowBrush(color);
+	   graphics->FillPath(&ShadowBrush, &ShadowPath);
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawShadow: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
 //допоміжна функція для побудови прямокутника із закругленими кутами
 Gdiplus::GraphicsPath *CreateRoundedRectPath(Gdiplus::RectF rect, int radius)
 {
@@ -327,13 +188,6 @@ Gdiplus::GraphicsPath *CreateRoundedRectPath(Gdiplus::RectF rect, int radius)
 }
 //---------------------------------------------------------------------------
 
-//визначає кут променя від центру еліпсу до точки
-inline double GetRayAngle(double xc, double yc, double a, double b, double xp, double yp)
-{
-  return std::atan2((yp - yc) / b, (xp - xc) / a);
-}
-//---------------------------------------------------------------------------
-
 //повертає точку перетину променя з еліпсом
 Gdiplus::PointF GetEllipseIntersection(Gdiplus::RectF &rect, const Gdiplus::PointF &target)
 {
@@ -352,8 +206,8 @@ Gdiplus::PointF GetEllipseIntersection(Gdiplus::RectF &rect, const Gdiplus::Poin
 //повертає координати сусідніх точок від місця перетину еліпса з променем до точки хвостика
 std::pair<Gdiplus::PointF, Gdiplus::PointF> GetIntersectionNeighborsPoints(Gdiplus::RectF &rect,
 																		   const Gdiplus::PointF &tail,
-																		   int n = 360, // кількість дискретних точок еліпса
-																		   int k = 10)  // зсув у кількості точок)
+																		   int n,
+																		   int k)
 {
   float a = rect.Width / 2,
 		b = rect.Height / 2,
@@ -376,8 +230,8 @@ std::pair<Gdiplus::PointF, Gdiplus::PointF> GetIntersectionNeighborsPoints(Gdipl
 //повертає кути до сусідніх точок від точки перетину еліпса з променем до точки хвостика
 std::pair<double, double> GetIntersectionNeighborsAngles(Gdiplus::RectF &rect,
 														 const Gdiplus::PointF &tail,
-														 int n = 360, // кількість дискретних точок еліпса
-														 int k = 10)  // зсув у кількості точок)
+														 int n,
+														 int k)
 {
   float a = rect.Width / 2,
 		b = rect.Height / 2,
@@ -396,13 +250,13 @@ std::pair<double, double> GetIntersectionNeighborsAngles(Gdiplus::RectF &rect,
 //функція для вимірювання розміру тексту
 Gdiplus::RectF MeasureTextRect(const std::wstring &text,
 							   Gdiplus::RectF rect,
-							   int user_font = 0,
-							   const std::wstring &font_name = L"Segoe UI",
-							   float font_size = 10.0f,
-							   Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
-							   const std::wstring &align = L"left", // "left", "center", "right"
-							   bool center_vertically = false,
-							   bool word_wrap = true)
+							   int user_font,
+							   const std::wstring &font_name,
+							   float font_size,
+							   Gdiplus::FontStyle font_style,
+							   const std::wstring &align,
+							   bool center_vertically,
+							   bool word_wrap)
 {
   Gdiplus::RectF layout_rect;
 
@@ -475,7 +329,6 @@ Gdiplus::RectF MeasureTextRect(const std::wstring &text,
 //---------------------------------------------------------------------------
 
 int GenerateRayHeight(int min_ray_h, int max_ray_h)
-
 {
   int res = min_ray_h;
 
@@ -498,11 +351,7 @@ int GenerateRayHeight(int min_ray_h, int max_ray_h)
 //---------------------------------------------------------------------------
 
 //Допоміжна функція для побудови полігона, що імітує спалах або вибух
-Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::RectF rect,
-										  int min_ray_h, //мінімальна висота променю
-										  int max_ray_h, //максимальна висота променю
-										  bool rand_h = false)
-
+Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::RectF rect, int min_ray_h, int max_ray_h, bool rand_h)
 {
   Gdiplus::GraphicsPath *path = new Gdiplus::GraphicsPath();
 
@@ -577,9 +426,8 @@ Gdiplus::GraphicsPath *CreateBlastPolygon(Gdiplus::RectF rect,
 //---------------------------------------------------------------------------
 
 //rect – прямокутник, у якому має розташовуватись хмаринка
-//countX/Y – кількість "пузирів" по горизонталі та вертикалі
 //chaotic – коефіцієнт "хаотичності" параметрів точок (0.0f – рівна сітка, 1.0f – дуже розкидано)
-Gdiplus::GraphicsPath *CreateCloudBase(Gdiplus::RectF &rect, float chaotic = 0.25f)
+Gdiplus::GraphicsPath *CreateCloudBase(Gdiplus::RectF &rect, float chaotic)
 {
   if (rect.Width <= 0 || rect.Height <= 0) return nullptr;
 
@@ -641,9 +489,31 @@ Gdiplus::GraphicsPath *CreateCloudBase(Gdiplus::RectF &rect, float chaotic = 0.2
 }
 //---------------------------------------------------------------------------
 
-void DrawLineGDIPlus(int x1, int y1, int x2, int y2,
-					 Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0),
-					 int width = 0)
+//Функція малювання у віртуальному вікні
+void DrawImageGDIPlus(HDC hMemDC, const wchar_t *file, int x, int y)
+{
+  try
+	 {
+	   if (!hMemDC)
+		 throw Exception("Virtual buffer doesn't exists!");
+
+//Завантаження зображення через GDI+
+	   Gdiplus::Graphics graphics(hMemDC);
+	   Gdiplus::Image image(file);
+
+	   if (image.GetLastStatus() == Gdiplus::Ok)
+		 graphics.DrawImage(&image, x, y);
+	   else
+		 throw Exception("GDI+ not initialised!");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::DrawToVirtualWindow: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+void DrawLineGDIPlus(HDC hMemDC, int x1, int y1, int x2, int y2, Gdiplus::Color color, int width)
 {
   try
 	 {
@@ -663,11 +533,10 @@ void DrawLineGDIPlus(int x1, int y1, int x2, int y2,
 }
 //---------------------------------------------------------------------------
 
-void DrawArcGDIPlus(int x, int y,
-					int width, int height,
+void DrawArcGDIPlus(HDC hMemDC, int x, int y, int width, int height,
 					int st_angle, int sw_angle,
-					Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0),
-					int border_width = 0)
+					Gdiplus::Color color,
+					int border_width)
 {
   try
 	 {
@@ -687,12 +556,11 @@ void DrawArcGDIPlus(int x, int y,
 }
 //---------------------------------------------------------------------------
 
-void DrawPolygonGDIPlus(Gdiplus::Point *points,
-						int cnt,
-						Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
-						Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
-						float border_width = 1.0f,
-						bool shadow = false)
+void DrawPolygonGDIPlus(HDC hMemDC, Gdiplus::Point *points, int cnt,
+						Gdiplus::Color fill_color,
+						Gdiplus::Color border_color,
+						float border_width,
+						bool shadow)
 {
   try
 	 {
@@ -727,12 +595,11 @@ void DrawPolygonGDIPlus(Gdiplus::Point *points,
 }
 //---------------------------------------------------------------------------
 
-void DrawEllipseGDIPlus(int x, int y,
-						int width, int height,
-						Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
-						Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
-						float border_width = 1.0f,
-					    bool shadow = false)
+void DrawEllipseGDIPlus(HDC hMemDC, int x, int y, int width, int height,
+						Gdiplus::Color fill_color,
+						Gdiplus::Color border_color,
+						float border_width,
+						bool shadow)
 {
   try
 	 {
@@ -767,16 +634,17 @@ void DrawEllipseGDIPlus(int x, int y,
 }
 //---------------------------------------------------------------------------
 
-void DrawTextGDIPlus(const std::wstring &text,
+void DrawTextGDIPlus(HDC hMemDC,
+					 const std::wstring &text,
 					 Gdiplus::RectF rect,
-					 int user_font = 0,
-					 const std::wstring &font_name = L"Segoe UI",
-					 float font_size = 10.0f,
-					 Gdiplus::FontStyle font_style = Gdiplus::FontStyleRegular,
-					 Gdiplus::Color color = Gdiplus::Color(255, 0, 0, 0), // чорний
-					 const std::wstring &align = L"left", // "left", "center", "right"
-					 bool center_vertically = false,
-					 bool word_wrap = true)
+					 int user_font,
+					 const std::wstring &font_name,
+					 float font_size,
+					 Gdiplus::FontStyle font_style,
+					 Gdiplus::Color color,
+					 const std::wstring &align,
+					 bool center_vertically,
+					 bool word_wrap)
 {
   try
 	 {
@@ -848,12 +716,13 @@ void DrawTextGDIPlus(const std::wstring &text,
 }
 //---------------------------------------------------------------------------
 
-void DrawRectangleGDIPlus(int x, int y, int width, int height,
-						  Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
-						  Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
-						  float border_width = 1.0f,
-						  int corner_radius = 0,
-						  bool shadow = false) //напівпрозора чорна тінь
+void DrawRectangleGDIPlus(HDC hMemDC,
+						  int x, int y, int width, int height,
+						  Gdiplus::Color fill_color,
+						  Gdiplus::Color border_color,
+						  float border_width,
+						  int corner_radius,
+						  bool shadow) //напівпрозора чорна тінь
 {
   try
 	 {
@@ -897,14 +766,15 @@ void DrawRectangleGDIPlus(int x, int y, int width, int height,
 }
 //---------------------------------------------------------------------------
 
-void DrawSpeechBubbleRectGDIPlus(int x, int y, int width, int height,
+void DrawSpeechBubbleRectGDIPlus(HDC hMemDC,
+								 int x, int y, int width, int height,
 								 Gdiplus::PointF& tail_point,
-								 int tail_width = 10, //ширина основи хвостика
-								 int corner_radius = 10,
-								 Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255),
-								 Gdiplus::Color border_color = Gdiplus::Color(0, 0, 0),
-								 float border_width = 1.0f,
-								 bool shadow = false)  //напівпрозора чорна тінь
+								 int tail_width,
+								 int corner_radius,
+								 Gdiplus::Color fill_color,
+								 Gdiplus::Color border_color,
+								 float border_width,
+								 bool shadow)
 {
   try
 	 {
@@ -949,14 +819,13 @@ void DrawSpeechBubbleRectGDIPlus(int x, int y, int width, int height,
 }
 //---------------------------------------------------------------------------
 
-void DrawSpeechBlastGDIPlus(int x, int y, int width, int height,
-							int min_ray_h,
-							int max_ray_h,
-							bool rand_h,
-							Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
-							Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
-							float border_width = 1.0f,
-							bool shadow = false) //напівпрозора чорна тінь
+void DrawSpeechBlastGDIPlus(HDC hMemDC,
+							int x, int y, int width, int height,
+							int min_ray_h, int max_ray_h, bool rand_h,
+							Gdiplus::Color fill_color,
+							Gdiplus::Color border_color,
+							float border_width,
+							bool shadow)
 {
   try
 	 {
@@ -990,13 +859,14 @@ void DrawSpeechBlastGDIPlus(int x, int y, int width, int height,
 }
 //---------------------------------------------------------------------------
 
-void DrawSpeechBalloonGDIPlus(int x, int y, int width, int height,
+void DrawSpeechBalloonGDIPlus(HDC hMemDC,
+							  int x, int y, int width, int height,
 							  const Gdiplus::PointF& tail_point,
-							  int tail_width = 10, //ширина основи хвостика
-							  Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
-							  Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
-							  float border_width = 1.0f,
-							  bool shadow = false) //напівпрозора чорна тінь
+							  int tail_width,
+							  Gdiplus::Color fill_color,
+							  Gdiplus::Color border_color,
+							  float border_width,
+							  bool shadow)
 {
   try
 	 {
@@ -1057,13 +927,14 @@ void DrawSpeechBalloonGDIPlus(int x, int y, int width, int height,
 }
 //---------------------------------------------------------------------------
 
-void DrawSpeechCloudGDIPlus(int x, int y, int width, int height,
-							  const Gdiplus::PointF& tail_point,
-                              int tail_width = 10, //ширина основи хвостика
-							  Gdiplus::Color fill_color = Gdiplus::Color(255, 255, 255, 255),
-							  Gdiplus::Color border_color = Gdiplus::Color(255, 0, 0, 0),
-							  float border_width = 1.0f,
-							  bool shadow = false) //напівпрозора чорна тінь
+void DrawSpeechCloudGDIPlus(HDC hMemDC,
+							int x, int y, int width, int height,
+							const Gdiplus::PointF& tail_point,
+							int tail_width,
+							Gdiplus::Color fill_color,
+							Gdiplus::Color border_color,
+							float border_width,
+							bool shadow)
 {
   try
 	 {
@@ -1120,9 +991,49 @@ void DrawSpeechCloudGDIPlus(int x, int y, int width, int height,
 }
 //---------------------------------------------------------------------------
 
+LRESULT CALLBACK ControlWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+  switch (message)
+	{
+	  case WM_DESTROY:
+		{
+		  PostQuitMessage(0);
+		  return 0;
+		}
+
+      case WM_PAINT:
+		{
+		  PAINTSTRUCT ps;
+		  HDC hdc = BeginPaint(hwnd, &ps);
+		  EnterCriticalSection(&cs);
+		  //CopyVirtualToMain(hdc);
+		  LeaveCriticalSection(&cs);
+		  EndPaint(hwnd, &ps);
+		  break;
+		}
+
+	  case WM_LBUTTONUP:
+		{
+		  //mouse.x = LOWORD(lParam);
+		  //mouse.y = HIWORD(lParam);
+
+		  break;
+		}
+
+	  case WM_CLOSE:
+		{
+		  DestroyWindow(hwnd);
+		  break;
+		}
+	}
+
+  return DefWindowProc(hwnd, message, wParam, lParam);
+}
+//---------------------------------------------------------------------------
+
 LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-  static int sx, sy; //розміри вікна
+  static int mainX, mainY; //розміри вікна
   static POINT mouse; //координати курсора миші
 
   switch (message)
@@ -1134,8 +1045,8 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 	  case WM_SIZE:
 		{
-		  sx = LOWORD(lParam);
-		  sy = HIWORD(lParam);
+		  mainX = LOWORD(lParam);
+		  mainY = HIWORD(lParam);
 		  break;
 		}
 
@@ -1143,11 +1054,11 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  ClearVirtualWindow();
+		  ClearVirtualWindow(hMemDC, WndWidth, WndHeight);
 
 		  LeaveCriticalSection(&cs);
 
-          InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+          InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1155,13 +1066,17 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawLineGDIPlus(CurrentLine.X1, CurrentLine.Y1, CurrentLine.X2, CurrentLine.Y2,
+		  DrawLineGDIPlus(hMemDC,
+						  CurrentLine.X1,
+						  CurrentLine.Y1,
+						  CurrentLine.X2,
+						  CurrentLine.Y2,
 						  CurrentLine.Color,
                           CurrentLine.Size);
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1169,15 +1084,18 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawArcGDIPlus(CurrentArc.Left, CurrentArc.Top,
-		  				 CurrentArc.Width, CurrentArc.Height,
+		  DrawArcGDIPlus(hMemDC,
+						 CurrentArc.Left,
+						 CurrentArc.Top,
+						 CurrentArc.Width,
+						 CurrentArc.Height,
 						 CurrentArc.StartAngle, CurrentArc.SweepAngle,
 						 CurrentArc.Color,
 						 CurrentArc.Size);
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1185,7 +1103,8 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawPolygonGDIPlus(CurrentPoly.Points.data(),
+		  DrawPolygonGDIPlus(hMemDC,
+							 CurrentPoly.Points.data(),
 							 CurrentPoly.Points.size(),
 							 CurrentPoly.Color,
 							 CurrentPoly.BorderColor,
@@ -1194,7 +1113,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1202,10 +1121,11 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawEllipseGDIPlus(CurrentEllipse.Left,
+		  DrawEllipseGDIPlus(hMemDC,
+							 CurrentEllipse.Left,
 							 CurrentEllipse.Top,
 							 CurrentEllipse.Width,
-                             CurrentEllipse.Height,
+							 CurrentEllipse.Height,
 							 CurrentEllipse.Color,
 							 CurrentEllipse.BorderColor,
 							 CurrentEllipse.Border,
@@ -1213,7 +1133,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1221,7 +1141,8 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawRectangleGDIPlus(CurrentRect.Left,
+		  DrawRectangleGDIPlus(hMemDC,
+							   CurrentRect.Left,
 							   CurrentRect.Top,
 							   CurrentRect.Width,
 							   CurrentRect.Height,
@@ -1233,7 +1154,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1244,11 +1165,11 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		  int x = LOWORD(lParam);
 		  int y = HIWORD(lParam);
 
-		  DrawToVirtualWindow((LPWSTR)wParam, x, y);  //оновлення буфера
+		  DrawImageGDIPlus(hMemDC, (LPWSTR)wParam, x, y);  //оновлення буфера
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1256,7 +1177,8 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawRectangleGDIPlus(CurrentPlate.Left,
+		  DrawRectangleGDIPlus(hMemDC,
+							   CurrentPlate.Left,
 							   CurrentPlate.Top,
 							   CurrentPlate.Width,
 							   CurrentPlate.Height,
@@ -1268,7 +1190,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1276,7 +1198,8 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawSpeechBubbleRectGDIPlus(CurrentBubble.Left,
+		  DrawSpeechBubbleRectGDIPlus(hMemDC,
+									  CurrentBubble.Left,
 									  CurrentBubble.Top,
 									  CurrentBubble.Width,
 									  CurrentBubble.Height,  	  //основний прямокутник
@@ -1290,7 +1213,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1298,7 +1221,8 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawSpeechBlastGDIPlus(CurrentBlast.Left,
+		  DrawSpeechBlastGDIPlus(hMemDC,
+								 CurrentBlast.Left,
 								 CurrentBlast.Top,
 								 CurrentBlast.Width,
 								 CurrentBlast.Height,  	     //основний прямокутник
@@ -1312,7 +1236,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1320,7 +1244,8 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawSpeechBalloonGDIPlus(CurrentBalloon.Left,
+		  DrawSpeechBalloonGDIPlus(hMemDC,
+								   CurrentBalloon.Left,
 								   CurrentBalloon.Top,
 								   CurrentBalloon.Width,
 								   CurrentBalloon.Height,  	    //основний прямокутник
@@ -1333,7 +1258,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1341,7 +1266,8 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawSpeechCloudGDIPlus(CurrentCloud.Left,
+		  DrawSpeechCloudGDIPlus(hMemDC,
+		  						 CurrentCloud.Left,
 								 CurrentCloud.Top,
 								 CurrentCloud.Width,
 								 CurrentCloud.Height,  	    //основний прямокутник
@@ -1354,7 +1280,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1362,7 +1288,8 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  EnterCriticalSection(&cs);
 
-		  DrawTextGDIPlus((LPWSTR)wParam,
+		  DrawTextGDIPlus(hMemDC,
+		  				  (LPWSTR)wParam,
 						  CurrentText.Rect,
 						  CurrentText.UserFont,
 						  CurrentText.FontName,
@@ -1375,7 +1302,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(WHandle, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
 		  break;
 		}
 
@@ -1388,11 +1315,11 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 	  case WM_PAINT:
 		{
 		  PAINTSTRUCT ps;
-		  HDC hdc = BeginPaint(WHandle, &ps);
+		  HDC hdc = BeginPaint(hwnd, &ps);
 		  EnterCriticalSection(&cs);
-		  CopyVirtualToMain(hdc);
+		  CopyVirtualToMain(hMemDC, hdc);
 		  LeaveCriticalSection(&cs);
-		  EndPaint(WHandle, &ps);
+		  EndPaint(hwnd, &ps);
 		  break;
 		}
 
@@ -1419,6 +1346,57 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
   return 0;
 }
 //-------------------------------------------------------------------------
+
+HWND CreateControlWindow()
+{
+  try
+	 {
+	   MSG Msg;
+
+	   const wchar_t CLASS_NAME[] = L"KobzarControlWindow";
+
+//реєстрація класу вікна
+	   WNDCLASSEX wc = {};
+
+	   wc.cbSize = sizeof(wc);
+	   wc.lpfnWndProc = ControlWindowProcedure;
+	   wc.hInstance = DllHinst;
+	   wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	   wc.lpszClassName = CLASS_NAME;
+	   wc.hbrBackground = (HBRUSH)GetStockObject(NULL_BRUSH); // прозоре тло
+
+	   if (!RegisterClassEx(&wc))
+		 return 0;
+
+//стиль вікна: без рамки, без системного меню, прозоре
+	   DWORD style = WS_POPUP | WS_CHILD;
+	   DWORD exStyle = WS_EX_LAYERED | WS_EX_TOOLWINDOW; // ToolWindow — без іконки на панелі задач
+
+	   HWND hwnd = CreateWindowEx(exStyle,
+								  CLASS_NAME,
+								  L"", //без заголовка
+								  style,
+								  200, 200, 400, 300, // позиція та розмір
+								  nullptr, nullptr, DllHinst, nullptr);
+
+
+	   if (!hwnd)
+		 return 0;
+
+//прозорість (0–255)
+	   SetLayeredWindowAttributes(hwnd, (COLORREF)0, 255, LWA_ALPHA);
+
+	   ShowWindow(hwnd, SW_SHOWNORMAL);
+	   UpdateWindow(hwnd);
+	 }
+  catch (...)
+	 {
+	   throw std::runtime_error("CreateControlWindow: error!");
+	 }
+
+  return 0;
+}
+//---------------------------------------------------------------------------
 
 unsigned __stdcall CreateHostWindow(void*)
 {
@@ -1455,16 +1433,16 @@ unsigned __stdcall CreateHostWindow(void*)
 							 GetModuleHandle(NULL),
 							 NULL);
 
-		CreateVirtualWindow(WHandle, WndWidth, WndHeight);
+		CreateVirtualWindow(WHandle, hBitmap, hMemDC, WndWidth, WndHeight);
 
 		ShowWindow(WHandle, SW_SHOWNORMAL);
-        UpdateWindow(WHandle);
+		UpdateWindow(WHandle);
 
 		/* Run the message loop. It will run until GetMessage() returns 0 */
 		while (GetMessage (&Msg, NULL, 0, 0))
 		  {
 			TranslateMessage(&Msg);
-      		DispatchMessage(&Msg);
+			DispatchMessage(&Msg);
 		  }
 
 //Очищення пам’яті
