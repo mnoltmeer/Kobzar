@@ -30,6 +30,8 @@
 		_ImportFunc(&$this.LibraryHandle, "eDrawBalloon", "_DrawBalloon", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawCloud", "_DrawCloud", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawText", "_DrawText", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eCreateControl", "_CreateControl", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eResizeControl", "_ResizeControl", "sym pObjectName");
 
         &$this.Initialised = 1;		
       }
@@ -391,6 +393,22 @@
     &$this.Object($left, $top, $width, $height);
 	&$this.BeforeTextInterval = 15;
 	&$this.AfterTextInterval = 15;
+  }
+}
+//===========================================================;
+
+#class Control : Object
+{
+  #public property Handle = 0; //handle of WinAPI window;
+  
+  #public method Draw(){_ResizeControl(&$this.GetName());}
+  
+  #public method Control($left, $top, $width, $height)
+  {
+    &$this.Object($left, $top, $width, $height);
+	
+	if (!_CreateControl(&$this.GetName()))
+	  {_throw("Error creating Control [" &$this.GetName() "]";}
   }
 }
 //===========================================================;

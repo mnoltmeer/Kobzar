@@ -33,15 +33,18 @@ HINSTANCE DllHinst;
 HANDLE WndThread;
 HWND WHandle;
 unsigned int thID;
+HINSTANCE AppHinst;
 
 //Віртуальне вікно (буфер)
 HBITMAP hBitmap = NULL;
 HDC hMemDC = NULL;
 
 int WndWidth = 800, WndHeight = 600;
+int WndX = 0, WndY = 0;
 bool FullScreen = 0;
 CRITICAL_SECTION cs;  //для безпечного доступу до пам’яті
 Gdiplus::PrivateFontCollection *UserFontCollection; //колекція користув. шрифтів для ф-ї eLoadFont()
+TControlsCollection *Controls; //колекція об'єктів типу Control
 
 PLATE CurrentPlate; //для визначення параметрів поточного об'єкту типу Frame
 TEXT CurrentText; //для визначення параметрів поточного об'єкту типу Text
@@ -54,17 +57,18 @@ MYRECT CurrentRect; //для визначення параметрів поточного об'єкту типу Rect
 BLAST CurrentBlast; //для визначення параметрів поточного об'єкту типу Blast
 BUBBLE CurrentBalloon; //для визначення параметрів поточного об'єкту типу Balloon
 BUBBLE CurrentCloud; //для визначення параметрів поточного об'єкту типу Cloud
+Gdiplus::Rect CurrentControl;
 
 //Функція створення віртуального вікна (буфера)
-void CreateVirtualWindow(HWND hWnd, HBITMAP &hBitmap, HDC &hMemDC, int width, int height)
+void CreateVirtualWindow(HWND hwnd, HBITMAP &hBitmap, HDC &hMemDC, int width, int height)
 {
   try
 	 {
-	   HDC hdc = GetDC(hWnd);
+	   HDC hdc = GetDC(hwnd);
 	   hMemDC = CreateCompatibleDC(hdc);
 	   hBitmap = CreateCompatibleBitmap(hdc, width, height);
 	   SelectObject(hMemDC, hBitmap);
-	   ReleaseDC(hWnd, hdc);
+	   ReleaseDC(hwnd, hdc);
        SetBkMode(hMemDC, TRANSPARENT); //встановлюємо прозорий фон для тексту
 	 }
   catch (Exception &e)
@@ -995,36 +999,21 @@ LRESULT CALLBACK ControlWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
 {
   switch (message)
 	{
-	  case WM_DESTROY:
-		{
-		  PostQuitMessage(0);
-		  return 0;
-		}
-
-      case WM_PAINT:
+	  case WM_PAINT:
 		{
 		  PAINTSTRUCT ps;
 		  HDC hdc = BeginPaint(hwnd, &ps);
 		  EnterCriticalSection(&cs);
-		  //CopyVirtualToMain(hdc);
+		  //CopyVirtualToMain(hMemDC, hdc);
 		  LeaveCriticalSection(&cs);
 		  EndPaint(hwnd, &ps);
-		  break;
-		}
-
-	  case WM_LBUTTONUP:
-		{
-		  //mouse.x = LOWORD(lParam);
-		  //mouse.y = HIWORD(lParam);
 
 		  break;
 		}
 
-	  case WM_CLOSE:
-		{
-		  DestroyWindow(hwnd);
-		  break;
-		}
+	  case WM_ERASEBKGND: return 1;
+
+      return 0;
 	}
 
   return DefWindowProc(hwnd, message, wParam, lParam);
@@ -1033,7 +1022,6 @@ LRESULT CALLBACK ControlWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
 
 LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-  static int mainX, mainY; //розміри вікна
   static POINT mouse; //координати курсора миші
 
   switch (message)
@@ -1045,8 +1033,15 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 	  case WM_SIZE:
 		{
-		  mainX = LOWORD(lParam);
-		  mainY = HIWORD(lParam);
+		  WndWidth = LOWORD(lParam);
+		  WndHeight = HIWORD(lParam);
+		  break;
+		}
+
+	  case WM_MOVE:
+		{
+		  WndX = LOWORD(lParam);
+		  WndY = HIWORD(lParam);
 		  break;
 		}
 
@@ -1306,6 +1301,28 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		  break;
 		}
 
+	  case WM_KVL_CREATE_CONTROL:
+		{
+		  HWND *pOut = (HWND*)wParam;
+		  HANDLE hEvent = (HANDLE)lParam;
+
+//стиль вікна: без рамки, без системного меню, прозоре
+		  *pOut = CreateWindowEx(NULL, L"KobzarControl", L"", //без заголовка
+								 WS_CHILD | WS_VISIBLE | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_BORDER,
+								 CurrentControl.X, CurrentControl.Y,
+								 CurrentControl.Width, CurrentControl.Height, // позиція та розмір
+								 WHandle, //хендл батьківського вікна
+								 NULL,
+								 AppHinst,
+								 NULL);
+
+//прозорість (0–255)
+		  SetLayeredWindowAttributes(*pOut, (COLORREF)0, 255, LWA_ALPHA);
+
+		  SetEvent(hEvent);
+          break;
+		}
+
 	  case WM_DESTROY:
 		{
 		  PostQuitMessage(0);
@@ -1347,54 +1364,30 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 }
 //-------------------------------------------------------------------------
 
-HWND CreateControlWindow()
+HWND CreateControlWindow(int x, int y, int width, int height)
 {
+  HWND res = NULL;
+
   try
 	 {
-	   MSG Msg;
+	   HANDLE hEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
-	   const wchar_t CLASS_NAME[] = L"KobzarControlWindow";
+	   CurrentControl.X = x;
+	   CurrentControl.Y = y;
+	   CurrentControl.Width = width;
+       CurrentControl.Height = height;
 
-//реєстрація класу вікна
-	   WNDCLASSEX wc = {};
+	   PostMessage(WHandle, WM_KVL_CREATE_CONTROL, (WPARAM)&res, (LPARAM)hEvent);
 
-	   wc.cbSize = sizeof(wc);
-	   wc.lpfnWndProc = ControlWindowProcedure;
-	   wc.hInstance = DllHinst;
-	   wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	   wc.lpszClassName = CLASS_NAME;
-	   wc.hbrBackground = (HBRUSH)GetStockObject(NULL_BRUSH); // прозоре тло
-
-	   if (!RegisterClassEx(&wc))
-		 return 0;
-
-//стиль вікна: без рамки, без системного меню, прозоре
-	   DWORD style = WS_POPUP | WS_CHILD;
-	   DWORD exStyle = WS_EX_LAYERED | WS_EX_TOOLWINDOW; // ToolWindow — без іконки на панелі задач
-
-	   HWND hwnd = CreateWindowEx(exStyle,
-								  CLASS_NAME,
-								  L"", //без заголовка
-								  style,
-								  200, 200, 400, 300, // позиція та розмір
-								  nullptr, nullptr, DllHinst, nullptr);
-
-
-	   if (!hwnd)
-		 return 0;
-
-//прозорість (0–255)
-	   SetLayeredWindowAttributes(hwnd, (COLORREF)0, 255, LWA_ALPHA);
-
-	   ShowWindow(hwnd, SW_SHOWNORMAL);
-	   UpdateWindow(hwnd);
+	   WaitForSingleObject(hEvent, 2000);
+	   CloseHandle(hEvent);
 	 }
   catch (...)
 	 {
 	   throw std::runtime_error("CreateControlWindow: error!");
 	 }
 
-  return 0;
+  return res;
 }
 //---------------------------------------------------------------------------
 
@@ -1409,29 +1402,38 @@ unsigned __stdcall CreateHostWindow(void*)
 	   ULONG_PTR gdiplusToken;
 	   Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
 	   UserFontCollection = new Gdiplus::PrivateFontCollection; //ініціалізуємо колекцію шрифтів для вікна
+	   Controls = new TControlsCollection();
 
-	   WNDCLASSEX wcex = {sizeof(WNDCLASSEX),
-						  CS_HREDRAW|CS_VREDRAW,
-						  HostWindowProcedure,
-						  0, 0,
-						  GetModuleHandle(NULL),
-						  NULL,
-						  LoadCursor(NULL, IDC_ARROW),
-						  (HBRUSH)(COLOR_WINDOW+1),
-						  NULL,
-						  L"KobzarVisualisation",
-						  NULL};
+	   WNDCLASSW wcMain = {};
 
-	   RegisterClassEx(&wcex);
+	   wcMain.lpszClassName = L"KobzarVisualisation";
+	   wcMain.lpfnWndProc = HostWindowProcedure;
+	   wcMain.hInstance = AppHinst;
+	   wcMain.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	   wcMain.hCursor = LoadCursor(nullptr, IDC_ARROW);
 
-//Створюємо вікно
-	  WHandle = CreateWindow(L"KobzarVisualisation",
-							 L"Kobzar Visual Library Window", WS_OVERLAPPEDWINDOW,
-							 CW_USEDEFAULT, CW_USEDEFAULT,
-							 WndWidth, WndHeight,
-							 NULL, NULL,
-							 GetModuleHandle(NULL),
-							 NULL);
+	   RegisterClass(&wcMain);
+
+//реєстрація класу вікна контролу
+	   WNDCLASSW wcCtrl = {};
+
+	   wcCtrl.lpszClassName = L"KobzarControl";
+	   wcCtrl.lpfnWndProc = ControlWindowProcedure;
+	   wcCtrl.hInstance = AppHinst;
+	   wcCtrl.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	   wcCtrl.hbrBackground = (HBRUSH)GetStockObject(NULL_BRUSH); // прозоре тло
+
+	   RegisterClass(&wcCtrl);
+
+//створюємо головне вікно
+	   WHandle = CreateWindow(L"KobzarVisualisation",
+							  L"Kobzar Visual Library Window",
+							  WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+							  CW_USEDEFAULT, CW_USEDEFAULT,
+							  WndWidth, WndHeight,
+							  NULL, NULL,
+							  AppHinst,
+							  NULL);
 
 		CreateVirtualWindow(WHandle, hBitmap, hMemDC, WndWidth, WndHeight);
 
@@ -1453,8 +1455,9 @@ unsigned __stdcall CreateHostWindow(void*)
 		Gdiplus::GdiplusShutdown(gdiplusToken);
 
 		delete UserFontCollection;
+        delete Controls;
 
-		UnregisterClass(L"KobzarVisualisation", DllHinst);
+		UnregisterClass(L"KobzarVisualisation", AppHinst);
 		WHandle = NULL;
 	   _endthreadex(0);
 	 }
@@ -1472,7 +1475,8 @@ void StartWork()
 {
   try
 	 {
-	   InitializeCriticalSection(&cs);  //Ініціалізуємо синхронізацію
+       AppHinst = GetModuleHandle(NULL); //отримуємо дескриптор застосунку
+	   InitializeCriticalSection(&cs);  //ініціалізуємо синхронізацію
 	   WndThread = (HANDLE)_beginthreadex(NULL, 4096, CreateHostWindow, NULL, NULL, &thID);
 	 }
   catch (Exception &e)
@@ -1496,6 +1500,152 @@ void StopWork()
   catch (Exception &e)
 	 {
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::StopWork: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
+TKVLControl::TKVLControl(int x, int y, int width, int height)
+{
+  FHandle = CreateControlWindow(x, y, width, height);
+
+  if (FHandle)
+	{
+      FX = x;
+	  FY = y;
+	  FWidth = width;
+	  FHeight = height;
+
+	  CreateVirtualWindow(FHandle, FBitmap, FMemDC, FWidth, FHeight);
+	}
+}
+//---------------------------------------------------------------------------
+
+TKVLControl::~TKVLControl()
+{
+  if (FHandle) PostMessage(FHandle, WM_CLOSE, 0, 0);
+
+  if (FBitmap) DeleteObject(FBitmap);
+  if (FMemDC) DeleteDC(FMemDC);
+};
+//---------------------------------------------------------------------------
+
+void TKVLControl::Set(float x, float y, float width, float height)
+{
+  try
+	 {
+	   if (!MoveWindow(FHandle, x, y, width, height, true))
+		 throw Exception("Error moving window");
+
+	   SetLayeredWindowAttributes(FHandle, (COLORREF)0, 255, LWA_ALPHA);
+
+	   FX = x;
+	   FY = y;
+	   FWidth = width;
+	   FHeight = height;
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TKVLControl::Set: " + e.Message;
+	   throw e;
+	 }
+}
+//---------------------------------------------------------------------------
+
+TKVLControl *TControlsCollection::FGet(HWND handle)
+{
+  try
+	 {
+	   return FItems[IndexOf(handle)];
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TControlsCollection::FGet: " + e.Message;
+	   throw e;
+	 }
+}
+//---------------------------------------------------------------------------
+
+int TControlsCollection::IndexOf(HWND handle)
+{
+  int res = -1;
+
+  for (int i = 0; i < FItems.size(); i++)
+	 {
+	   if (FItems[i]->Handle == handle)
+		 {
+		   res = i;
+		   break;
+		 }
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+void TControlsCollection::Clear()
+{
+  try
+	 {
+	   for (auto itm : FItems)
+		  delete itm;
+
+	   FItems.clear();
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TControlsCollection::Clear: " + e.Message;
+	   throw e;
+	 }
+}
+//---------------------------------------------------------------------------
+
+HWND TControlsCollection::Add(TKVLControl *object)
+{
+  HWND res = NULL;
+
+  try
+	 {
+	   FItems.push_back(object);
+	   res = object->Handle;
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TControlsCollection::Add: " + e.Message;
+	   throw e;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+HWND TControlsCollection::Add(float x, float y, float width, float height)
+{
+  HWND res = NULL;
+
+  try
+	 {
+	   res = Add(new TKVLControl(x, y, width, height));
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TControlsCollection::Add: " + e.Message;
+	   throw e;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+void TControlsCollection::Remove(HWND handle)
+{
+  try
+	 {
+	   delete Items[handle];
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TControlsCollection::Remove: " + e.Message;
+	   throw e;
 	 }
 }
 //---------------------------------------------------------------------------
@@ -2462,6 +2612,83 @@ __declspec(dllexport) void __stdcall eDrawText(void *p)
 	 }
 }
 //---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eCreateControl(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   int x = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   int y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   int w = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   int h = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+
+	   HWND handle = Controls->Add(x, y, w, h);
+
+	   eIface->SetObjectProperty(obj.c_str(), L"Handle", IntToStr((int)handle).c_str());
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eCreateControl: " + e.ToString());
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eResizeControl(void *p)
+{
+  try
+	 {
+	   if (!WHandle)
+		 throw("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   HWND handle = reinterpret_cast<HWND>(_wtoi(eIface->GetObjectProperty(obj.c_str(), L"Handle")));
+	   int x = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   int y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   int w = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
+	   int h = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
+
+	   TKVLControl *ctrl = Controls->Items[handle];
+
+	   if (!ctrl)
+		 throw Exception("Control window not finded!");
+
+	   ctrl->Set(x, y, w, h);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eResizeControl: " + e.ToString());
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
 }
 
 int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved)
