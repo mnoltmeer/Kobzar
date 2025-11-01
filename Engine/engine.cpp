@@ -20,18 +20,20 @@ This file is part of Kobzar Engine.
 
 #pragma hdrstop
 #include <stdio.h>
+#include <Vcl.Forms.hpp>
 #include <Xml.adomxmldom.hpp>
 #include <Xml.XMLDoc.hpp>
 #include <Xml.xmldom.hpp>
 #include <Xml.XMLIntf.hpp>
 #include <Xml.Win.msxmldom.hpp>
 
-#include "..\..\work-functions\MyFunc.h"
+#include "..\..\work-functions\Logs.h"
+#include "..\..\work-functions\Data.h"
+#include "..\..\work-functions\FilesDirs.h"
 #include "engine.h"
 //---------------------------------------------------------------------------
 
 HWND MainAppWindowHandle; //дескриптор вікна додатка, що викликав бібліотеку рушія
-extern String UsedAppLogDir;
 
 int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved)
 {
@@ -41,8 +43,6 @@ int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved
 
   if (!DirectoryExists(LogPath))
 	CreateDir(LogPath);
-
-  UsedAppLogDir = "Kobzar";
 
   GetModuleFileName(hinst, path, sizeof(path));
 

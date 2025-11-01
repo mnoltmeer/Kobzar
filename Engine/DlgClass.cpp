@@ -27,7 +27,6 @@ This file is part of Kobzar Engine.
 #include <Xml.Win.msxmldom.hpp>
 #include <vector>
 
-#include "..\..\work-functions\MyFunc.h"
 #include "DlgClass.h"
 
 //---------------------------------------------------------------------------
