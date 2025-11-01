@@ -31,7 +31,7 @@
 		_ImportFunc(&$this.LibraryHandle, "eDrawCloud", "_DrawCloud", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eDrawText", "_DrawText", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eCreateControl", "_CreateControl", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eResizeControl", "_ResizeControl", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eSetControl", "_SetControl", "sym pObjectName");
 
         &$this.Initialised = 1;		
       }
@@ -401,7 +401,7 @@
 {
   #public property Handle = 0; //handle of WinAPI window;
   
-  #public method Draw(){_ResizeControl(&$this.GetName());}
+  #public method Update(){_SetControl(&$this.GetName());}
   
   #public method Control($left, $top, $width, $height)
   {

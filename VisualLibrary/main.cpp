@@ -78,6 +78,24 @@ void CreateVirtualWindow(HWND hwnd, HBITMAP &hBitmap, HDC &hMemDC, int width, in
 }
 //---------------------------------------------------------------------------
 
+//‘ункц≥€ створенн€ в≥ртуального в≥кна (буфера) дл€ контролу (з врахуванн€м прозорост≥)
+void CreateControlVirtualWindow(TKVLControl *control)
+{
+  try
+	 {
+	   if (control)
+		 {
+		   control->ReleaseContext();
+           control->CreateContext();
+         }
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateControlVirtualWindow: " + e.ToString());
+	 }
+}
+//---------------------------------------------------------------------------
+
 //‘ункц≥€ коп≥юванн€ вм≥сту в≥ртуального в≥кна в основне
 void CopyVirtualToMain(HDC hMemDC, HDC hdc)
 {
@@ -999,21 +1017,19 @@ LRESULT CALLBACK ControlWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
 {
   switch (message)
 	{
-	  case WM_PAINT:
+	  case WM_PAINT: //layered-в≥кно не використовуЇ WM_PAINT Ч просто вал≥дуЇмо рег≥он
 		{
-		  PAINTSTRUCT ps;
-		  HDC hdc = BeginPaint(hwnd, &ps);
-		  EnterCriticalSection(&cs);
-		  //CopyVirtualToMain(hMemDC, hdc);
-		  LeaveCriticalSection(&cs);
-		  EndPaint(hwnd, &ps);
-
-		  break;
+		  ValidateRect(hwnd, NULL);
+		  return 0;
 		}
 
-	  case WM_ERASEBKGND: return 1;
+	  case WM_ERASEBKGND: return 1; //жодного стиранн€
 
-      return 0;
+      case WM_DESTROY:
+		{
+		  PostQuitMessage(0);
+		  return 0;
+        }
 	}
 
   return DefWindowProc(hwnd, message, wParam, lParam);
@@ -1042,6 +1058,8 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		{
 		  WndX = LOWORD(lParam);
 		  WndY = HIWORD(lParam);
+
+		  Controls->Update();
 		  break;
 		}
 
@@ -1308,7 +1326,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 //стиль в≥кна: без рамки, без системного меню, прозоре
 		  *pOut = CreateWindowEx(NULL, L"KobzarControl", L"", //без заголовка
-								 WS_CHILD | WS_VISIBLE | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_BORDER,
+								 WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_POPUP,
 								 CurrentControl.X, CurrentControl.Y,
 								 CurrentControl.Width, CurrentControl.Height, // позиц≥€ та розм≥р
 								 WHandle, //хендл батьк≥вського в≥кна
@@ -1316,12 +1334,45 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 								 AppHinst,
 								 NULL);
 
-//прозор≥сть (0Ц255)
-		  SetLayeredWindowAttributes(*pOut, (COLORREF)0, 255, LWA_ALPHA);
-
 		  SetEvent(hEvent);
           break;
 		}
+
+      case WM_KVL_UPDATE_CONTROL:
+		 {
+		   HWND hCtrl = (HWND)wParam;
+
+		   TKVLControl *ctrl = Controls->Items[hCtrl];
+
+		   if (!ctrl)
+			 {
+			   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Control window with Handle[" + IntToStr((int)hCtrl) + "] not found");
+
+			   return 0;
+			 }
+
+		   CreateControlVirtualWindow(ctrl);
+
+		   HDC hdcScreen = GetDC(NULL);
+		   POINT ptSrc = {0, 0};
+		   POINT ptDst = {(long)ctrl->Left, (long)ctrl->Top};
+		   SIZE size = {(long)ctrl->Width, (long)ctrl->Height};
+
+		   BLENDFUNCTION bf = {AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
+
+		   UpdateLayeredWindow(hCtrl, hdcScreen,
+							   &ptDst,
+							   &size,
+							   ctrl->Buffer,
+							   &ptSrc,
+							   0,
+							   &bf,
+							   ULW_ALPHA);
+
+		   ReleaseDC(NULL, hdcScreen);
+
+           return 0;
+		 }
 
 	  case WM_DESTROY:
 		{
@@ -1381,6 +1432,8 @@ HWND CreateControlWindow(int x, int y, int width, int height)
 
 	   WaitForSingleObject(hEvent, 2000);
 	   CloseHandle(hEvent);
+
+       ShowWindow(res, SW_SHOW);
 	 }
   catch (...)
 	 {
@@ -1421,12 +1474,11 @@ unsigned __stdcall CreateHostWindow(void*)
 	   wcCtrl.lpfnWndProc = ControlWindowProcedure;
 	   wcCtrl.hInstance = AppHinst;
 	   wcCtrl.hCursor = LoadCursor(nullptr, IDC_ARROW);
-	   wcCtrl.hbrBackground = (HBRUSH)GetStockObject(NULL_BRUSH); // прозоре тло
 
 	   RegisterClass(&wcCtrl);
 
 //створюЇмо головне в≥кно
-	   WHandle = CreateWindow(L"KobzarVisualisation",
+	   WHandle = CreateWindow(wcMain.lpszClassName,
 							  L"Kobzar Visual Library Window",
 							  WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 							  CW_USEDEFAULT, CW_USEDEFAULT,
@@ -1510,12 +1562,13 @@ TKVLControl::TKVLControl(int x, int y, int width, int height)
 
   if (FHandle)
 	{
-      FX = x;
-	  FY = y;
+	  FLeft = x;
+	  FTop = y;
 	  FWidth = width;
 	  FHeight = height;
 
-	  CreateVirtualWindow(FHandle, FBitmap, FMemDC, FWidth, FHeight);
+//створюЇмо 32-б≥тну DIB дл€ прозорост≥
+	  CreateContext();
 	}
 }
 //---------------------------------------------------------------------------
@@ -1524,22 +1577,74 @@ TKVLControl::~TKVLControl()
 {
   if (FHandle) PostMessage(FHandle, WM_CLOSE, 0, 0);
 
-  if (FBitmap) DeleteObject(FBitmap);
-  if (FMemDC) DeleteDC(FMemDC);
+  ReleaseContext();
 };
+//---------------------------------------------------------------------------
+
+void TKVLControl::CreateContext()
+{
+  try
+	 {
+	   BITMAPINFO bi = {0};
+
+	   bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	   bi.bmiHeader.biWidth = FWidth;
+	   bi.bmiHeader.biHeight = -FHeight; // top-down
+	   bi.bmiHeader.biPlanes = 1;
+	   bi.bmiHeader.biBitCount = 32;
+	   bi.bmiHeader.biCompression = BI_RGB;
+
+	   HDC hdcScreen = GetDC(NULL);
+
+	   FMemDC = CreateCompatibleDC(hdcScreen);
+	   FBitmap = CreateDIBSection(hdcScreen, &bi, DIB_RGB_COLORS, &FBits, NULL, 0);
+
+	   SelectObject(FMemDC, FBitmap);
+	   ReleaseDC(NULL, hdcScreen);
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TKVLControl::CreateContext: " + e.Message;
+	   throw e;
+	 }
+}
+//---------------------------------------------------------------------------
+
+void TKVLControl::ReleaseContext()
+{
+  try
+	 {
+       if (FBitmap) DeleteObject(FBitmap);
+	   if (FMemDC) DeleteDC(FMemDC);
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TKVLControl::Set: " + e.Message;
+	   throw e;
+	 }
+}
 //---------------------------------------------------------------------------
 
 void TKVLControl::Set(float x, float y, float width, float height)
 {
   try
 	 {
-	   if (!MoveWindow(FHandle, x, y, width, height, true))
-		 throw Exception("Error moving window");
+	   RECT rcParent;
 
-	   SetLayeredWindowAttributes(FHandle, (COLORREF)0, 255, LWA_ALPHA);
+	   GetWindowRect(WHandle, &rcParent);
 
-	   FX = x;
-	   FY = y;
+	   POINT parent = {rcParent.left, rcParent.top};
+
+	   if (!SetWindowPos(FHandle, 0,
+						 parent.x + x, parent.y + y,
+						 width, height,
+						 SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER))
+		 {
+		   throw Exception("Error setting window");
+		 }
+
+	   FLeft = x;
+	   FTop = y;
 	   FWidth = width;
 	   FHeight = height;
 	 }
@@ -1649,6 +1754,49 @@ void TControlsCollection::Remove(HWND handle)
 	 }
 }
 //---------------------------------------------------------------------------
+
+//функц≥€ оновленн€ позиц≥й ус≥х контрол≥в
+void TControlsCollection::Update()
+{
+  try
+	 {
+	   if (FItems.size() == 0)
+         return;
+
+	   RECT rcParent;
+	   GetWindowRect(WHandle, &rcParent);
+	   POINT parent_pos = {rcParent.left, rcParent.top};
+
+//починаЇмо групове оновленн€
+	   HDWP hdwp = BeginDeferWindowPos((int)FItems.size());
+
+	   if (!hdwp) return;
+
+	   for (const auto c : FItems)
+		 {
+		   hdwp = DeferWindowPos(hdwp,
+								 c->Handle,
+								 0,
+								 parent_pos.x + c->Left,
+								 parent_pos.y + c->Top,
+								 c->Width,
+								 c->Height,
+								 SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+
+		   if (!hdwp)
+			 break; //помилка, не вистачило памТ€т≥ або handle з≥псований
+		 }
+
+//застосовуЇмо зм≥ни одним пакетом
+	   if (hdwp)
+		 EndDeferWindowPos(hdwp);
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TControlsCollection::Update: " + e.Message;
+	   throw e;
+	 }
+}
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
 //---------------------------------------------------------------------------
@@ -2649,7 +2797,7 @@ __declspec(dllexport) void __stdcall eCreateControl(void *p)
 }
 //---------------------------------------------------------------------------
 
-__declspec(dllexport) void __stdcall eResizeControl(void *p)
+__declspec(dllexport) void __stdcall eSetControl(void *p)
 {
   try
 	 {
@@ -2671,24 +2819,25 @@ __declspec(dllexport) void __stdcall eResizeControl(void *p)
 	   int w = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
 	   int h = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
-	   TKVLControl *ctrl = Controls->Items[handle];
+       TKVLControl *ctrl = Controls->Items[handle];
 
 	   if (!ctrl)
-		 throw Exception("Control window not finded!");
+		 throw Exception("Control not found!");
 
-	   ctrl->Set(x, y, w, h);
+       ctrl->Set(x, y, w, h);
+
+	   PostMessage(WHandle, WM_KVL_UPDATE_CONTROL, (WPARAM)handle, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eResizeControl: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eSetControl: " + e.ToString());
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
 	 }
 }
 //---------------------------------------------------------------------------
-
 }
 
 int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved)
