@@ -30,8 +30,8 @@ This file is part of Kobzar Engine.
 ELI_INTERFACE *eIface;
 
 HINSTANCE DllHinst;
-HANDLE WndThread;
-HWND WHandle;
+HANDLE thMain;
+HWND hMain;
 unsigned int thID;
 HINSTANCE AppHinst;
 
@@ -57,9 +57,10 @@ MYRECT CurrentRect; //для визначення параметрів поточного об'єкту типу Rect
 BLAST CurrentBlast; //для визначення параметрів поточного об'єкту типу Blast
 BUBBLE CurrentBalloon; //для визначення параметрів поточного об'єкту типу Balloon
 BUBBLE CurrentCloud; //для визначення параметрів поточного об'єкту типу Cloud
-Gdiplus::Rect CurrentControl;
+Gdiplus::Point CurrentImage; //для визначення координат поточного об'єкту типу Image
+Gdiplus::Rect CurrentControl; //для визначення параметрів поточного об'єкту типу Control
 
-//Функція створення віртуального вікна (буфера)
+//функція створення віртуального вікна (буфера)
 void CreateVirtualWindow(HWND hwnd, HBITMAP &hBitmap, HDC &hMemDC, int width, int height)
 {
   try
@@ -78,25 +79,76 @@ void CreateVirtualWindow(HWND hwnd, HBITMAP &hBitmap, HDC &hMemDC, int width, in
 }
 //---------------------------------------------------------------------------
 
-//Функція створення віртуального вікна (буфера) для контролу (з врахуванням прозорості)
-void CreateControlVirtualWindow(TKVLControl *control)
+//функція оновлення візуалу контролу (з врахуванням прозорості)
+void UpdateControlWindow(TKVLControl *control)
 {
   try
 	 {
 	   if (control)
 		 {
-		   control->ReleaseContext();
-           control->CreateContext();
-         }
+		   POINT parent = {control->Left, control->Top};
+
+		   ClientToScreen(hMain, &parent);
+
+		   HDC hdcScreen = GetDC(NULL);
+		   POINT ptSrc = {0, 0};
+		   POINT ptDst = {(long)parent.x, (long)parent.y};
+		   SIZE size = {(long)control->Width, (long)control->Height};
+
+		   BLENDFUNCTION bf = {AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
+
+		   UpdateLayeredWindow(control->Handle,
+							   hdcScreen,
+							   &ptDst,
+							   &size,
+							   control->Buffer,
+							   &ptSrc,
+							   NULL,
+							   &bf,
+							   ULW_ALPHA);
+
+		   ReleaseDC(NULL, hdcScreen);
+		 }
+	   else
+		 throw Exception("Invalid pointer");
 	 }
   catch (Exception &e)
 	 {
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::CreateControlVirtualWindow: " + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::UpdateControlWindow: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
 
-//Функція копіювання вмісту віртуального вікна в основне
+//обирає потрібний HDC для малювання відповідно до дескриптора вікна
+HDC SelectContext(HWND target)
+{
+  HDC res;
+
+  try
+	 {
+	   if (target == hMain) //для малювання обране головне вікно
+		 res = hMemDC;
+	   else
+		 {
+		   TKVLControl *ctrl = Controls->Items[target];
+
+		   if (!ctrl)
+			 throw Exception("Control window not found");
+		   else
+			 res = ctrl->Buffer;
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::SelectContext: " + e.ToString());
+	   res = NULL;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+//функція копіювання вмісту віртуального вікна в основне
 void CopyVirtualToMain(HDC hMemDC, HDC hdc)
 {
   try
@@ -158,7 +210,7 @@ wchar_t *GetFontFamilyName(const wchar_t *font_file)
 }
 //---------------------------------------------------------------------------
 
-//Функція малювання тіні для основної фігури
+//функція малювання тіні для основної фігури
 void DrawShadow(Gdiplus::Graphics *graphics,
 				Gdiplus::GraphicsPath *main_path,
 				int offset,
@@ -511,7 +563,6 @@ Gdiplus::GraphicsPath *CreateCloudBase(Gdiplus::RectF &rect, float chaotic)
 }
 //---------------------------------------------------------------------------
 
-//Функція малювання у віртуальному вікні
 void DrawImageGDIPlus(HDC hMemDC, const wchar_t *file, int x, int y)
 {
   try
@@ -1017,19 +1068,35 @@ LRESULT CALLBACK ControlWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
 {
   switch (message)
 	{
+	  case WM_LBUTTONUP:
+		{
+		  int xPos = GET_X_LPARAM(lParam);
+		  int yPos = GET_Y_LPARAM(lParam);
+
+		  break;
+		}
+
+	  case WM_LBUTTONDOWN:
+		{
+		  break;
+		}
+
+      case WM_MOUSEACTIVATE: return MA_NOACTIVATE;
+
 	  case WM_PAINT: //layered-вікно не використовує WM_PAINT — просто валідуємо регіон
 		{
 		  ValidateRect(hwnd, NULL);
-		  return 0;
+
+		  break;
 		}
 
-	  case WM_ERASEBKGND: return 1; //жодного стирання
+	  case WM_ERASEBKGND: break; //жодного стирання
 
       case WM_DESTROY:
 		{
 		  PostQuitMessage(0);
-		  return 0;
-        }
+		  break;
+		}
 	}
 
   return DefWindowProc(hwnd, message, wParam, lParam);
@@ -1042,26 +1109,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
   switch (message)
 	{
-	  case WM_CREATE:
-		{
-		  break;
-		}
-
-	  case WM_SIZE:
-		{
-		  WndWidth = LOWORD(lParam);
-		  WndHeight = HIWORD(lParam);
-		  break;
-		}
-
-	  case WM_MOVE:
-		{
-		  WndX = LOWORD(lParam);
-		  WndY = HIWORD(lParam);
-
-		  Controls->Update();
-		  break;
-		}
+	  case WM_CREATE: break;
 
 	  case WM_KVL_CLEAR_WINDOW:
 		{
@@ -1071,15 +1119,26 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-          InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+
 		  break;
 		}
 
 	  case WM_KVL_DRAW_LINE:
 		{
+		  HWND target = (HWND)wParam;
+		  HDC context = SelectContext(target);
+
+		  if (!context)
+			{
+			  SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Can't select HDC");
+
+			  return 0;
+			}
+
 		  EnterCriticalSection(&cs);
 
-		  DrawLineGDIPlus(hMemDC,
+		  DrawLineGDIPlus(context,
 						  CurrentLine.X1,
 						  CurrentLine.Y1,
 						  CurrentLine.X2,
@@ -1089,15 +1148,29 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  if (target == hwnd)
+			InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо основне вікно
+		  else
+			UpdateControlWindow(Controls->Items[target]); //оновлюємо вікно контролу
+
 		  break;
 		}
 
 	  case WM_KVL_DRAW_ARC:
 		{
+		  HWND target = (HWND)wParam;
+          HDC context = SelectContext(target);
+
+		  if (!context)
+			{
+			  SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Can't select HDC");
+
+			  return 0;
+			}
+
 		  EnterCriticalSection(&cs);
 
-		  DrawArcGDIPlus(hMemDC,
+		  DrawArcGDIPlus(context,
 						 CurrentArc.Left,
 						 CurrentArc.Top,
 						 CurrentArc.Width,
@@ -1108,15 +1181,29 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  if (target == hwnd)
+			InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо основне вікно
+		  else
+			UpdateControlWindow(Controls->Items[target]); //оновлюємо вікно контролу
+
 		  break;
 		}
 
 	  case WM_KVL_DRAW_POLYGON:
 		{
+		  HWND target = (HWND)wParam;
+          HDC context = SelectContext(target);
+
+		  if (!context)
+			{
+			  SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Can't select HDC");
+
+			  return 0;
+			}
+
 		  EnterCriticalSection(&cs);
 
-		  DrawPolygonGDIPlus(hMemDC,
+		  DrawPolygonGDIPlus(context,
 							 CurrentPoly.Points.data(),
 							 CurrentPoly.Points.size(),
 							 CurrentPoly.Color,
@@ -1126,15 +1213,29 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  if (target == hwnd)
+			InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо основне вікно
+		  else
+			UpdateControlWindow(Controls->Items[target]); //оновлюємо вікно контролу
+
 		  break;
 		}
 
 	  case WM_KVL_DRAW_ELLIPSE:
 		{
+		  HWND target = (HWND)wParam;
+          HDC context = SelectContext(target);
+
+		  if (!context)
+			{
+			  SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Can't select HDC");
+
+			  return 0;
+			}
+
 		  EnterCriticalSection(&cs);
 
-		  DrawEllipseGDIPlus(hMemDC,
+		  DrawEllipseGDIPlus(context,
 							 CurrentEllipse.Left,
 							 CurrentEllipse.Top,
 							 CurrentEllipse.Width,
@@ -1146,15 +1247,29 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  if (target == hwnd)
+			InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо основне вікно
+		  else
+			UpdateControlWindow(Controls->Items[target]); //оновлюємо вікно контролу
+
 		  break;
 		}
 
 	  case WM_KVL_DRAW_RECT:
 		{
+		  HWND target = (HWND)wParam;
+          HDC context = SelectContext(target);
+
+		  if (!context)
+			{
+			  SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Can't select HDC");
+
+			  return 0;
+			}
+
 		  EnterCriticalSection(&cs);
 
-		  DrawRectangleGDIPlus(hMemDC,
+		  DrawRectangleGDIPlus(context,
 							   CurrentRect.Left,
 							   CurrentRect.Top,
 							   CurrentRect.Width,
@@ -1167,30 +1282,57 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  if (target == hwnd)
+			InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо основне вікно
+		  else
+			UpdateControlWindow(Controls->Items[target]); //оновлюємо вікно контролу
+
 		  break;
 		}
 
 	  case WM_KVL_DRAW_IMAGE:
 		{
-		  EnterCriticalSection(&cs);
-
 		  int x = LOWORD(lParam);
 		  int y = HIWORD(lParam);
+		  HWND target = (HWND)wParam;
+		  HDC context = SelectContext(target);
 
-		  DrawImageGDIPlus(hMemDC, (LPWSTR)wParam, x, y);  //оновлення буфера
+		  if (!context)
+			{
+			  SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Can't select HDC");
+
+			  return 0;
+			}
+
+		  EnterCriticalSection(&cs);
+
+		  DrawImageGDIPlus(context, (LPWSTR)lParam, CurrentImage.X, CurrentImage.Y);  //оновлення буфера
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  if (target == hwnd)
+			InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо основне вікно
+		  else
+			UpdateControlWindow(Controls->Items[target]); //оновлюємо вікно контролу
+
 		  break;
 		}
 
 	  case WM_KVL_DRAW_PLATE:
 		{
+		  HWND target = (HWND)wParam;
+          HDC context = SelectContext(target);
+
+		  if (!context)
+			{
+			  SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Can't select HDC");
+
+			  return 0;
+			}
+
 		  EnterCriticalSection(&cs);
 
-		  DrawRectangleGDIPlus(hMemDC,
+		  DrawRectangleGDIPlus(context,
 							   CurrentPlate.Left,
 							   CurrentPlate.Top,
 							   CurrentPlate.Width,
@@ -1203,15 +1345,29 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  if (target == hwnd)
+			InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо основне вікно
+		  else
+			UpdateControlWindow(Controls->Items[target]); //оновлюємо вікно контролу
+
 		  break;
 		}
 
 	  case WM_KVL_DRAW_BUBBLE:
 		{
+		  HWND target = (HWND)wParam;
+          HDC context = SelectContext(target);
+
+		  if (!context)
+			{
+			  SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Can't select HDC");
+
+			  return 0;
+			}
+
 		  EnterCriticalSection(&cs);
 
-		  DrawSpeechBubbleRectGDIPlus(hMemDC,
+		  DrawSpeechBubbleRectGDIPlus(context,
 									  CurrentBubble.Left,
 									  CurrentBubble.Top,
 									  CurrentBubble.Width,
@@ -1226,15 +1382,29 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  if (target == hwnd)
+			InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо основне вікно
+		  else
+			UpdateControlWindow(Controls->Items[target]); //оновлюємо вікно контролу
+
 		  break;
 		}
 
 	  case WM_KVL_DRAW_BLAST:
 		{
+		  HWND target = (HWND)wParam;
+          HDC context = SelectContext(target);
+
+		  if (!context)
+			{
+			  SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Can't select HDC");
+
+			  return 0;
+			}
+
 		  EnterCriticalSection(&cs);
 
-		  DrawSpeechBlastGDIPlus(hMemDC,
+		  DrawSpeechBlastGDIPlus(context,
 								 CurrentBlast.Left,
 								 CurrentBlast.Top,
 								 CurrentBlast.Width,
@@ -1249,15 +1419,29 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  if (target == hwnd)
+			InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо основне вікно
+		  else
+			UpdateControlWindow(Controls->Items[target]); //оновлюємо вікно контролу
+
 		  break;
 		}
 
 	  case WM_KVL_DRAW_BALLOON:
 		{
+		  HWND target = (HWND)wParam;
+		  HDC context = SelectContext(target);
+
+		  if (!context)
+			{
+			  SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Can't select HDC");
+
+			  return 0;
+			}
+
 		  EnterCriticalSection(&cs);
 
-		  DrawSpeechBalloonGDIPlus(hMemDC,
+		  DrawSpeechBalloonGDIPlus(context,
 								   CurrentBalloon.Left,
 								   CurrentBalloon.Top,
 								   CurrentBalloon.Width,
@@ -1271,15 +1455,28 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  if (target == hwnd)
+			InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо основне вікно
+		  else
+			UpdateControlWindow(Controls->Items[target]); //оновлюємо вікно контролу
 		  break;
 		}
 
 	  case WM_KVL_DRAW_CLOUD:
 		{
+		  HWND target = (HWND)wParam;
+          HDC context = SelectContext(target);
+
+		  if (!context)
+			{
+			  SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Can't select HDC");
+
+			  return 0;
+			}
+
 		  EnterCriticalSection(&cs);
 
-		  DrawSpeechCloudGDIPlus(hMemDC,
+		  DrawSpeechCloudGDIPlus(context,
 		  						 CurrentCloud.Left,
 								 CurrentCloud.Top,
 								 CurrentCloud.Width,
@@ -1293,16 +1490,30 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  if (target == hwnd)
+			InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо основне вікно
+		  else
+			UpdateControlWindow(Controls->Items[target]); //оновлюємо вікно контролу
+
 		  break;
 		}
 
       case WM_KVL_DRAW_TEXT:
 		{
+		  HWND target = (HWND)wParam;
+          HDC context = SelectContext(target);
+
+		  if (!context)
+			{
+			  SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Can't select HDC");
+
+			  return 0;
+			}
+
 		  EnterCriticalSection(&cs);
 
-		  DrawTextGDIPlus(hMemDC,
-		  				  (LPWSTR)wParam,
+		  DrawTextGDIPlus(context,
+		  				  (LPWSTR)lParam,
 						  CurrentText.Rect,
 						  CurrentText.UserFont,
 						  CurrentText.FontName,
@@ -1315,7 +1526,11 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		  LeaveCriticalSection(&cs);
 
-		  InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо вікно
+		  if (target == hwnd)
+			InvalidateRect(hwnd, NULL, FALSE);  //перемальовуємо основне вікно
+		  else
+			UpdateControlWindow(Controls->Items[target]); //оновлюємо вікно контролу
+
 		  break;
 		}
 
@@ -1325,20 +1540,21 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		  HANDLE hEvent = (HANDLE)lParam;
 
 //стиль вікна: без рамки, без системного меню, прозоре
-		  *pOut = CreateWindowEx(NULL, L"KobzarControl", L"", //без заголовка
-								 WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_POPUP,
+		  *pOut = CreateWindowEx(WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
+								 L"KobzarControl", L"", //без заголовка
+								 WS_POPUP,
 								 CurrentControl.X, CurrentControl.Y,
 								 CurrentControl.Width, CurrentControl.Height, // позиція та розмір
-								 WHandle, //хендл батьківського вікна
+								 hMain, //хендл батьківського вікна
 								 NULL,
 								 AppHinst,
 								 NULL);
 
 		  SetEvent(hEvent);
-          break;
+		  break;
 		}
 
-      case WM_KVL_UPDATE_CONTROL:
+	  case WM_KVL_UPDATE_CONTROL:
 		 {
 		   HWND hCtrl = (HWND)wParam;
 
@@ -1346,41 +1562,63 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 
 		   if (!ctrl)
 			 {
-			   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Control window with Handle[" + IntToStr((int)hCtrl) + "] not found");
+			   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary: Control window not found");
 
 			   return 0;
 			 }
 
-		   CreateControlVirtualWindow(ctrl);
+		   UpdateControlWindow(ctrl);
 
-		   HDC hdcScreen = GetDC(NULL);
-		   POINT ptSrc = {0, 0};
-		   POINT ptDst = {(long)ctrl->Left, (long)ctrl->Top};
-		   SIZE size = {(long)ctrl->Width, (long)ctrl->Height};
-
-		   BLENDFUNCTION bf = {AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
-
-		   UpdateLayeredWindow(hCtrl, hdcScreen,
-							   &ptDst,
-							   &size,
-							   ctrl->Buffer,
-							   &ptSrc,
-							   0,
-							   &bf,
-							   ULW_ALPHA);
-
-		   ReleaseDC(NULL, hdcScreen);
-
-           return 0;
+		   break;
 		 }
 
-	  case WM_DESTROY:
+      case WM_SIZE:
 		{
-		  PostQuitMessage(0);
+		  WndWidth = LOWORD(lParam);
+		  WndHeight = HIWORD(lParam);
+
 		  break;
 		}
 
-	  case WM_PAINT:
+	  case WM_MOVE:
+		{
+		  WndX = GET_X_LPARAM(lParam);
+		  WndY = GET_Y_LPARAM(lParam);
+
+		  Controls->UpdatePosition();
+
+		  break;
+		}
+
+	  case WM_ACTIVATE: //синхронізація видимості з контролами
+		{
+		  if (wParam == FALSE)
+			Controls->HideAll();
+		  else
+			Controls->ShowAll();
+
+		  break;
+		}
+
+	  case WM_SHOWWINDOW: //синхронізація видимості з контролами
+		{
+		  if (wParam == FALSE)
+			Controls->HideAll();
+		  else
+			Controls->ShowAll();
+
+		  break;
+		}
+
+      case WM_LBUTTONUP:
+		{
+		  mouse.x = GET_X_LPARAM(lParam);
+		  mouse.y = GET_Y_LPARAM(lParam);
+
+		  break;
+		}
+
+      case WM_PAINT:
 		{
 		  PAINTSTRUCT ps;
 		  HDC hdc = BeginPaint(hwnd, &ps);
@@ -1388,13 +1626,13 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 		  CopyVirtualToMain(hMemDC, hdc);
 		  LeaveCriticalSection(&cs);
 		  EndPaint(hwnd, &ps);
+
 		  break;
 		}
 
-	  case WM_LBUTTONUP:
+	  case WM_DESTROY:
 		{
-		  mouse.x = LOWORD(lParam);
-		  mouse.y = HIWORD(lParam);
+		  PostQuitMessage(0);
 
 		  break;
 		}
@@ -1402,6 +1640,7 @@ LRESULT CALLBACK HostWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPA
 	  case WM_CLOSE:
 		{
 		  DestroyWindow(hwnd);
+
 		  break;
 		}
 
@@ -1423,17 +1662,19 @@ HWND CreateControlWindow(int x, int y, int width, int height)
 	 {
 	   HANDLE hEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
-	   CurrentControl.X = x;
-	   CurrentControl.Y = y;
+       POINT parent = {x, y};
+
+	   ClientToScreen(hMain, &parent);
+
+	   CurrentControl.X = parent.x;
+	   CurrentControl.Y = parent.y;
 	   CurrentControl.Width = width;
-       CurrentControl.Height = height;
+	   CurrentControl.Height = height;
 
-	   PostMessage(WHandle, WM_KVL_CREATE_CONTROL, (WPARAM)&res, (LPARAM)hEvent);
+	   PostMessage(hMain, WM_KVL_CREATE_CONTROL, (WPARAM)&res, (LPARAM)hEvent);
 
-	   WaitForSingleObject(hEvent, 2000);
+	   WaitForSingleObject(hEvent, 3000);
 	   CloseHandle(hEvent);
-
-       ShowWindow(res, SW_SHOW);
 	 }
   catch (...)
 	 {
@@ -1454,6 +1695,7 @@ unsigned __stdcall CreateHostWindow(void*)
 	   Gdiplus::GdiplusStartupInput gdiplusStartupInput;
 	   ULONG_PTR gdiplusToken;
 	   Gdiplus::GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+
 	   UserFontCollection = new Gdiplus::PrivateFontCollection; //ініціалізуємо колекцію шрифтів для вікна
 	   Controls = new TControlsCollection();
 
@@ -1478,7 +1720,8 @@ unsigned __stdcall CreateHostWindow(void*)
 	   RegisterClass(&wcCtrl);
 
 //створюємо головне вікно
-	   WHandle = CreateWindow(wcMain.lpszClassName,
+	   hMain = CreateWindowEx(NULL,
+							  wcMain.lpszClassName,
 							  L"Kobzar Visual Library Window",
 							  WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 							  CW_USEDEFAULT, CW_USEDEFAULT,
@@ -1487,10 +1730,10 @@ unsigned __stdcall CreateHostWindow(void*)
 							  AppHinst,
 							  NULL);
 
-		CreateVirtualWindow(WHandle, hBitmap, hMemDC, WndWidth, WndHeight);
+		CreateVirtualWindow(hMain, hBitmap, hMemDC, WndWidth, WndHeight);
 
-		ShowWindow(WHandle, SW_SHOWNORMAL);
-		UpdateWindow(WHandle);
+		ShowWindow(hMain, SW_SHOWNORMAL);
+		UpdateWindow(hMain);
 
 		/* Run the message loop. It will run until GetMessage() returns 0 */
 		while (GetMessage (&Msg, NULL, 0, 0))
@@ -1510,7 +1753,7 @@ unsigned __stdcall CreateHostWindow(void*)
         delete Controls;
 
 		UnregisterClass(L"KobzarVisualisation", AppHinst);
-		WHandle = NULL;
+		hMain = NULL;
 	   _endthreadex(0);
 	 }
   catch (...)
@@ -1529,7 +1772,7 @@ void StartWork()
 	 {
        AppHinst = GetModuleHandle(NULL); //отримуємо дескриптор застосунку
 	   InitializeCriticalSection(&cs);  //ініціалізуємо синхронізацію
-	   WndThread = (HANDLE)_beginthreadex(NULL, 4096, CreateHostWindow, NULL, NULL, &thID);
+	   thMain = (HANDLE)_beginthreadex(NULL, 4096, CreateHostWindow, NULL, NULL, &thID);
 	 }
   catch (Exception &e)
 	 {
@@ -1542,12 +1785,12 @@ void StopWork()
 {
   try
 	 {
-	   if (WHandle)
-		 PostMessage(WHandle, WM_CLOSE, 0, 0);
+	   if (hMain)
+		 PostMessage(hMain, WM_CLOSE, 0, 0);
 
-	   WaitForSingleObject(WndThread, 500);
+	   WaitForSingleObject(thMain, 500);
 	   DeleteCriticalSection(&cs);
-	   CloseHandle(WndThread);
+	   CloseHandle(thMain);
 	 }
   catch (Exception &e)
 	 {
@@ -1567,8 +1810,12 @@ TKVLControl::TKVLControl(int x, int y, int width, int height)
 	  FWidth = width;
 	  FHeight = height;
 
-//створюємо 32-бітну DIB для прозорості
-	  CreateContext();
+	  CreateContext(); //створюємо 32-бітну DIB для прозорості
+
+	  //gрив'язуємо контрол до головного вікна
+	  SetWindowLongPtr(FHandle, GWLP_HWNDPARENT, (LONG_PTR)hMain);
+
+	  Show();
 	}
 }
 //---------------------------------------------------------------------------
@@ -1625,32 +1872,61 @@ void TKVLControl::ReleaseContext()
 }
 //---------------------------------------------------------------------------
 
-void TKVLControl::Set(float x, float y, float width, float height)
+void TKVLControl::MoveTo(int x, int y)
 {
   try
 	 {
-	   RECT rcParent;
+	   POINT parent = {x, y};
 
-	   GetWindowRect(WHandle, &rcParent);
+	   ClientToScreen(hMain, &parent);
 
-	   POINT parent = {rcParent.left, rcParent.top};
-
-	   if (!SetWindowPos(FHandle, 0,
-						 parent.x + x, parent.y + y,
-						 width, height,
+	   if (!SetWindowPos(FHandle, hMain, parent.x, parent.y, FWidth, FHeight,
 						 SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER))
 		 {
 		   throw Exception("Error setting window");
-		 }
+         }
 
 	   FLeft = x;
 	   FTop = y;
-	   FWidth = width;
-	   FHeight = height;
 	 }
   catch (Exception &e)
 	 {
-	   e.Message = "TKVLControl::Set: " + e.Message;
+	   e.Message = "TKVLControl::MoveTo: " + e.Message;
+	   throw e;
+	 }
+}
+//---------------------------------------------------------------------------
+
+void TKVLControl::Show()
+{
+  try
+	 {
+	   ShowWindow(FHandle, SW_SHOWNOACTIVATE);
+
+       POINT parent = {FLeft, FTop};
+
+	   ClientToScreen(hMain, &parent);
+
+	   SetWindowPos(FHandle, hMain, parent.x, parent.y, FWidth, FHeight,
+					SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TKVLControl::Show: " + e.Message;
+	   throw e;
+	 }
+}
+//---------------------------------------------------------------------------
+
+void TKVLControl::Hide()
+{
+  try
+	 {
+	   ShowWindow(FHandle, SW_HIDE);
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TKVLControl::Hide: " + e.Message;
 	   throw e;
 	 }
 }
@@ -1723,7 +1999,7 @@ HWND TControlsCollection::Add(TKVLControl *object)
 }
 //---------------------------------------------------------------------------
 
-HWND TControlsCollection::Add(float x, float y, float width, float height)
+HWND TControlsCollection::Add(int x, int y, int width, int height)
 {
   HWND res = NULL;
 
@@ -1756,31 +2032,25 @@ void TControlsCollection::Remove(HWND handle)
 //---------------------------------------------------------------------------
 
 //функція оновлення позицій усіх контролів
-void TControlsCollection::Update()
+void TControlsCollection::UpdatePosition()
 {
   try
 	 {
 	   if (FItems.size() == 0)
          return;
 
-	   RECT rcParent;
-	   GetWindowRect(WHandle, &rcParent);
-	   POINT parent_pos = {rcParent.left, rcParent.top};
-
 //починаємо групове оновлення
 	   HDWP hdwp = BeginDeferWindowPos((int)FItems.size());
 
 	   if (!hdwp) return;
 
+	   POINT parent = {0, 0};
+
+	   ClientToScreen(hMain, &parent);
+
 	   for (const auto c : FItems)
 		 {
-		   hdwp = DeferWindowPos(hdwp,
-								 c->Handle,
-								 0,
-								 parent_pos.x + c->Left,
-								 parent_pos.y + c->Top,
-								 c->Width,
-								 c->Height,
+		   hdwp = DeferWindowPos(hdwp, c->Handle, 0, parent.x + c->Left, parent.y + c->Top, c->Width, c->Height,
 								 SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
 		   if (!hdwp)
@@ -1793,7 +2063,43 @@ void TControlsCollection::Update()
 	 }
   catch (Exception &e)
 	 {
+	   e.Message = "TControlsCollection::UpdatePosition: " + e.Message;
+	   throw e;
+	 }
+}
+//---------------------------------------------------------------------------
+
+void TControlsCollection::ShowAll()
+{
+  try
+	 {
+	   if (FItems.size() == 0)
+		 return;
+
+	   for (const auto c : FItems)
+		 c->Show();
+	 }
+  catch (Exception &e)
+	 {
 	   e.Message = "TControlsCollection::Update: " + e.Message;
+	   throw e;
+	 }
+}
+//---------------------------------------------------------------------------
+
+void TControlsCollection::HideAll()
+{
+  try
+	 {
+	   if (FItems.size() == 0)
+		 return;
+
+	   for (const auto c : FItems)
+		 c->Hide();
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TControlsCollection::HideAll: " + e.Message;
 	   throw e;
 	 }
 }
@@ -1855,8 +2161,8 @@ __declspec(dllexport) void __stdcall eCreateForm(void *p)
 
 	   bool full = eIface->GetParamToInt(L"pFullscreen");
 
-	   if (!WHandle)
-		  StartWork();
+	   if (!hMain)
+		 StartWork();
 	   else
 		 {
 		   StopWork();
@@ -1865,9 +2171,9 @@ __declspec(dllexport) void __stdcall eCreateForm(void *p)
 
        Sleep(500);
 
-	   PostMessage(WHandle, WM_KVL_CLEAR_WINDOW, 0, 0);
+	   PostMessage(hMain, WM_KVL_CLEAR_WINDOW, 0, 0);
 
-	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), IntToStr((int)hMain).c_str());
 	 }
   catch (Exception &e)
 	 {
@@ -1884,10 +2190,10 @@ __declspec(dllexport) void __stdcall eDestroyForm(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   if (!WHandle)
+	   if (!hMain)
 		  throw Exception("Window doesn't exists!");
 	   else
-		 PostMessage(WHandle, WM_CLOSE, 0, 0);
+		 PostMessage(hMain, WM_CLOSE, 0, 0);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -1904,12 +2210,12 @@ _declspec(dllexport) void __stdcall eClearForm(void *p)
 {
   try
 	 {
-       if (!WHandle)
+       if (!hMain)
 		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   PostMessage(WHandle, WM_KVL_CLEAR_WINDOW, 0, 0);
+	   PostMessage(hMain, WM_KVL_CLEAR_WINDOW, 0, 0);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -1998,12 +2304,16 @@ __declspec(dllexport) void __stdcall eDrawLine(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
+	   int handle = eIface->GetParamToInt(L"pHandle");
+
+	   if (!handle)
+         throw Exception("Invalid window handle!");
 
 	   if (obj == "")
 		 throw Exception("Can't get main object name!");
@@ -2026,7 +2336,7 @@ __declspec(dllexport) void __stdcall eDrawLine(void *p)
 										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
 										  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
-	   PostMessage(WHandle, WM_KVL_DRAW_LINE, NULL, NULL);
+	   PostMessage(hMain, WM_KVL_DRAW_LINE, (WPARAM)handle, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -2043,12 +2353,13 @@ __declspec(dllexport) void __stdcall eDrawArc(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
+	   int handle = eIface->GetParamToInt(L"pHandle");
 
 	   if (obj == "")
 		 throw Exception("Can't get main object name!");
@@ -2073,7 +2384,7 @@ __declspec(dllexport) void __stdcall eDrawArc(void *p)
 										 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
 										 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
-	   PostMessage(WHandle, WM_KVL_DRAW_ARC, NULL, NULL);
+	   PostMessage(hMain, WM_KVL_DRAW_ARC, (WPARAM)handle, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -2090,12 +2401,13 @@ __declspec(dllexport) void __stdcall eDrawPoly(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
+	   int handle = eIface->GetParamToInt(L"pHandle");
 
 	   if (obj == "")
 		 throw Exception("Can't get main object name!");
@@ -2145,7 +2457,7 @@ __declspec(dllexport) void __stdcall eDrawPoly(void *p)
 												_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
 
-	   PostMessage(WHandle, WM_KVL_DRAW_POLYGON, NULL, NULL);
+	   PostMessage(hMain, WM_KVL_DRAW_POLYGON, (WPARAM)handle, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -2162,12 +2474,13 @@ __declspec(dllexport) void __stdcall eDrawEllipse(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
+	   int handle = eIface->GetParamToInt(L"pHandle");
 
 	   if (obj == "")
 		 throw Exception("Can't get main object name!");
@@ -2209,7 +2522,7 @@ __declspec(dllexport) void __stdcall eDrawEllipse(void *p)
 												   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
 
-	   PostMessage(WHandle, WM_KVL_DRAW_ELLIPSE, NULL, NULL);
+	   PostMessage(hMain, WM_KVL_DRAW_ELLIPSE, (WPARAM)handle, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -2226,12 +2539,13 @@ __declspec(dllexport) void __stdcall eDrawRect(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
+	   int handle = eIface->GetParamToInt(L"pHandle");
 
 	   if (obj == "")
 		 throw Exception("Can't get main object name!");
@@ -2273,7 +2587,8 @@ __declspec(dllexport) void __stdcall eDrawRect(void *p)
 												_wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
 
-	   PostMessage(WHandle, WM_KVL_DRAW_RECT, NULL, NULL);
+	   PostMessage(hMain, WM_KVL_DRAW_RECT, (WPARAM)handle, NULL);
+
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
   catch (Exception &e)
@@ -2289,20 +2604,21 @@ __declspec(dllexport) void __stdcall eDrawImage(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
+	   int handle = eIface->GetParamToInt(L"pHandle");
 
 	   if (obj == "")
 		 throw Exception("Can't get main object name!");
 
 	   obj = "&" + obj;
 
-	   int x = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left")),
-		   y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
+	   CurrentImage.X = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
+	   CurrentImage.Y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
 
 	   String file = eIface->GetObjectProperty(obj.c_str(), L"Source");
 
@@ -2311,7 +2627,7 @@ __declspec(dllexport) void __stdcall eDrawImage(void *p)
 	   if (!FileExists(file))
 		 throw Exception("Error loading image file: " + file);
 
-	   PostMessage(WHandle, WM_KVL_DRAW_IMAGE, (WPARAM)file.c_str(), MAKELPARAM(x, y));
+	   PostMessage(hMain, WM_KVL_DRAW_IMAGE, (WPARAM)handle, (LPARAM)file.c_str());
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -2328,12 +2644,13 @@ __declspec(dllexport) void __stdcall eDrawPlate(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
+	   int handle = eIface->GetParamToInt(L"pHandle");
 
 	   if (obj == "")
 		 throw Exception("Can't get main object name!");
@@ -2375,7 +2692,7 @@ __declspec(dllexport) void __stdcall eDrawPlate(void *p)
 												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
 												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
-	   PostMessage(WHandle, WM_KVL_DRAW_PLATE, NULL, NULL);
+	   PostMessage(hMain, WM_KVL_DRAW_PLATE, (WPARAM)handle, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -2392,12 +2709,13 @@ __declspec(dllexport) void __stdcall eDrawBubble(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
+	   int handle = eIface->GetParamToInt(L"pHandle");
 
 	   if (obj == "")
 		 throw Exception("Can't get main object name!");
@@ -2448,7 +2766,7 @@ __declspec(dllexport) void __stdcall eDrawBubble(void *p)
 												  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
 												  _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
-	   PostMessage(WHandle, WM_KVL_DRAW_BUBBLE, NULL, NULL);
+	   PostMessage(hMain, WM_KVL_DRAW_BUBBLE, (WPARAM)handle, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -2465,12 +2783,13 @@ __declspec(dllexport) void __stdcall eDrawBlast(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
+	   int handle = eIface->GetParamToInt(L"pHandle");
 
 	   if (obj == "")
 		 throw Exception("Can't get main object name!");
@@ -2514,7 +2833,7 @@ __declspec(dllexport) void __stdcall eDrawBlast(void *p)
 												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
 												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
-	   PostMessage(WHandle, WM_KVL_DRAW_BLAST, NULL, NULL);
+	   PostMessage(hMain, WM_KVL_DRAW_BLAST, (WPARAM)handle, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -2531,12 +2850,13 @@ __declspec(dllexport) void __stdcall eDrawBalloon(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
+	   int handle = eIface->GetParamToInt(L"pHandle");
 
 	   if (obj == "")
 		 throw Exception("Can't get main object name!");
@@ -2587,7 +2907,7 @@ __declspec(dllexport) void __stdcall eDrawBalloon(void *p)
 												   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
 												   _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
-	   PostMessage(WHandle, WM_KVL_DRAW_BALLOON, NULL, NULL);
+	   PostMessage(hMain, WM_KVL_DRAW_BALLOON, (WPARAM)handle, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -2604,12 +2924,13 @@ __declspec(dllexport) void __stdcall eDrawCloud(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw Exception("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
+	   int handle = eIface->GetParamToInt(L"pHandle");
 
 	   if (obj == "")
 		 throw Exception("Can't get main object name!");
@@ -2660,7 +2981,7 @@ __declspec(dllexport) void __stdcall eDrawCloud(void *p)
 												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Green")),
 												 _wtoi(eIface->GetObjectProperty(obj_color.c_str(), L"Blue")));
 
-	   PostMessage(WHandle, WM_KVL_DRAW_CLOUD, NULL, NULL);
+	   PostMessage(hMain, WM_KVL_DRAW_CLOUD, (WPARAM)handle, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -2677,12 +2998,13 @@ __declspec(dllexport) void __stdcall eDrawText(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
 	   String obj = eIface->GetParamToStr(L"pObjectName");
+       int handle = eIface->GetParamToInt(L"pHandle");
 
 	   if (obj == "")
 		 throw Exception("Can't get main object name!");
@@ -2748,7 +3070,7 @@ __declspec(dllexport) void __stdcall eDrawText(void *p)
 	   eIface->SetObjectProperty(obj.c_str(), L"Width", IntToStr((int)CheckedText.Rect.Width + 1).c_str());
 	   eIface->SetObjectProperty(obj.c_str(), L"Height", IntToStr((int)CheckedText.Rect.Height + 1).c_str());
 
-	   PostMessage(WHandle, WM_KVL_DRAW_TEXT, (WPARAM)text.c_str(), NULL);
+	   PostMessage(hMain, WM_KVL_DRAW_TEXT, (WPARAM)handle, (WPARAM)text.c_str());
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }
@@ -2765,7 +3087,7 @@ __declspec(dllexport) void __stdcall eCreateControl(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
@@ -2784,9 +3106,7 @@ __declspec(dllexport) void __stdcall eCreateControl(void *p)
 
 	   HWND handle = Controls->Add(x, y, w, h);
 
-	   eIface->SetObjectProperty(obj.c_str(), L"Handle", IntToStr((int)handle).c_str());
-
-	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), IntToStr((int)handle).c_str());
 	 }
   catch (Exception &e)
 	 {
@@ -2797,11 +3117,11 @@ __declspec(dllexport) void __stdcall eCreateControl(void *p)
 }
 //---------------------------------------------------------------------------
 
-__declspec(dllexport) void __stdcall eSetControl(void *p)
+__declspec(dllexport) void __stdcall eMoveControl(void *p)
 {
   try
 	 {
-	   if (!WHandle)
+	   if (!hMain)
 		 throw("Window doesn't exists!");
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
@@ -2816,17 +3136,49 @@ __declspec(dllexport) void __stdcall eSetControl(void *p)
 	   HWND handle = reinterpret_cast<HWND>(_wtoi(eIface->GetObjectProperty(obj.c_str(), L"Handle")));
 	   int x = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
 	   int y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
-	   int w = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
-	   int h = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
-       TKVLControl *ctrl = Controls->Items[handle];
+	   TKVLControl *ctrl = Controls->Items[handle];
 
 	   if (!ctrl)
 		 throw Exception("Control not found!");
 
-       ctrl->Set(x, y, w, h);
+	   ctrl->MoveTo(x, y);
 
-	   PostMessage(WHandle, WM_KVL_UPDATE_CONTROL, (WPARAM)handle, NULL);
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
+	 }
+  catch (Exception &e)
+	 {
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eSetControl: " + e.ToString());
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eUpdateControl(void *p)
+{
+  try
+	 {
+	   if (!hMain)
+		 throw("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   String obj = eIface->GetParamToStr(L"pObjectName");
+
+	   if (obj == "")
+		 throw Exception("Can't get main object name!");
+
+	   obj = "&" + obj;
+
+	   HWND handle = reinterpret_cast<HWND>(_wtoi(eIface->GetObjectProperty(obj.c_str(), L"Handle")));
+
+	   TKVLControl *ctrl = Controls->Items[handle];
+
+	   if (!ctrl)
+		 throw Exception("Control not found!");
+
+	   PostMessage(hMain, WM_KVL_UPDATE_CONTROL, (WPARAM)handle, NULL);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");
 	 }

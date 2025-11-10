@@ -18,20 +18,21 @@
 		_ImportFunc(&$this.LibraryHandle, "eDestroyForm", "_DestroyForm", "");
 		_ImportFunc(&$this.LibraryHandle, "eClearForm", "_ClearForm", "");
 		_ImportFunc(&$this.LibraryHandle, "eCalcTextArea", "_CalcTextArea", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawLine", "_DrawLine", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawArc", "_DrawArc", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawPoly", "_DrawPoly", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawEllipse", "_DrawEllipse", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawRect", "_DrawRect", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawImage", "_DrawImage", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawPlate", "_DrawPlate", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawBubble", "_DrawBubble", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawBlast", "_DrawBlast", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawBalloon", "_DrawBalloon", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawCloud", "_DrawCloud", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawText", "_DrawText", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eDrawLine", "_DrawLine", "sym pObjectName,num pHandle");
+		_ImportFunc(&$this.LibraryHandle, "eDrawArc", "_DrawArc", "sym pObjectName,num pHandle");
+		_ImportFunc(&$this.LibraryHandle, "eDrawPoly", "_DrawPoly", "sym pObjectName,num pHandle");
+		_ImportFunc(&$this.LibraryHandle, "eDrawEllipse", "_DrawEllipse", "sym pObjectName,num pHandle");
+		_ImportFunc(&$this.LibraryHandle, "eDrawRect", "_DrawRect", "sym pObjectName,num pHandle");
+		_ImportFunc(&$this.LibraryHandle, "eDrawImage", "_DrawImage", "sym pObjectName,num pHandle");
+		_ImportFunc(&$this.LibraryHandle, "eDrawPlate", "_DrawPlate", "sym pObjectName,num pHandle");
+		_ImportFunc(&$this.LibraryHandle, "eDrawBubble", "_DrawBubble", "sym pObjectName,num pHandle");
+		_ImportFunc(&$this.LibraryHandle, "eDrawBlast", "_DrawBlast", "sym pObjectName,num pHandle");
+		_ImportFunc(&$this.LibraryHandle, "eDrawBalloon", "_DrawBalloon", "sym pObjectName,num pHandle");
+		_ImportFunc(&$this.LibraryHandle, "eDrawCloud", "_DrawCloud", "sym pObjectName,num pHandle");
+		_ImportFunc(&$this.LibraryHandle, "eDrawText", "_DrawText", "sym pObjectName,num pHandle");
 		_ImportFunc(&$this.LibraryHandle, "eCreateControl", "_CreateControl", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eSetControl", "_SetControl", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eMoveControl", "_MoveControl", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eUpdateControl", "_UpdateControl", "sym pObjectName");
 
         &$this.Initialised = 1;		
       }
@@ -109,6 +110,24 @@
 }
 //===========================================================;
 
+#class Figure
+{
+  #public property Left = 0;
+  #public property Top = 0;
+  #public property Width = 0;
+  #public property Height = 0;
+  #public property Color = #class Color(255, 0, 0, 0);
+  
+  #public method Figure($left, $top, $width, $height)
+  {
+    &$this.Left = $left;
+	&$this.Top = $top;
+	&$this.Width = $width;
+	&$this.Height = $height;
+  }  
+}
+//===========================================================;
+
 #class Line
 {
   #public property X1 = 0;
@@ -118,7 +137,7 @@
   #public property Size = 1;
   #public property Color = #class Color(255, 0, 0, 0);
 
-  #public method Draw(){_DrawLine(&$this.GetName());}
+  #public method Draw($handle){_DrawLine(&$this.GetName(), $handle);}
   
   #public method Line($x1, $y1, $x2, $y2, $size)
   {
@@ -131,25 +150,18 @@
 }
 //===========================================================;
 
-#class Arc
+#class Arc : Figure
 {
-  #public property Left = 0;
-  #public property Top = 0;
-  #public property Width = 0;
-  #public property Height = 0;
   #public property StartAngle = 0;
   #public property SweepAngle = 0;
   #public property Size = 1;
-  #public property Color = #class Color(255, 0, 0, 0);
 
-  #public method Draw(){_DrawArc(&$this.GetName());}
+  #public method Draw(){_DrawArc(&$this.GetName(), &$this.Handle);}
   
   #public method Arc($left, $top, $width, $height, $stangle, $swangle, $size)
   {
-    &$this.Left = $left;
-	&$this.Top = $top;
-	&$this.Width = $width;
-	&$this.Height = $height;
+    &$this.Figure($left, $top, $width, $height);
+
 	&$this.StartAngle = $stangle;
 	&$this.SweepAngle = $swangle;
 	&$this.Size = $size;
@@ -171,51 +183,29 @@
 	&$this.Count = ++1;
   }
   
-  #public method Draw(){_DrawPoly(&$this.GetName());}
+  #public method Draw($handle){_DrawPoly(&$this.GetName(), $handle);}
 }
 //===========================================================;
 
-#class Ellipse
+#class Ellipse : Figure
 {     
-  #public property Left = 0;
-  #public property Top = 0;
-  #public property Width = 0;
-  #public property Height = 0;
-  #public property Color = #class Color(255, 255, 255, 255);
   #public property Border = #class Border;
   #public property Shadow = 0;
    
-  #public method Draw(){_DrawEllipse(&$this.GetName());}
+  #public method Draw($handle){_DrawEllipse(&$this.GetName(), $handle);}
   
-  #public method Ellipse($left, $top, $width, $height)
-  {
-    &$this.Left = $left;
-	&$this.Top = $top;
-	&$this.Width = $width;
-	&$this.Height = $height;
-  }
+  #public method Ellipse($left, $top, $width, $height){&$this.Figure($left, $top, $width, $height);}
 }
 //===========================================================;
 
-#class Rect
+#class Rect : Figure
 {     
-  #public property Left = 0;
-  #public property Top = 0;
-  #public property Width = 0;
-  #public property Height = 0;
-  #public property Color = #class Color(255, 255, 255, 255);
   #public property Border = #class Border;
   #public property Shadow = 0;
    
-  #public method Draw(){_DrawRect(&$this.GetName());}
+  #public method Draw($handle){_DrawRect(&$this.GetName(), $handle);}
   
-  #public method Rect($left, $top, $width, $height)
-  {
-    &$this.Left = $left;
-	&$this.Top = $top;
-	&$this.Width = $width;
-	&$this.Height = $height;
-  }
+  #public method Rect($left, $top, $width, $height){&$this.Figure($left, $top, $width, $height);}
 }
 //===========================================================;
 
@@ -242,7 +232,7 @@
 {  
   #public property Source = ".\default.png";
   
-  #public method Draw(){_DrawImage(&$this.GetName());}
+  #public method Draw($handle){_DrawImage(&$this.GetName(), $handle);}
   
   #public method Image($file){&$this.Source = $file;}
 }
@@ -258,7 +248,7 @@
   
   #public method CalcAreaSize(){_CalcTextArea(&$this.GetName());}
   
-  #public method Draw(){_DrawText(&$this.GetName());}
+  #public method Draw($handle){_DrawText(&$this.GetName(), $handle);}
   
   #public method Text($left, $top, $width, $height) 
   {
@@ -297,15 +287,15 @@
 {  
   #public property Corner = 0; //set more than 0 to set corner radius;
 
-  #public method Draw()
+  #public method Draw($handle)
   {
 	$txtlen = _strlen(&$this.Text.Data);
 		
 	if ($txtlen != 0) {&$this.AdjustToText();}
 		
-	_DrawPlate(&$this.GetName());		
+	_DrawPlate(&$this.GetName(), $handle);		
 		
-	if ($txtlen != 0) {_DrawText(&$this.Text.GetName());}
+	if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
   }  
   
   #public method Plate($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
@@ -317,15 +307,15 @@
   #public property Tail = #class Point(0, 0);
   #public property TailWidth = 15;
   
-  #public method Draw()
+  #public method Draw($handle)
   {
 	$txtlen = _strlen(&$this.Text.Data);
 		
 	if ($txtlen != 0) {&$this.AdjustToText();}
 		
-	_DrawBubble(&$this.GetName());		
+	_DrawBubble(&$this.GetName(), $handle);		
 		
-	if ($txtlen != 0) {_DrawText(&$this.Text.GetName());}
+	if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
   }
   
   #public method Bubble($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
@@ -338,15 +328,15 @@
   #public property MaxRayHeight = 50; //max ray height or ray height if DynamicRays is 0;
   #public property DynamicRays = 0; //set more than 0 to randomising ray height;
   
-  #public method Draw()
+  #public method Draw($handle)
   {
 	$txtlen = _strlen(&$this.Text.Data);
 		
 	if ($txtlen != 0) {&$this.AdjustToText();}
 		
-	_DrawBlast(&$this.GetName());		
+	_DrawBlast(&$this.GetName(), $handlee);		
 		
-	if ($txtlen != 0) {_DrawText(&$this.Text.GetName());}
+	if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
   }
    
   #public method Blast($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
@@ -355,15 +345,15 @@
 
 #class Balloon : Bubble
 {
-  #public method Draw()
+  #public method Draw($handle)
   {
 	$txtlen = _strlen(&$this.Text.Data);
 		
 	if ($txtlen != 0) {&$this.AdjustToText();}
 		
-	_DrawBalloon(&$this.GetName());		
+	_DrawBalloon(&$this.GetName(), $handle);		
 		
-	if ($txtlen != 0) {_DrawText(&$this.Text.GetName());}
+	if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
   }
   
   #public method Balloon($left, $top, $width, $height)
@@ -377,15 +367,15 @@
 
 #class Cloud : Bubble
 {
-  #public method Draw()
+  #public method Draw($handle)
   {
 	$txtlen = _strlen(&$this.Text.Data);
 		
 	if ($txtlen != 0) {&$this.AdjustToText();}
 		
-	_DrawCloud(&$this.GetName());		
+	_DrawCloud(&$this.GetName(), $handle);		
 		
-	if ($txtlen != 0) {_DrawText(&$this.Text.GetName());}
+	if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
   }
   
   #public method Cloud($left, $top, $width, $height)
@@ -398,26 +388,43 @@
 //===========================================================;
 
 #class Control : Object
-{
+{ 
   #public property Handle = 0; //handle of WinAPI window;
   
-  #public method Update(){_SetControl(&$this.GetName());}
+  #public method SetPos($left, $top)
+  {
+    &$this.Left = $left;
+	&$this.Top = $top;
+	_MoveControl(&$this.GetName());
+  } 
+  
+  #public method Update(){_UpdateControl(&$this.GetName());} //redraws control visual elements;
   
   #public method Control($left, $top, $width, $height)
   {
     &$this.Object($left, $top, $width, $height);
 	
-	if (!_CreateControl(&$this.GetName()))
+	&$this.Handle = _CreateControl(&$this.GetName());
+	
+	if (!&$this.Handle)
 	  {_throw("Error creating Control [" &$this.GetName() "]";}
   }
 }
 //===========================================================;
 
+#modify class Control
+{ 
+  #drop method SetSize;
+}
+//===========================================================;
+
 #class VisualScene
 {
+  #public property Handle = 0; //handle of WinAPI window;
+  
   #public method Clear(){#return _ClearForm();}
   
-  #public method VisualScene($width, $height, $fullscreen){_CreateForm($width, $height, $fullscreen);}
+  #public method VisualScene($width, $height, $fullscreen){&$this.Handle = _CreateForm($width, $height, $fullscreen);}
  
   #public method ~VisualScene(){#protect {_DestroyForm();}}  
 }
