@@ -46,6 +46,9 @@ CRITICAL_SECTION cs;  //для безпечного доступу до пам’яті
 Gdiplus::PrivateFontCollection *UserFontCollection; //колекція користув. шрифтів для ф-ї eLoadFont()
 TControlsCollection *Controls; //колекція об'єктів типу Control
 
+static String ControlID;
+static HANDLE ClickEvent;
+
 PLATE CurrentPlate; //для визначення параметрів поточного об'єкту типу Frame
 TEXT CurrentText; //для визначення параметрів поточного об'єкту типу Text
 BUBBLE CurrentBubble; //для визначення параметрів поточного об'єкту типу Bubble
@@ -1070,8 +1073,7 @@ LRESULT CALLBACK ControlWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, 
 	{
 	  case WM_LBUTTONUP:
 		{
-		  int xPos = GET_X_LPARAM(lParam);
-		  int yPos = GET_Y_LPARAM(lParam);
+		  Controls->Items[hwnd]->Click();
 
 		  break;
 		}
@@ -1750,7 +1752,11 @@ unsigned __stdcall CreateHostWindow(void*)
 		Gdiplus::GdiplusShutdown(gdiplusToken);
 
 		delete UserFontCollection;
-        delete Controls;
+		delete Controls;
+
+//встановимо прапорець кліка, на випадок якщо eWaitAction() очікує дії юзера
+		SetEvent(ClickEvent);
+		CloseHandle(ClickEvent);
 
 		UnregisterClass(L"KobzarVisualisation", AppHinst);
 		hMain = NULL;
@@ -1773,6 +1779,7 @@ void StartWork()
        AppHinst = GetModuleHandle(NULL); //отримуємо дескриптор застосунку
 	   InitializeCriticalSection(&cs);  //ініціалізуємо синхронізацію
 	   thMain = (HANDLE)_beginthreadex(NULL, 4096, CreateHostWindow, NULL, NULL, &thID);
+	   ClickEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	 }
   catch (Exception &e)
 	 {
@@ -1799,7 +1806,7 @@ void StopWork()
 }
 //---------------------------------------------------------------------------
 
-TKVLControl::TKVLControl(int x, int y, int width, int height)
+TKVLControl::TKVLControl(const String &id, int x, int y, int width, int height)
 {
   FHandle = CreateControlWindow(x, y, width, height);
 
@@ -1809,6 +1816,7 @@ TKVLControl::TKVLControl(int x, int y, int width, int height)
 	  FTop = y;
 	  FWidth = width;
 	  FHeight = height;
+	  FID = id;
 
 	  CreateContext(); //створюємо 32-бітну DIB для прозорості
 
@@ -1932,6 +1940,21 @@ void TKVLControl::Hide()
 }
 //---------------------------------------------------------------------------
 
+void TKVLControl::Click()
+{
+  try
+	 {
+	   ControlID = FID;
+	   SetEvent(ClickEvent);
+	 }
+  catch (Exception &e)
+	 {
+	   e.Message = "TKVLControl::Click: " + e.Message;
+	   throw e;
+	 }
+}
+//---------------------------------------------------------------------------
+
 TKVLControl *TControlsCollection::FGet(HWND handle)
 {
   try
@@ -1999,13 +2022,13 @@ HWND TControlsCollection::Add(TKVLControl *object)
 }
 //---------------------------------------------------------------------------
 
-HWND TControlsCollection::Add(int x, int y, int width, int height)
+HWND TControlsCollection::Add(const String &id, int x, int y, int width, int height)
 {
   HWND res = NULL;
 
   try
 	 {
-	   res = Add(new TKVLControl(x, y, width, height));
+	   res = Add(new TKVLControl(id, x, y, width, height));
 	 }
   catch (Exception &e)
 	 {
@@ -3092,19 +3115,19 @@ __declspec(dllexport) void __stdcall eCreateControl(void *p)
 
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
-	   String obj = eIface->GetParamToStr(L"pObjectName");
+	   String id = eIface->GetParamToStr(L"pObjectName");
 
-	   if (obj == "")
+	   if (id == "")
 		 throw Exception("Can't get main object name!");
 
-	   obj = "&" + obj;
+	   String obj = "&" + id;
 
 	   int x = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Left"));
 	   int y = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Top"));
 	   int w = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Width"));
 	   int h = _wtoi(eIface->GetObjectProperty(obj.c_str(), L"Height"));
 
-	   HWND handle = Controls->Add(x, y, w, h);
+	   HWND handle = Controls->Add(id, x, y, w, h);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), IntToStr((int)handle).c_str());
 	 }
@@ -3187,6 +3210,32 @@ __declspec(dllexport) void __stdcall eUpdateControl(void *p)
 	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eSetControl: " + e.ToString());
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"0");
+	 }
+}
+//---------------------------------------------------------------------------
+
+__declspec(dllexport) void __stdcall eWaitAction(void *p)
+{
+  try
+	 {
+	   if (!hMain)
+		 throw("Window doesn't exists!");
+
+	   eIface = static_cast<ELI_INTERFACE*>(p);
+
+	   WaitForSingleObject(ClickEvent, INFINITE);
+
+	   ResetEvent(ClickEvent);
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), ControlID.c_str());
+	 }
+  catch (Exception &e)
+	 {
+       ResetEvent(ClickEvent);
+
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "VisualLibrary::eWaitAction: " + e.ToString());
+
+	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"-err-");
 	 }
 }
 //---------------------------------------------------------------------------

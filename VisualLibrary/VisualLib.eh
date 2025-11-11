@@ -33,6 +33,7 @@
 		_ImportFunc(&$this.LibraryHandle, "eCreateControl", "_CreateControl", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eMoveControl", "_MoveControl", "sym pObjectName");
 		_ImportFunc(&$this.LibraryHandle, "eUpdateControl", "_UpdateControl", "sym pObjectName");
+		_ImportFunc(&$this.LibraryHandle, "eWaitAction", "_WaitAction", "");
 
         &$this.Initialised = 1;		
       }
