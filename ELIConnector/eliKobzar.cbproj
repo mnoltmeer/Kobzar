@@ -153,6 +153,7 @@
             <BuildOrder>0</BuildOrder>
             <PCH>true</PCH>
         </PCHCompile>
+        <None Include="KobzarScripts.eh"/>
         <CppCompile Include="main.cpp">
             <BuildOrder>1</BuildOrder>
         </CppCompile>
@@ -254,12 +255,6 @@
                 <DeployFile LocalName=".\Win32\Debug\eliKobzar.dll" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>eliKobzar.dll</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName=".\Win32\Debug\eliKobzar.tds" Configuration="Debug" Class="DebugSymbols">
-                    <Platform Name="Win32">
-                        <RemoteName>eliKobzar.tds</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
