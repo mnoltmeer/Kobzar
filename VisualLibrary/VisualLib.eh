@@ -11,29 +11,29 @@
   {
     &$this.LibraryHandle = _ConnectLib(C:\Users\mnolt\OneDrive\GIT\Kobzar\VisualLibrary\Win32\Release\VisualLib.dll);
 
-	if (&$this.LibraryHandle != -1)
-	  {
-	    _ImportFunc(&$this.LibraryHandle, "eLoadFont", "_LoadFont", "sym pObjectName");		
-		_ImportFunc(&$this.LibraryHandle, "eCreateForm", "_CreateForm", "num pWidth,num pHeight,num pFullscreen");
-		_ImportFunc(&$this.LibraryHandle, "eDestroyForm", "_DestroyForm", "");
-		_ImportFunc(&$this.LibraryHandle, "eClearForm", "_ClearForm", "");
-		_ImportFunc(&$this.LibraryHandle, "eCalcTextArea", "_CalcTextArea", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eDrawLine", "_DrawLine", "sym pObjectName,num pHandle");
-		_ImportFunc(&$this.LibraryHandle, "eDrawArc", "_DrawArc", "sym pObjectName,num pHandle");
-		_ImportFunc(&$this.LibraryHandle, "eDrawPoly", "_DrawPoly", "sym pObjectName,num pHandle");
-		_ImportFunc(&$this.LibraryHandle, "eDrawEllipse", "_DrawEllipse", "sym pObjectName,num pHandle");
-		_ImportFunc(&$this.LibraryHandle, "eDrawRect", "_DrawRect", "sym pObjectName,num pHandle");
-		_ImportFunc(&$this.LibraryHandle, "eDrawImage", "_DrawImage", "sym pObjectName,num pHandle");
-		_ImportFunc(&$this.LibraryHandle, "eDrawPlate", "_DrawPlate", "sym pObjectName,num pHandle");
-		_ImportFunc(&$this.LibraryHandle, "eDrawBubble", "_DrawBubble", "sym pObjectName,num pHandle");
-		_ImportFunc(&$this.LibraryHandle, "eDrawBlast", "_DrawBlast", "sym pObjectName,num pHandle");
-		_ImportFunc(&$this.LibraryHandle, "eDrawBalloon", "_DrawBalloon", "sym pObjectName,num pHandle");
-		_ImportFunc(&$this.LibraryHandle, "eDrawCloud", "_DrawCloud", "sym pObjectName,num pHandle");
-		_ImportFunc(&$this.LibraryHandle, "eDrawText", "_DrawText", "sym pObjectName,num pHandle");
-		_ImportFunc(&$this.LibraryHandle, "eCreateControl", "_CreateControl", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eMoveControl", "_MoveControl", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eUpdateControl", "_UpdateControl", "sym pObjectName");
-		_ImportFunc(&$this.LibraryHandle, "eWaitAction", "_WaitAction", "");
+    if (&$this.LibraryHandle != -1)
+      {
+        _ImportFunc(&$this.LibraryHandle, "eLoadFont", "_LoadFont", "sym pObjectName");
+        _ImportFunc(&$this.LibraryHandle, "eCreateForm", "_CreateForm", "num pWidth,num pHeight,num pFullscreen");
+        _ImportFunc(&$this.LibraryHandle, "eDestroyForm", "_DestroyForm", "");
+        _ImportFunc(&$this.LibraryHandle, "eClearForm", "_ClearForm", "");
+        _ImportFunc(&$this.LibraryHandle, "eCalcTextArea", "_CalcTextArea", "sym pObjectName");
+        _ImportFunc(&$this.LibraryHandle, "eDrawLine", "_DrawLine", "sym pObjectName,num pHandle");
+        _ImportFunc(&$this.LibraryHandle, "eDrawArc", "_DrawArc", "sym pObjectName,num pHandle");
+        _ImportFunc(&$this.LibraryHandle, "eDrawPoly", "_DrawPoly", "sym pObjectName,num pHandle");
+        _ImportFunc(&$this.LibraryHandle, "eDrawEllipse", "_DrawEllipse", "sym pObjectName,num pHandle");
+        _ImportFunc(&$this.LibraryHandle, "eDrawRect", "_DrawRect", "sym pObjectName,num pHandle");
+        _ImportFunc(&$this.LibraryHandle, "eDrawImage", "_DrawImage", "sym pObjectName,num pHandle");
+        _ImportFunc(&$this.LibraryHandle, "eDrawPlate", "_DrawPlate", "sym pObjectName,num pHandle");
+        _ImportFunc(&$this.LibraryHandle, "eDrawBubble", "_DrawBubble", "sym pObjectName,num pHandle");
+        _ImportFunc(&$this.LibraryHandle, "eDrawBlast", "_DrawBlast", "sym pObjectName,num pHandle");
+        _ImportFunc(&$this.LibraryHandle, "eDrawBalloon", "_DrawBalloon", "sym pObjectName,num pHandle");
+        _ImportFunc(&$this.LibraryHandle, "eDrawCloud", "_DrawCloud", "sym pObjectName,num pHandle");
+        _ImportFunc(&$this.LibraryHandle, "eDrawText", "_DrawText", "sym pObjectName,num pHandle");
+        _ImportFunc(&$this.LibraryHandle, "eCreateControl", "_CreateControl", "sym pObjectName");
+        _ImportFunc(&$this.LibraryHandle, "eMoveControl", "_MoveControl", "sym pObjectName");
+        _ImportFunc(&$this.LibraryHandle, "eUpdateControl", "_UpdateControl", "sym pObjectName");
+        _ImportFunc(&$this.LibraryHandle, "eWaitAction", "_WaitAction", "");
 
         &$this.Initialised = 1;		
       }
@@ -41,7 +41,7 @@
       {
         &$this.Initialised = 0;
 		
-		_throw("VisualLibrary: Error loading library!");
+        _throw("VisualLibrary: Error loading library!");
       } 
   }
    
@@ -49,8 +49,8 @@
   {
     &$this.Init();
 	
-	if (!&$this.Initialised)
-	  {_throw("VisualLibrary: not initialised!");}
+    if (!&$this.Initialised)
+      {_throw("VisualLibrary: not initialised!");}
   }
  
   #public method ~VisualLibrary(){#protect {_FreeLib(&$this.LibraryHandle);}}
@@ -65,7 +65,7 @@
   #public method UserFont($file)
   {
     &$this.Source = $file;
-	_LoadFont(&$this.GetName());
+    _LoadFont(&$this.GetName());
   }
 }
 //===========================================================;
@@ -75,29 +75,29 @@
   #public property UserFont = 0; //set 1 if assigned to UserFont;
   #public property Name = "Arial";
   #public property Style = r; //r  (Regular) = 0
-							  //b  (Bold) = 1,
-							  //i  (Italic) = 2,
-							  //bi (BoldItalic) = 3,
-							  //u  (Underline) = 4,
-							  //s  (Strikeout) = 8;
+			      //b  (Bold) = 1,
+                              //i  (Italic) = 2,
+                              //bi (BoldItalic) = 3,
+                              //u  (Underline) = 4,
+                              //s  (Strikeout) = 8;
   #public property Size = 10;
   #public property Color = #class Color(255, 0, 0, 0);
   
   #public method Assign($userfont)
   {
     if (&$userfont.Exist())
-	  {
-		&$this.UserFont = 1;
-	    &$this.Name = &$userfont.Name;
-	  }
-	else
-	  {_throw("UserFont object [" $userfont "] doesn't exists!");}
+      {
+        &$this.UserFont = 1;
+        &$this.Name = &$userfont.Name;
+      }
+    else
+      {_throw("UserFont object [" $userfont "] doesn't exists!");}
   }
   
   #public method Select($name)
   {
     &$this.UserFont = 0;
-	&$this.Name = $name;
+    &$this.Name = $name;
   }
   
   #public method Font($name){&$this.Select($name);}
@@ -122,9 +122,9 @@
   #public method Figure($left, $top, $width, $height)
   {
     &$this.Left = $left;
-	&$this.Top = $top;
-	&$this.Width = $width;
-	&$this.Height = $height;
+    &$this.Top = $top;
+    &$this.Width = $width;
+    &$this.Height = $height;
   }  
 }
 //===========================================================;
@@ -143,10 +143,10 @@
   #public method Line($x1, $y1, $x2, $y2, $size)
   {
     &$this.X1 = $x1;
-	&$this.Y1 = $y1;
-	&$this.X2 = $x2;
-	&$this.Y2 = $y2;
-	&$this.Size = $size;
+    &$this.Y1 = $y1;
+    &$this.X2 = $x2;
+    &$this.Y2 = $y2;
+    &$this.Size = $size;
   }  
 }
 //===========================================================;
@@ -163,9 +163,9 @@
   {
     &$this.Figure($left, $top, $width, $height);
 
-	&$this.StartAngle = $stangle;
-	&$this.SweepAngle = $swangle;
-	&$this.Size = $size;
+    &$this.StartAngle = $stangle;
+    &$this.SweepAngle = $swangle;
+    &$this.Size = $size;
   }  
 }
 //===========================================================;
@@ -181,7 +181,7 @@
   {
     $name = _int(&$this.Count);
     &$this.Add($name, #class Point("$x,$y"));
-	&$this.Count = ++1;
+    &$this.Count = ++1;
   }
   
   #public method Draw($handle){_DrawPoly(&$this.GetName(), $handle);}
@@ -222,9 +222,9 @@
   #public method Object($left, $top, $width, $height)
   {
     &$this.Left = $left;
-	&$this.Top = $top;
-	&$this.Width = $width;
-	&$this.Height = $height;
+    &$this.Top = $top;
+    &$this.Width = $width;
+    &$this.Height = $height;
   }
 }
 //===========================================================;
@@ -269,15 +269,15 @@
   
   #public method AdjustToText()
   {
-	&$this.Text.Left = &$this.Left + &$this.BeforeTextInterval;
-	&$this.Text.Top = &$this.Top + &$this.AfterTextInterval;
-	&$this.Text.Width = &$this.Width - &$this.BeforeTextInterval - &$this.AfterTextInterval;
-	&$this.Text.Height = 0;
+    &$this.Text.Left = &$this.Left + &$this.BeforeTextInterval;
+    &$this.Text.Top = &$this.Top + &$this.AfterTextInterval;
+    &$this.Text.Width = &$this.Width - &$this.BeforeTextInterval - &$this.AfterTextInterval;
+    &$this.Text.Height = 0;
 		
-	&$this.Text.CalcAreaSize();
+    &$this.Text.CalcAreaSize();
 	
-	&$this.Width = &$this.Text.Width + &$this.BeforeTextInterval + &$this.AfterTextInterval;
-	&$this.Height = &$this.Text.Height + &$this.BeforeTextInterval + &$this.AfterTextInterval;
+    &$this.Width = &$this.Text.Width + &$this.BeforeTextInterval + &$this.AfterTextInterval;
+    &$this.Height = &$this.Text.Height + &$this.BeforeTextInterval + &$this.AfterTextInterval;
   }
   
   #public method CharLine($left, $top, $width, $height) {&$this.Object($left, $top, $width, $height);}
@@ -290,13 +290,13 @@
 
   #public method Draw($handle)
   {
-	$txtlen = _strlen(&$this.Text.Data);
+    $txtlen = _strlen(&$this.Text.Data);
 		
-	if ($txtlen != 0) {&$this.AdjustToText();}
+    if ($txtlen != 0) {&$this.AdjustToText();}
 		
-	_DrawPlate(&$this.GetName(), $handle);		
+    _DrawPlate(&$this.GetName(), $handle);
 		
-	if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
+    if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
   }  
   
   #public method Plate($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
@@ -310,13 +310,13 @@
   
   #public method Draw($handle)
   {
-	$txtlen = _strlen(&$this.Text.Data);
+    $txtlen = _strlen(&$this.Text.Data);
 		
-	if ($txtlen != 0) {&$this.AdjustToText();}
+    if ($txtlen != 0) {&$this.AdjustToText();}
 		
-	_DrawBubble(&$this.GetName(), $handle);		
+    _DrawBubble(&$this.GetName(), $handle);
 		
-	if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
+    if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
   }
   
   #public method Bubble($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
@@ -331,13 +331,13 @@
   
   #public method Draw($handle)
   {
-	$txtlen = _strlen(&$this.Text.Data);
+    $txtlen = _strlen(&$this.Text.Data);
 		
-	if ($txtlen != 0) {&$this.AdjustToText();}
+    if ($txtlen != 0) {&$this.AdjustToText();}
 		
-	_DrawBlast(&$this.GetName(), $handlee);		
+    _DrawBlast(&$this.GetName(), $handlee);
 		
-	if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
+    if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
   }
    
   #public method Blast($left, $top, $width, $height){&$this.Object($left, $top, $width, $height);}  
@@ -348,20 +348,21 @@
 {
   #public method Draw($handle)
   {
-	$txtlen = _strlen(&$this.Text.Data);
+    $txtlen = _strlen(&$this.Text.Data);
 		
-	if ($txtlen != 0) {&$this.AdjustToText();}
+    if ($txtlen != 0) {&$this.AdjustToText();}
 		
-	_DrawBalloon(&$this.GetName(), $handle);		
+    _DrawBalloon(&$this.GetName(), $handle);
 		
-	if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
+    if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
   }
   
   #public method Balloon($left, $top, $width, $height)
   {
     &$this.Object($left, $top, $width, $height);
-	&$this.BeforeTextInterval = 20;
-	&$this.AfterTextInterval = 20;
+
+    &$this.BeforeTextInterval = 20;
+    &$this.AfterTextInterval = 20;
   }
 }
 //===========================================================;
@@ -370,20 +371,21 @@
 {
   #public method Draw($handle)
   {
-	$txtlen = _strlen(&$this.Text.Data);
+    $txtlen = _strlen(&$this.Text.Data);
 		
-	if ($txtlen != 0) {&$this.AdjustToText();}
+    if ($txtlen != 0) {&$this.AdjustToText();}
 		
-	_DrawCloud(&$this.GetName(), $handle);		
+    _DrawCloud(&$this.GetName(), $handle);
 		
-	if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
+    if ($txtlen != 0) {_DrawText(&$this.Text.GetName(), $handle);}
   }
   
   #public method Cloud($left, $top, $width, $height)
   {
     &$this.Object($left, $top, $width, $height);
-	&$this.BeforeTextInterval = 15;
-	&$this.AfterTextInterval = 15;
+
+    &$this.BeforeTextInterval = 15;
+    &$this.AfterTextInterval = 15;
   }
 }
 //===========================================================;
@@ -395,8 +397,8 @@
   #public method SetPos($left, $top)
   {
     &$this.Left = $left;
-	&$this.Top = $top;
-	_MoveControl(&$this.GetName());
+    &$this.Top = $top;
+    _MoveControl(&$this.GetName());
   } 
   
   #public method Update(){_UpdateControl(&$this.GetName());} //redraws control visual elements;
@@ -405,10 +407,10 @@
   {
     &$this.Object($left, $top, $width, $height);
 	
-	&$this.Handle = _CreateControl(&$this.GetName());
+    &$this.Handle = _CreateControl(&$this.GetName());
 	
-	if (!&$this.Handle)
-	  {_throw("Error creating Control [" &$this.GetName() "]";}
+    if (!&$this.Handle)
+      {_throw("Error creating Control [" &$this.GetName() "]";}
   }
 }
 //===========================================================;

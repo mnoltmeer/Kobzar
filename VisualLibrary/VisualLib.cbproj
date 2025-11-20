@@ -156,6 +156,7 @@
             <DependentOn>main.h</DependentOn>
             <BuildOrder>4</BuildOrder>
         </CppCompile>
+        <None Include="VisualLib.eh"/>
         <CppCompile Include="..\..\work-functions\Data.cpp">
             <DependentOn>..\..\work-functions\Data.h</DependentOn>
             <BuildOrder>4</BuildOrder>
