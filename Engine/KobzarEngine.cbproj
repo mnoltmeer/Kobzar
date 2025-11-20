@@ -166,6 +166,7 @@
             <DependentOn>engine.h</DependentOn>
             <BuildOrder>4</BuildOrder>
         </CppCompile>
+        <None Include="InnerScriptHeader.eh"/>
         <None Include="ke_interface.h">
             <BuildOrder>9</BuildOrder>
         </None>
