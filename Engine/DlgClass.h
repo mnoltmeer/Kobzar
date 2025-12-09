@@ -98,7 +98,7 @@ class TDlgAnswer : public TDlgBaseText
 	{
 	  Type = DlgAnsw;
       end_dlg = false;
-	  prev_id = -1;
+	  prev_id = 0;
 	}
 
 	TDlgAnswer(int el_id, int dlg_id, int next_dlg_id, int link_id, int link_fr_id)
@@ -106,7 +106,7 @@ class TDlgAnswer : public TDlgBaseText
 	{
 	  Type = DlgAnsw;
 	  end_dlg = false;
-	  prev_id = -1;
+	  prev_id = 0;
 	}
 
 	inline virtual ~TDlgAnswer(){};

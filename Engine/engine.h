@@ -44,10 +44,10 @@ wchar_t path[4096];
 class KobzarEngine: public KE_INTERFACE
 {
   private:
-	std::vector<TDlgBaseText*> items;
-	String LastError;
-    String CurrentFile;
-	TDlgBaseText *ActiveItem;
+	std::vector<TDlgBaseText*> FItems;
+	String FLastError;
+    String FCurrentFile;
+	TDlgBaseText *FActiveItem;
 
 	void CreateLog(const String &method_name, const String &error);
 
@@ -82,8 +82,8 @@ class KobzarEngine: public KE_INTERFACE
 	virtual int __stdcall CreateStory(const wchar_t *story_file);
 	virtual int __stdcall LoadStory(const wchar_t *story_file);
 	virtual int __stdcall SaveStory();
-	virtual void __stdcall CloseStory();
-	virtual void __stdcall ClearStory();
+	virtual int __stdcall CloseStory();
+	virtual int __stdcall ClearStory();
 	virtual int __stdcall AddScene();
 	virtual int __stdcall AddAnswer();
 	virtual int __stdcall AddScript();
@@ -93,22 +93,22 @@ class KobzarEngine: public KE_INTERFACE
 	virtual int __stdcall Link(int id, int to_id);
 	virtual int __stdcall Unlink(int id, int to_id);
 	virtual int __stdcall GetID();
-	virtual void __stdcall SetID(int val);
+	virtual int __stdcall SetID(int val);
 	virtual int __stdcall GetDialog();
-	virtual void __stdcall SetDialog(int val);
+	virtual int __stdcall SetDialog(int val);
 	virtual int __stdcall GetNextDialog();
-	virtual void __stdcall SetNextDialog(int val);
+	virtual int __stdcall SetNextDialog(int val);
 	virtual int __stdcall GetPrevID();
-	virtual void __stdcall SetPrevID(int val);
+	virtual int __stdcall SetPrevID(int val);
 	virtual int __stdcall GetNextID();
-	virtual void __stdcall SetNextID(int val);
+	virtual int __stdcall SetNextID(int val);
 	virtual int __stdcall GetType();
 	virtual const wchar_t *__stdcall GetText();
-	virtual void __stdcall SetText(const wchar_t *val);
+	virtual int __stdcall SetText(const wchar_t *val);
 	virtual int __stdcall IsEndDialog();
-	virtual void __stdcall SetEndDialog(bool val);
+	virtual int __stdcall SetEndDialog(bool val);
 	virtual const wchar_t* __stdcall GetParams();
-	virtual void __stdcall SetParams(const wchar_t *val);
+	virtual int __stdcall SetParams(const wchar_t *val);
 	virtual int __stdcall Execute();
 	virtual const wchar_t* __stdcall GetResult();
 
@@ -117,7 +117,9 @@ class KobzarEngine: public KE_INTERFACE
 	virtual const wchar_t *__stdcall GetScene();
 	virtual int __stdcall GetAnswerCount();
 	virtual const wchar_t *__stdcall GetAnswer(int index);
-	virtual void __stdcall SelectAnswer(int index);
+	virtual int __stdcall SelectAnswer(int index);
+
+    __property TDlgBaseText *ActiveItem = {read = FActiveItem, write = FActiveItem};
 };
 //-------------------------------------------------------------------------------
 #endif

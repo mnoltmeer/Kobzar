@@ -29,8 +29,8 @@ struct KE_INTERFACE
   virtual int __stdcall CreateStory(const wchar_t *story_file) = 0;
   virtual int __stdcall LoadStory(const wchar_t *story_file) = 0;
   virtual int __stdcall SaveStory() = 0;
-  virtual void __stdcall CloseStory() = 0;
-  virtual void __stdcall ClearStory() = 0;
+  virtual int __stdcall CloseStory() = 0;
+  virtual int __stdcall ClearStory() = 0;
   virtual int __stdcall AddScene() = 0;
   virtual int __stdcall AddAnswer() = 0;
   virtual int __stdcall AddScript() = 0;
@@ -40,22 +40,22 @@ struct KE_INTERFACE
   virtual int __stdcall Link(int id, int to_id) = 0;
   virtual int __stdcall Unlink(int id, int to_id) = 0;
   virtual int __stdcall GetID() = 0;
-  virtual void __stdcall SetID(int new_id) = 0;
+  virtual int __stdcall SetID(int new_id) = 0;
   virtual int __stdcall GetDialog() = 0;
-  virtual void __stdcall SetDialog(int val) = 0;
+  virtual int __stdcall SetDialog(int val) = 0;
   virtual int __stdcall GetNextDialog() = 0;
-  virtual void __stdcall SetNextDialog(int val) = 0;
+  virtual int __stdcall SetNextDialog(int val) = 0;
   virtual int __stdcall GetPrevID() = 0;
-  virtual void __stdcall SetPrevID(int val) = 0;
+  virtual int __stdcall SetPrevID(int val) = 0;
   virtual int __stdcall GetNextID() = 0;
-  virtual void __stdcall SetNextID(int val) = 0;
+  virtual int __stdcall SetNextID(int val) = 0;
   virtual int __stdcall GetType() = 0;
   virtual const wchar_t *__stdcall GetText() = 0;
-  virtual void __stdcall SetText(const wchar_t *new_text) = 0;
+  virtual int __stdcall SetText(const wchar_t *new_text) = 0;
   virtual int __stdcall IsEndDialog() = 0;
-  virtual void __stdcall SetEndDialog(bool end_dialog) = 0;
+  virtual int __stdcall SetEndDialog(bool end_dialog) = 0;
   virtual const wchar_t* __stdcall GetParams() = 0;
-  virtual void __stdcall SetParams(const wchar_t *params) = 0;
+  virtual int __stdcall SetParams(const wchar_t *params) = 0;
   virtual int __stdcall Execute() = 0;
   virtual const wchar_t* __stdcall GetResult() = 0;
 
@@ -65,7 +65,7 @@ struct KE_INTERFACE
   virtual const wchar_t *__stdcall GetScene() = 0;
   virtual int __stdcall GetAnswerCount() = 0;
   virtual const wchar_t *__stdcall GetAnswer(int index) = 0;
-  virtual void __stdcall SelectAnswer(int index) = 0;
+  virtual int __stdcall SelectAnswer(int index) = 0;
 };
 //-------------------------------------------------------------------------------
 

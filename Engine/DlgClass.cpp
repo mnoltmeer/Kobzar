@@ -35,10 +35,10 @@ This file is part of Kobzar Engine.
 TDlgBaseText::TDlgBaseText(int el_id)
 {
   id = el_id;
-  cd = -1;
-  ncd = -1;
-  l_id = -1;
-  l_fr_id = -1;
+  cd = 0;
+  ncd = 0;
+  l_id = 0;
+  l_fr_id = 0;
 }
 //---------------------------------------------------------------------------
 
@@ -46,9 +46,9 @@ TDlgBaseText::TDlgBaseText(int el_id, int dlg_id)
 {
   id = el_id;
   cd = dlg_id;
-  ncd = -1;
-  l_id = -1;
-  l_fr_id = -1;
+  ncd = 0;
+  l_id = 0;
+  l_fr_id = 0;
 }
 //---------------------------------------------------------------------------
 
@@ -121,7 +121,6 @@ const wchar_t *TDlgScript::CreateXML()
 {
   XMLText = "\t\t\t<Script Params = '" + Params + "'>\r\n";
   XMLText = XMLText + "\t\t\t\t<Text>" + Text + "</Text>\r\n";
-  //XMLText = XMLText + "\t\t\t\t<Return>" + Result + "</Return>\r\n";
   XMLText = XMLText + "\t\t\t</Script>";
 
   return XMLText.c_str();

@@ -21,7 +21,6 @@ This file is part of Kobzar Engine.
 #pragma hdrstop
 #include <stdio.h>
 #include <Vcl.Forms.hpp>
-#include <Xml.adomxmldom.hpp>
 #include <Xml.XMLDoc.hpp>
 #include <Xml.xmldom.hpp>
 #include <Xml.XMLIntf.hpp>
@@ -60,7 +59,7 @@ DLL_EXPORT int __stdcall GetKEInterface(KE_INTERFACE **eInterface)
   catch (Exception &e)
 	 {
 	   res = 0;
-	   SaveLogToUserFolder("Engine.log", "Kobzar", "*eInterface = new KobzarEngine() :" + e.ToString());
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "GetKEInterface:" + e.ToString());
 	 }
 
   return res;
@@ -84,12 +83,24 @@ DLL_EXPORT int __stdcall FreeKEInterface(KE_INTERFACE **eInterface)
 KobzarEngine::KobzarEngine()
 {
   ActiveItem = nullptr;
-  CurrentFile = "";
-  LastError = "no error";
+  FCurrentFile = "";
+  FLastError = "no error";
 };
 //-------------------------------------------------------------------------
 
-int KobzarEngine::CreateStory(const wchar_t *story_file)
+const wchar_t * __stdcall KobzarEngine::GetVersion()
+{
+  return GetVersionInString(path).c_str();
+}
+//-------------------------------------------------------------------------
+
+const wchar_t * __stdcall KobzarEngine::GetLastError()
+{
+  return FLastError.c_str();
+}
+//-------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::CreateStory(const wchar_t *story_file)
 {
   int res = 0;
 
@@ -101,20 +112,22 @@ int KobzarEngine::CreateStory(const wchar_t *story_file)
        ms->Position = 0;
 	   ms->SaveToFile(file);
 
-	   CurrentFile = String(file);
+	   FCurrentFile = String(file);
 
        res = 1;
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("Story::CreateStory", e.ToString());
+
+       res = 0;
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::LoadStory(const wchar_t *story_file)
+int __stdcall KobzarEngine::LoadStory(const wchar_t *story_file)
 {
   int res = 0;
 
@@ -122,63 +135,81 @@ int KobzarEngine::LoadStory(const wchar_t *story_file)
 	 {
 	   String file = ParseString(String(story_file), ".\\", GetDirPathFromFilePath(String(path)) + "\\");
 
+	   if (!FileExists(file))
+		 throw Exception("Story file " + file + " not found!");
+
 	   if (UpperCase(GetFileExtensionFromFileName(file)) == "SCS")
 		 LoadDlgSchema(file);
 	   else
-		 XMLImport(file);
+		 {
+		   try
+			  {
+				CoInitializeEx(NULL, 0);
+				XMLImport(file);
+			  }
+		   __finally {CoUninitialize();}
+		 }
 
-	   CurrentFile = String(file);
+	   FCurrentFile = String(file);
 
 	   res = 1;
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("Story::LoadStory", e.ToString());
+
+       res = 0;
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::SaveStory()
+int __stdcall KobzarEngine::SaveStory()
 {
   int res = 0;
 
   try
 	 {
-	   if (UpperCase(GetFileExtensionFromFileName(CurrentFile)) == "SCS")
-		 res = SaveDlgSchema(CurrentFile);
+	   if (UpperCase(GetFileExtensionFromFileName(FCurrentFile)) == "SCS")
+		 res = SaveDlgSchema(FCurrentFile);
 	   else
-		 res = XMLExport(CurrentFile);
+		 res = XMLExport(FCurrentFile);
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("Story::SaveStory", e.ToString());
+
+       res = 0;
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-void KobzarEngine::CloseStory()
+int __stdcall KobzarEngine::CloseStory()
 {
   int res = 0;
 
   try
 	 {
 	   ClearStory();
-	   CurrentFile = "";
+	   FCurrentFile = "";
 
 	   res = 1;
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("Story::CloseStory", e.ToString());
+
+       res = 0;
 	 }
+
+  return res;
 }
 //---------------------------------------------------------------------------
 
-void KobzarEngine::ClearStory()
+int __stdcall KobzarEngine::ClearStory()
 {
   int res = 0;
 
@@ -192,71 +223,81 @@ void KobzarEngine::ClearStory()
   catch (Exception &e)
 	 {
 	   CreateLog("Story::ClearStory", e.ToString());
+
+       res = 0;
 	 }
+
+  return res;
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::AddScene()
+int __stdcall KobzarEngine::AddScene()
 {
   int res = 0;
 
   try
 	 {
 	   TDlgScreenText *tmp = new TDlgScreenText(GenElementID(), GenDialogID());
-	   items.push_back(tmp);
+	   FItems.push_back(tmp);
 
 	   res = tmp->ID;
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("Story::AddScene", e.ToString());
+
+       res = 0;
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::AddAnswer()
+int __stdcall KobzarEngine::AddAnswer()
 {
   int res = 0;
 
   try
 	 {
 	   TDlgAnswer *tmp = new TDlgAnswer(GenElementID());
-	   items.push_back(tmp);
+	   FItems.push_back(tmp);
 
 	   res = tmp->ID;
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("Story::AddAnswer", e.ToString());
+
+       res = 0;
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::AddScript()
+int __stdcall KobzarEngine::AddScript()
 {
   int res = 0;
 
   try
 	 {
 	   TDlgScript *tmp = new TDlgScript(GenElementID());
-	   items.push_back(tmp);
+	   FItems.push_back(tmp);
 
        res = tmp->ID;
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("Story::AddScript", e.ToString());
+
+       res = 0;
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::Select(int id)
+int __stdcall KobzarEngine::Select(int id)
 {
   int res = 0;
 
@@ -272,13 +313,15 @@ int KobzarEngine::Select(int id)
   catch (Exception &e)
 	 {
 	   CreateLog("Story::Select", e.ToString());
+
+       res = 0;
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-const wchar_t *KobzarEngine::RunScript(const wchar_t *text)
+const wchar_t *__stdcall KobzarEngine::RunScript(const wchar_t *text)
 {
   const wchar_t *res = nullptr;
 
@@ -310,7 +353,7 @@ const wchar_t *KobzarEngine::RunScript(const wchar_t *text)
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::Remove(int id)
+int __stdcall KobzarEngine::Remove(int id)
 {
   int res = 0;
 
@@ -320,21 +363,23 @@ int KobzarEngine::Remove(int id)
 
 	   if (!itm)
 		 throw Exception("Element with ID = " + IntToStr(id) + " not found");
-	   else
-		 RemoveFromItems(itm);
+
+       RemoveFromItems(itm);
 
 	   res = 1;
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("Story::Remove", e.ToString());
+
+       res = 0;
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::Link(int id, int to_id)
+int __stdcall KobzarEngine::Link(int id, int to_id)
 {
   int res = 0;
 
@@ -352,14 +397,14 @@ int KobzarEngine::Link(int id, int to_id)
 	   if ((from->Type == DlgAnsw) &&
 		  (to->Type == DlgText)) //перший елемент - Відповідь, другий - Сцена
 		 {
-		   if (to->PrevID > -1) //якщо Сцена вже привязана до іншої Відповіді
+		   if (to->PrevID > 0) //якщо Сцена вже привязана до іншої Відповіді
 			 {
 			   TDlgBaseText *old_answ = FindElement(to->PrevID);
 
 			   if (old_answ) //видалимо прив'язки у старої Відповіді
 				 {
-				   old_answ->NextDialog = -1;
-				   old_answ->NextID = -1;
+				   old_answ->NextDialog = 0;
+				   old_answ->NextID = 0;
 				 }
 			 }
 
@@ -378,13 +423,15 @@ int KobzarEngine::Link(int id, int to_id)
   catch (Exception &e)
 	 {
 	   CreateLog("Story::Link", e.ToString());
+
+       res = 0;
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-int KobzarEngine::Unlink(int id, int to_id)
+int __stdcall KobzarEngine::Unlink(int id, int to_id)
 {
   int res = 0;
 
@@ -400,61 +447,733 @@ int KobzarEngine::Unlink(int id, int to_id)
 		 throw Exception("Element with ID = " + IntToStr(to_id) + " not found");
 
 	   if (from->Type == DlgAnsw)
-		 from->NextDialog = -1;
+		 from->NextDialog = 0;
 
 	   if ((to->Type == DlgAnsw) || (to->Type == DlgScript))
-		 to->Dialog = -1;
+		 to->Dialog = 0;
 
-	   from->NextID = -1;
-	   to->PrevID = -1;
+	   from->NextID = 0;
+	   to->PrevID = 0;
 
 	   res = 1;
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("Story::Unlink", e.ToString());
+
+       res = 0;
 	 }
 
   return res;
 }
 //---------------------------------------------------------------------------
 
-const wchar_t * __stdcall KobzarEngine::GetVersion()
+int __stdcall KobzarEngine::GetID()
 {
-  return GetVersionInString(path).c_str();
-}
-//-------------------------------------------------------------------------
+  int res = 0;
 
-const wchar_t * __stdcall KobzarEngine::GetLastError()
-{
-  return LastError.c_str();
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+       res = ActiveItem->ID;
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetID", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
 }
-//-------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::SetID(int val)
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   UpdatePrevID(ActiveItem->ID, val);
+       ActiveItem->ID = val;
+
+       res = 1;
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::SetID", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::GetPrevID()
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   res = ActiveItem->PrevID;
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetPrevID", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::SetPrevID(int val)
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   if (ActiveItem->Type == DlgText)
+		 CreateLog("KobzarEngine::SetPrevID", "Can't change PrevID property of TEXT element");
+	   else
+		 {
+		   TDlgBaseText *lnk = FindElement(val);
+
+		   if (lnk && (lnk->Type == DlgText))
+			 {
+			   ActiveItem->PrevID = val;
+			   ActiveItem->Dialog = lnk->Dialog;
+			 }
+		   else if (lnk && (lnk->Type != DlgText))
+			 throw Exception("Element with ID = PrevID (" + IntToStr(val) + ") is not TEXT element");
+		   else
+			 throw Exception("No TEXT_LIKE element with ID = PrevID (" + IntToStr(val) + ")");
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::SetPrevID", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::GetNextID()
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+       res = ActiveItem->NextID;
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetNextID", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::SetNextID(int val)
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+       if (ActiveItem->Type == DlgText)
+         throw Exception("Can't change NextID property of TEXT element");
+
+       TDlgBaseText *lnk = FindElement(val);
+
+       if (lnk && (lnk->Type == DlgText))
+         {
+           ActiveItem->NextID = val;
+           ActiveItem->NextDialog = lnk->Dialog;
+         }
+       else if (lnk && (lnk->Type != DlgText))
+         throw Exception("Element with ID = NextID (" + IntToStr(val) + ") is not a TEXT");
+       else
+         throw Exception("No TEXT element with ID = NextID (" + IntToStr(val) + ")");
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::SetNextID", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::GetDialog()
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+       res = ActiveItem->Dialog;
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetDialog", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::SetDialog(int val)
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+       int old = ActiveItem->Dialog;
+
+       if (ActiveItem->Type != DlgText)
+         {
+           ActiveItem->Dialog = val;
+           ActiveItem->PrevID = FindTextElementID(val);
+         }
+       else
+         {
+           ActiveItem->Dialog = val;
+           std::vector<TDlgAnswer*> links;
+
+           if (FindAnswersByDialog(ActiveItem->Dialog, &links) > 0)
+             {
+               CreateLog("KobzarEngine::SetDialog", "Founded elements with Dialog. Creating links");
+
+               for (auto itm : links)
+                  itm->PrevID = ActiveItem->ID;
+             }
+
+           if ((old != ActiveItem->Dialog) && (SearchDependeciesDialog(old) > 0))
+             {
+               CreateLog("KobzarEngine::SetDialog", "Founded links of old elements. Rebuilding links");
+               UpdateDialog(old, ActiveItem->Dialog);
+             }
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::SetDialog", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::GetNextDialog()
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+       res = ActiveItem->NextDialog;
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetNextDialog", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::SetNextDialog(int val)
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   if (ActiveItem->Type != DlgText)
+         {
+           ActiveItem->NextDialog = val;
+           int new_dlg_id = FindTextElementID(ActiveItem->NextDialog);
+
+           if (new_dlg_id > 0)
+             {
+               TDlgBaseText *ndlg = FindElement(new_dlg_id);
+               ndlg->PrevID = ActiveItem->ID;
+               ActiveItem->NextID = ndlg->ID;
+
+               res = 1;
+			 }
+		 }
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::SetNextDialog", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::GetType()
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+       res = ActiveItem->Type;
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetType", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+const wchar_t * __stdcall KobzarEngine::GetText()
+{
+  const wchar_t *res = nullptr;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+       res = ActiveItem->Text.c_str();
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetText", e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::SetText(const wchar_t *val)
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+       ActiveItem->Text = String(val);
+
+       res = 1;
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::SetText", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::IsEndDialog()
+{
+  int res = -1;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   if (ActiveItem->Type == DlgAnsw)
+		 res = reinterpret_cast<TDlgAnswer*>(ActiveItem)->EndDialog;
+	   else
+		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not an Answer");
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::IsEndDialog", e.ToString());
+
+       res = -1;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::SetEndDialog(bool val)
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   if (ActiveItem->Type == DlgAnsw)
+		 {
+		   TDlgAnswer *itm = reinterpret_cast<TDlgAnswer*>(ActiveItem);
+
+		   itm->EndDialog = val;
+
+		   if (val)
+			 {
+			   itm->PrevNextID = itm->NextID;
+			   itm->NextID = 0;
+			   itm->NextDialog = 0;
+			 }
+		   else if (itm->PrevNextID > 0)
+			 {
+			   SetNextID(itm->PrevNextID);
+			   itm->PrevNextID = 0;
+			 }
+		 }
+	   else
+		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not an Answer");
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::SetEndDialog", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+const wchar_t * __stdcall KobzarEngine::GetParams()
+{
+  const wchar_t *res = nullptr;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   if (ActiveItem->Type == DlgScript)
+		 res = reinterpret_cast<TDlgScript*>(ActiveItem)->Params.c_str();
+	   else
+		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not a Script");
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetParams", e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::SetParams(const wchar_t *val)
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   if (ActiveItem->Type == DlgScript)
+		 reinterpret_cast<TDlgScript*>(ActiveItem)->Params = String(val);
+	   else
+		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not a Script");
+
+       res = 1;
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::SetParams", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::Execute()
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   if (ActiveItem->Type != DlgScript)
+		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not a Script");
+	   else
+		 res = TranslateScript(reinterpret_cast<TDlgScript*>(ActiveItem));
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::Execute", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+const wchar_t * __stdcall KobzarEngine::GetResult()
+{
+  const wchar_t *res = nullptr;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   if (ActiveItem->Type == DlgScript)
+		 res = reinterpret_cast<TDlgScript*>(ActiveItem)->Result.c_str();
+	   else
+		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not a Script");
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetResult", e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::TellStory(const wchar_t *story_file)
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!LoadStory(story_file))
+		 throw Exception("Can't load story");
+
+	   res = LoadDialog(1);
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::TellStory", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::LoadDialog(int dlg_id)
+{
+  int res = 0;
+
+  try
+	 {
+	   if (Select(FindTextElementID(dlg_id)))
+		 {
+		   std::vector<TDlgScript*> scripts;
+
+		   FindScriptsByDialog(dlg_id, &scripts);
+
+		   for (auto itm : scripts)
+			  TranslateScript(itm);
+
+		   res = 1;
+		 }
+	   else
+         throw Exception("No Scene in dialog with ID = " + IntToStr(dlg_id));
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::LoadDialog", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+const wchar_t * __stdcall KobzarEngine::GetScene()
+{
+  const wchar_t *res = nullptr;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   if (ActiveItem->Type != DlgText)
+		 throw Exception("Active element isn't a Scene");
+
+	   res = ActiveItem->Text.c_str();
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetScene", e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::GetAnswerCount()
+{
+  int res = -1;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   if (ActiveItem->Type != DlgText)
+		 throw Exception("Active element isn't a Scene");
+
+	   std::vector<TDlgAnswer*> answers;
+
+       res = FindAnswersByDialog(ActiveItem->Dialog, &answers);
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetAnswerCount", e.ToString());
+
+       res = -1;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+const wchar_t * __stdcall KobzarEngine::GetAnswer(int index)
+{
+  const wchar_t *res = nullptr;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active element!");
+
+	   std::vector<TDlgAnswer*> answers;
+
+       FindAnswersByDialog(ActiveItem->Dialog, &answers);
+
+       res = answers[index]->Text.c_str();
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::GetAnswer", e.ToString());
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
+
+int __stdcall KobzarEngine::SelectAnswer(int index)
+{
+  int res = 0;
+
+  try
+	 {
+	   if (!ActiveItem)
+		 throw Exception("No active Scene!");
+
+       if (ActiveItem->Type != DlgText)
+		 throw Exception("Active element isn't a Scene");
+
+       std::vector<TDlgAnswer*> answers;
+
+       FindAnswersByDialog(ActiveItem->Dialog, &answers);
+
+       TDlgAnswer *itm = answers[index];
+
+       if (itm->NextDialog > 0)
+         LoadDialog(itm->NextDialog);
+       else
+         CloseStory();
+
+       res = 1;
+	 }
+  catch (Exception &e)
+	 {
+	   CreateLog("KobzarEngine::SelectAnswer", e.ToString());
+
+       res = 0;
+	 }
+
+  return res;
+}
+//---------------------------------------------------------------------------
 //------------------INTERNAL FUNCTIONS-------------------------------------
 //-------------------------------------------------------------------------
 void KobzarEngine::CreateLog(const String &method_name, const String &error)
 {
-  LastError = error;
+  FLastError = error;
   SaveLogToUserFolder("Engine.log", "Kobzar", method_name + ": " + error);
 }
 //---------------------------------------------------------------------------
 
 int KobzarEngine::GenDialogID()
 {
-  int max = -1;
+  int max = 0;
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : FItems)
 		 {
-		   if (items[i]->Dialog > max)
-			 max = items[i]->Dialog;
+		   if (itm->Dialog > max)
+			 max = itm->Dialog;
 		 }
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("KobzarEngine::GenDialogID", e.ToString());
-	   max = -2;
+	   max = -1;
 	 }
 
   return max + 1;
@@ -463,20 +1182,20 @@ int KobzarEngine::GenDialogID()
 
 int KobzarEngine::GenElementID()
 {
-  int max = -1;
+  int max = 0;
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : FItems)
 		 {
-		   if (items[i]->ID > max)
-			 max = items[i]->ID;
+		   if (itm->ID > max)
+			 max = itm->ID;
 		 }
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("KobzarEngine::GenElementID", e.ToString());
-	   max = -2;
+	   max = -1;
 	 }
 
   return max + 1;
@@ -485,20 +1204,23 @@ int KobzarEngine::GenElementID()
 
 TDlgBaseText *KobzarEngine::FindElement(int id)
 {
-  TDlgBaseText *res = NULL;
+  TDlgBaseText *res = nullptr;
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   if (id == 0)
+	     throw Exception("Element ID can't be 0");
+
+	   for (int i = 0; i < FItems.size(); i++)
 		 {
-		   if (items[i]->ID == id)
-			 res = items[i];
+		   if (FItems[i]->ID == id)
+			 res = FItems[i];
 		 }
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("KobzarEngine::FindElement", e.ToString());
-	   res = NULL;
+	   res = nullptr;
 	 }
 
   return res;
@@ -509,17 +1231,17 @@ int KobzarEngine::FindLinkedElements(int id, std::vector<TDlgBaseText*> *el_list
 {
   int cnt = 0;
 
-  if (id == -1)
+  if (id == 0)
 	return 0;
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (int i = 0; i < FItems.size(); i++)
 		 {
-		   if (items[i]->PrevID == id)
+		   if (FItems[i]->PrevID == id)
 			 {
 			   cnt++;
-			   el_list->push_back(items[i]);
+			   el_list->push_back(FItems[i]);
 			 }
          }
 	 }
@@ -537,19 +1259,19 @@ int KobzarEngine::FindAnswersByDialog(int dlg_id, std::vector<TDlgAnswer*> *el_l
 {
   int cnt = 0;
 
-  if (dlg_id == -1)
+  if (dlg_id == 0)
 	return 0;
 
   try
 	 {
        el_list->clear();
 
-	   for (int i = 0; i < items.size(); i++)
+	   for (int i = 0; i < FItems.size(); i++)
 		 {
-		   if ((items[i]->Dialog == dlg_id) && (items[i]->Type == DlgAnsw))
+		   if ((FItems[i]->Dialog == dlg_id) && (FItems[i]->Type == DlgAnsw))
 			 {
 			   cnt++;
-			   el_list->push_back(reinterpret_cast<TDlgAnswer*>(items[i]));
+			   el_list->push_back(reinterpret_cast<TDlgAnswer*>(FItems[i]));
 			 }
 		 }
 	 }
@@ -567,17 +1289,17 @@ int KobzarEngine::FindScriptsByDialog(int dlg_id, std::vector<TDlgScript*> *el_l
 {
   int cnt = 0;
 
-  if (dlg_id == -1)
+  if (dlg_id == 0)
 	return 0;
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (int i = 0; i < FItems.size(); i++)
 		 {
-		   if ((items[i]->Dialog == dlg_id) && (items[i]->Type == DlgScript))
+		   if ((FItems[i]->Dialog == dlg_id) && (FItems[i]->Type == DlgScript))
 			 {
 			   cnt++;
-			   el_list->push_back(reinterpret_cast<TDlgScript*>(items[i]));
+			   el_list->push_back(reinterpret_cast<TDlgScript*>(FItems[i]));
 			 }
 		 }
 	 }
@@ -593,23 +1315,23 @@ int KobzarEngine::FindScriptsByDialog(int dlg_id, std::vector<TDlgScript*> *el_l
 
 int KobzarEngine::FindTextElementID(int dlg_id)
 {
-  int res = -1;
+  int res = 0;
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (int i = 0; i < FItems.size(); i++)
 		 {
-		   if ((items[i]->Dialog == dlg_id) &&
-			   (items[i]->Type == DlgText))
+		   if ((FItems[i]->Dialog == dlg_id) &&
+			   (FItems[i]->Type == DlgText))
 			 {
-			   res = items[i]->ID;
+			   res = FItems[i]->ID;
              }
 		 }
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("KobzarEngine::FindTextElementID", e.ToString());
-	   res = -1;
+	   res = 0;
 	 }
 
   return res;
@@ -620,12 +1342,12 @@ void KobzarEngine::RemoveFromItems(TDlgBaseText *element)
 {
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (int i = 0; i < FItems.size(); i++)
 		 {
-		   if (items[i] == element)
+		   if (FItems[i] == element)
 			 {
-			   delete items[i];
-			   items.erase(items.begin() + i);
+			   delete FItems[i];
+			   FItems.erase(FItems.begin() + i);
 			   break;
 			 }
 		 }
@@ -634,7 +1356,7 @@ void KobzarEngine::RemoveFromItems(TDlgBaseText *element)
 	 }
   catch (Exception &e)
 	 {
-	   CreateLog("KobzarEngine::RemoveFromItems", e.ToString());
+	   CreateLog("KobzarEngine::RemoveFromFItems", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -651,26 +1373,26 @@ bool KobzarEngine::SaveDlgSchema(String file)
 
 	   int val = 0, left = 0, top = 0;
 
-	   for (int i = 0; i < items.size(); i++)
+	   for (int i = 0; i < FItems.size(); i++)
 		  {
 			val = 0;
 
-			val = items[i]->ID;
+			val = FItems[i]->ID;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->Type;
+			val = FItems[i]->Type;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->PrevID;
+			val = FItems[i]->PrevID;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->NextID;
+			val = FItems[i]->NextID;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->Dialog;
+			val = FItems[i]->Dialog;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->NextDialog;
+			val = FItems[i]->NextDialog;
 			fs->Position += fs->Write(&val, sizeof(int));
 
 //тут має бути запис згенерованих координат для візуального редактора
@@ -678,19 +1400,18 @@ bool KobzarEngine::SaveDlgSchema(String file)
 			fs->Position += fs->Write(&val, sizeof(int));
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			WriteStringIntoBinaryStream(fs.get(), items[i]->Text);
+			WriteStringIntoBinaryStream(fs.get(), FItems[i]->Text);
 
-			if (items[i]->Type == DlgScript)
+			if (FItems[i]->Type == DlgScript)
 			  {
-				TDlgScript *d = dynamic_cast<TDlgScript*>(items[i]);
+				TDlgScript *d = dynamic_cast<TDlgScript*>(FItems[i]);
 
 				WriteStringIntoBinaryStream(fs.get(), d->Params);
-				//WriteStringIntoBinaryStream(fs.get(), d->Result);
 			  }
 
-			if (items[i]->Type == DlgAnsw)
+			if (FItems[i]->Type == DlgAnsw)
 			  {
-				TDlgAnswer *d = dynamic_cast<TDlgAnswer*>(items[i]);
+				TDlgAnswer *d = dynamic_cast<TDlgAnswer*>(FItems[i]);
 				bool chk = d->EndDialog;
 				fs->Position += fs->Write(&chk, sizeof(bool));
 			  }
@@ -734,6 +1455,12 @@ bool KobzarEngine::LoadDlgSchema(String file)
 		   fs->Position += fs->Read(&next_card_of_dialog, sizeof(int));
 		   fs->Position += fs->Read(&left, sizeof(int));
 		   fs->Position += fs->Read(&top, sizeof(int));
+
+		   if (id == 0)
+			 throw Exception("Element ID can't be 0");
+
+		   if (card_of_dialog == 0)
+			 throw Exception("Dialog ID can't be 0");
 
 		   switch (dlg_type)
 			 {
@@ -781,7 +1508,7 @@ bool KobzarEngine::LoadDlgSchema(String file)
 				 }
 			 }
 
-		   items.push_back(lnk);
+		   FItems.push_back(lnk);
 		 }
 
 	   res = true;
@@ -799,14 +1526,14 @@ int KobzarEngine::SearchDependeciesID(int id)
 {
   int dpnd = 0;
 
-  if (id == -1)
+  if (id == 0)
     return 0;
 
   try
 	 {
-       for (int i = 0; i < items.size(); i++)
+       for (auto itm : FItems)
 		  {
-			if ((items[i]->PrevID == id) || (items[i]->NextID == id))
+			if ((itm->PrevID == id) || (itm->NextID == id))
 			  dpnd++;
           }
 	 }
@@ -829,9 +1556,9 @@ int KobzarEngine::SearchDependeciesDialog(int id)
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : FItems)
 		  {
-			if (items[i]->Dialog == id)
+			if (itm->Dialog == id)
 			  dpnd++;
 		  }
 	 }
@@ -849,13 +1576,13 @@ void KobzarEngine::UpdatePrevID(int old_id, int new_id)
 {
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (int i = 0; i < FItems.size(); i++)
 		  {
-			if (items[i]->PrevID == old_id)
-			  items[i]->PrevID = new_id;
+			if (FItems[i]->PrevID == old_id)
+			  FItems[i]->PrevID = new_id;
 
-			if (items[i]->NextID == old_id)
-			  items[i]->NextID = new_id;
+			if (FItems[i]->NextID == old_id)
+			  FItems[i]->NextID = new_id;
 		  }
 	 }
   catch (Exception &e)
@@ -869,10 +1596,10 @@ void KobzarEngine::UpdateDialog(int old_val, int new_val)
 {
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : FItems)
 		  {
-			if (items[i]->Dialog == old_val)
-			  items[i]->Dialog = new_val;
+			if (itm->Dialog == old_val)
+			  itm->Dialog = new_val;
 		  }
 	 }
   catch (Exception &e)
@@ -894,21 +1621,26 @@ int KobzarEngine::TranslateScript(TDlgScript *el)
 		 throw Exception("Element with ID = " + IntToStr(el->ID) + ", is not a Script");
 	   else
 		 {
-		   std::unique_ptr<ELIScript> script(new ELIScript(GetDirPathFromFilePath(String(path)) + "\\ELI.dll"));
+		   String dir = GetDirPathFromFilePath(String(path));
+
+		   if (!FileExists(dir + "\\scripts\\InnerScriptHeader.eh"))
+             throw Exception("Can't load script header!");
+
+		   std::unique_ptr<ELIScript> script(new ELIScript(dir + "\\ELI.dll"));
 
 		   if (!script->Initialised)
 			 throw Exception("Script object not initialised!");
 
-		   String header = "#begin Script_" + IntToStr(el->ID) + ";\r\n",
-				  footer = "\r\n}\r\n#end;";
+		   String header = "#begin Script" + IntToStr(el->ID) + ";\r\n",
+				  footer = "\r\n#end;";
 
-		   header += LoadTextFile(GetDirPathFromFilePath(String(path)) + "\\scripts\\InnerScriptHeader.eh");
-		   header += "#protect\r\n{\r\n";
+		   header += LoadTextFile(dir + "\\scripts\\InnerScriptHeader.eh");
+		   header += "\r\n";
 
 		   wchar_t buffer[256];
 
 		   swprintf(buffer, L"%d\r\n", reinterpret_cast<int>(this));
-		   script->Interpreter->SetParam(L"pHandle", buffer);
+		   script->Interpreter->SetParam(L"pKobzarEngineHandle", buffer);
 
 		   script->Text = header + el->Text + footer;
 		   script->Params = el->Params;
@@ -939,7 +1671,7 @@ bool KobzarEngine::XMLImport(String xml_file)
 
 	   ClearItems();
 
-	   ixml->DOMVendor = GetDOMVendor("MSXML");
+	   ixml->DOMVendor = GetDOMVendor(SMSXML);
 	   ixml->FileName = xml_file;
 	   ixml->Active = true;
 	   ixml->Encoding = "UTF-8";
@@ -953,7 +1685,7 @@ bool KobzarEngine::XMLImport(String xml_file)
 	   _di_IXMLNode TextOfAnswer;
 	   _di_IXMLNode EndDialog;
 
-	   int curr_card = -1;
+	   int curr_card = 0;
 
 	   for (int i = 0; i < DialogFile->ChildNodes->Count; i++)
 		  {
@@ -970,7 +1702,7 @@ bool KobzarEngine::XMLImport(String xml_file)
 
 					 lnk->Dialog = curr_card;
 					 lnk->Text = ScreenText->Text;
-					 items.push_back(lnk);
+					 FItems.push_back(lnk);
 				   }
 				 else
 				   {
@@ -987,7 +1719,7 @@ bool KobzarEngine::XMLImport(String xml_file)
 						  if (Answer->HasAttribute("NextDialog"))
 							ncd = StrToInt(Answer->GetAttribute("NextDialog"));
 
-						  ind = Answer->ChildNodes->IndexOf("TextOfAnswer");
+						  ind = Answer->ChildNodes->IndexOf("Text");
 
 						  if (ind >= 0)
 							text = Answer->ChildNodes->Nodes[ind]->Text;
@@ -1006,10 +1738,10 @@ bool KobzarEngine::XMLImport(String xml_file)
 							  TDlgScript *lnk = new TDlgScript(GenElementID());
 
 							  lnk->Dialog = curr_card;
-							  lnk->NextDialog = -1;
+							  lnk->NextDialog = 0;
 							  lnk->Params = Answer->GetAttribute("Params");
 							  lnk->Text = text;
-							  items.push_back(lnk);
+							  FItems.push_back(lnk);
 							}
 						  else //Answer
 							{
@@ -1019,19 +1751,20 @@ bool KobzarEngine::XMLImport(String xml_file)
 							  answ->NextDialog = ncd;
 							  answ->Text = text;
 							  answ->EndDialog = end;
-							  items.push_back(answ);
+							  FItems.push_back(answ);
 							}
 						}
-				  }
+				   }
 			   }
 		  }
 
-		BuildLinksAfterXMLImport();
+	   BuildLinksAfterXMLImport();
 
-		res = true;
+	   res = true;
 	 }
   catch (Exception &e)
 	 {
+       CoUninitialize();
 	   CreateLog("KobzarEngine::XMLImport", e.ToString());
 	 }
 
@@ -1049,21 +1782,21 @@ bool KobzarEngine::XMLExport(String xml_file)
 
 	   String xml_exp = "<StoryFile>\r\n";
 
-	   for (int i = 0; i < items.size(); i++)
+	   for (int i = 0; i < FItems.size(); i++)
 		  {
-			if (items[i]->Type == DlgText)
+			if (FItems[i]->Type == DlgText)
 			  {
 				xml_exp += "\t<Dialog id = '" +
-						   IntToStr(items[i]->Dialog) +
+						   IntToStr(FItems[i]->Dialog) +
 						   "'>\r\n";
-				xml_exp += items[i]->CreateXML();
+				xml_exp += FItems[i]->CreateXML();
 				xml_exp += "\t\t<Answers>\r\n";
 
-				for (int j = 0; j < items.size(); j++)
+				for (int j = 0; j < FItems.size(); j++)
 				   {
-					 if (items[j]->PrevID == items[i]->ID)
+					 if (FItems[j]->PrevID == FItems[i]->ID)
 					   {
-						 xml_exp += items[j]->CreateXML();
+						 xml_exp += FItems[j]->CreateXML();
 						 xml_exp += "\r\n";
 					   }
 				   }
@@ -1093,14 +1826,14 @@ void KobzarEngine::ClearItems()
 {
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
-		  delete items[i];
+	   for (auto itm : FItems)
+		  delete itm;
 
-	   items.clear();
+	   FItems.clear();
 	 }
   catch (Exception &e)
 	 {
-	   CreateLog("KobzarEngine::ClearItems", e.ToString());
+	   CreateLog("KobzarEngine::ClearFItems", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -1109,12 +1842,12 @@ void KobzarEngine::BuildLinksAfterXMLImport()
 {
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : FItems)
 		  {
-			if (items[i]->Type != DlgText)
+			if (itm->Type != DlgText)
 			  {
-				items[i]->PrevID = FindTextElementID(items[i]->Dialog);
-				items[i]->NextID = FindTextElementID(items[i]->NextDialog);
+				itm->PrevID = FindTextElementID(itm->Dialog);
+				itm->NextID = FindTextElementID(itm->NextDialog);
 			  }
 		  }
 	 }
@@ -1129,620 +1862,18 @@ void KobzarEngine::RemoveLimboLinks()
 {
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : FItems)
 		  {
-			if ((items[i]->PrevID > -1) && (!FindElement(items[i]->PrevID)))
-			  items[i]->PrevID = -1;
+			if ((itm->PrevID > -1) && (!FindElement(itm->PrevID)))
+			  itm->PrevID = 0;
 
-			if ((items[i]->NextID > -1) && (!FindElement(items[i]->NextID)))
-			  items[i]->NextID = -1;
+			if ((itm->NextID > -1) && (!FindElement(itm->NextID)))
+			  itm->NextID = 0;
 		  }
 	 }
   catch (Exception &e)
 	 {
 	   CreateLog("KobzarEngine::RemoveLimboLinks", e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::GetID()
-{
-  int res = 0;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 res = ActiveItem->ID;
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::GetID", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-void KobzarEngine::SetID(int val)
-{
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 {
-		   UpdatePrevID(ActiveItem->ID, val);
-           ActiveItem->ID = val;
-		 }
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::SetID", e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::GetPrevID()
-{
-  int res = 0;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 res = ActiveItem->PrevID;
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::GetPrevID", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-void KobzarEngine::SetPrevID(int val)
-{
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else if (ActiveItem->Type == DlgText)
-		 CreateLog("KobzarEngine::SetPrevID", "Can't change PrevID property of TEXT element");
-	   else
-		 {
-		   TDlgBaseText *lnk = FindElement(val);
-
-		   if (lnk && (lnk->Type == DlgText))
-			 {
-			   ActiveItem->PrevID = val;
-			   ActiveItem->Dialog = lnk->Dialog;
-			 }
-		   else if (lnk && (lnk->Type != DlgText))
-			 throw Exception("Element with ID = PrevID (" + IntToStr(val) + ") is not TEXT element");
-		   else
-			 throw Exception("No TEXT_LIKE element with ID = PrevID (" + IntToStr(val) + ")");
-		 }
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::SetPrevID", e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::GetNextID()
-{
-  int res = 0;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 res = ActiveItem->NextID;
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::GetNextID", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-void KobzarEngine::SetNextID(int val)
-{
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 {
-		   if (ActiveItem->Type == DlgText)
-			 throw Exception("Can't change NextID property of TEXT element");
-
-		   TDlgBaseText *lnk = FindElement(val);
-
-		   if (lnk && (lnk->Type == DlgText))
-			 {
-			   ActiveItem->NextID = val;
-			   ActiveItem->NextDialog = lnk->Dialog;
-			 }
-		   else if (lnk && (lnk->Type != DlgText))
-			 throw Exception("Element with ID = NextID (" + IntToStr(val) + ") is not a TEXT");
-		   else
-			 throw Exception("No TEXT element with ID = NextID (" + IntToStr(val) + ")");
-		 }
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::SetNextID", e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::GetDialog()
-{
-  int res = 0;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 res = ActiveItem->Dialog;
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::GetDialog", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-void KobzarEngine::SetDialog(int val)
-{
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 {
-		   int old = ActiveItem->Dialog;
-
-		   if (ActiveItem->Type != DlgText)
-			 {
-			   ActiveItem->Dialog = val;
-			   ActiveItem->PrevID = FindTextElementID(val);
-			 }
-		   else
-			 {
-			   ActiveItem->Dialog = val;
-			   std::vector<TDlgAnswer*> lnks;
-
-			   if (FindAnswersByDialog(ActiveItem->Dialog, &lnks) > 0)
-				 {
-				   CreateLog("KobzarEngine::SetDialog", "Founded elements with Dialog. Creating links");
-
-				   for (int i = 0; i < lnks.size(); i++)
-					 lnks[i]->PrevID = ActiveItem->ID;
-				 }
-
-			   if ((old != ActiveItem->Dialog) && (SearchDependeciesDialog(old) > 0))
-				 {
-				   CreateLog("KobzarEngine::SetDialog", "Founded links of old elements. Rebuilding links");
-				   UpdateDialog(old, ActiveItem->Dialog);
-				 }
-			 }
-		 }
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::SetDialog", e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::GetNextDialog()
-{
-  int res = 0;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 res = ActiveItem->NextDialog;
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::GetNextDialog", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-void KobzarEngine::SetNextDialog(int val)
-{
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 {
-		   if (ActiveItem->Type != DlgText)
-			 {
-			   ActiveItem->NextDialog = val;
-			   int new_dlg_id = FindTextElementID(ActiveItem->NextDialog);
-
-			   if (new_dlg_id > -1)
-				 {
-				   TDlgBaseText *ndlg = FindElement(new_dlg_id);
-				   ndlg->PrevID = ActiveItem->ID;
-				   ActiveItem->NextID = ndlg->ID;
-				 }
-			 }
-		 }
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::SetNextDialog", e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::GetType()
-{
-  int res = 0;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 res = ActiveItem->Type;
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::GetType", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-const wchar_t *KobzarEngine::GetText()
-{
-  const wchar_t *res = nullptr;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 res = ActiveItem->Text.c_str();
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::GetText", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-void KobzarEngine::SetText(const wchar_t *val)
-{
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 ActiveItem->Text = String(val);
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::SetText", e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::IsEndDialog()
-{
-  int res = -1;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else if (ActiveItem->Type == DlgAnsw)
-		 res = reinterpret_cast<TDlgAnswer*>(ActiveItem)->EndDialog;
-	   else
-		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not an Answer");
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::IsEndDialog", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-void KobzarEngine::SetEndDialog(bool val)
-{
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else if (ActiveItem->Type == DlgAnsw)
-		 {
-		   TDlgAnswer *itm = reinterpret_cast<TDlgAnswer*>(ActiveItem);
-
-		   itm->EndDialog = val;
-
-		   if (val)
-			 {
-			   itm->PrevNextID = itm->NextID;
-			   itm->NextID = -1;
-			   itm->NextDialog = -1;
-			 }
-		   else if (itm->PrevNextID > 0)
-			 {
-			   SetNextID(itm->PrevNextID);
-			   itm->PrevNextID = -1;
-			 }
-		 }
-	   else
-		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not an Answer");
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::SetEndDialog", e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-const wchar_t *KobzarEngine::GetParams()
-{
-  const wchar_t *res = nullptr;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else if (ActiveItem->Type == DlgScript)
-		 res = reinterpret_cast<TDlgScript*>(ActiveItem)->Params.c_str();
-	   else
-		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not a Script");
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::GetParams", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-void KobzarEngine::SetParams(const wchar_t *val)
-{
-  int res = 0;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else if (ActiveItem->Type == DlgScript)
-		 reinterpret_cast<TDlgScript*>(ActiveItem)->Params = String(val);
-	   else
-		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not a Script");
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::SetParams", e.ToString());
-	 }
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::Execute()
-{
-  int res = 0;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else if (ActiveItem->Type != DlgScript)
-		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not a Script");
-	   else
-		 res = TranslateScript(reinterpret_cast<TDlgScript*>(ActiveItem));
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::Execute", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-const wchar_t *KobzarEngine::GetResult()
-{
-  const wchar_t *res = nullptr;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else if (ActiveItem->Type == DlgScript)
-		 res = reinterpret_cast<TDlgScript*>(ActiveItem)->Result.c_str();
-	   else
-		 throw Exception("Element with ID = " + IntToStr(ActiveItem->ID) + ", is not a Script");
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::GetResult", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::TellStory(const wchar_t *story_file)
-{
-  int res = 0;
-
-  try
-	 {
-	   if (!LoadStory(story_file))
-		 throw Exception("Can't load story");
-	   else
-		 res = LoadDialog(0);
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::TellStory", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::LoadDialog(int dlg_id)
-{
-  int res = 0;
-
-  try
-	 {
-	   if (Select(FindTextElementID(dlg_id)))
-		 {
-		   std::vector<TDlgScript*> scripts;
-
-		   FindScriptsByDialog(dlg_id, &scripts);
-
-		   for (int i = 0; i < scripts.size(); i++)
-			  TranslateScript(scripts[i]);
-
-		   res = 1;
-		 }
-	   else
-         throw Exception("No Scene in dialog with ID = " + IntToStr(dlg_id));
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::LoadDialog", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-const wchar_t *KobzarEngine::GetScene()
-{
-  const wchar_t *res = nullptr;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else if (ActiveItem->Type != DlgText)
-		 throw Exception("Active element isn't a Scene");
-	   else
-		 res = ActiveItem->Text.c_str();
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::GetScene", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-int KobzarEngine::GetAnswerCount()
-{
-  int res = -1;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else if (ActiveItem->Type != DlgText)
-		 throw Exception("Active element isn't a Scene");
-	   else
-		 {
-		   std::vector<TDlgAnswer*> answers;
-
-		   res = FindAnswersByDialog(ActiveItem->Dialog, &answers);
-		 }
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::GetAnswerCount", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-const wchar_t *KobzarEngine::GetAnswer(int index)
-{
-  const wchar_t *res = nullptr;
-
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active element!");
-	   else
-		 {
-		   std::vector<TDlgAnswer*> answers;
-
-		   FindAnswersByDialog(ActiveItem->Dialog, &answers);
-
-		   res = answers[index]->Text.c_str();
-		 }
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::GetAnswer", e.ToString());
-	 }
-
-  return res;
-}
-//---------------------------------------------------------------------------
-
-void KobzarEngine::SelectAnswer(int index)
-{
-  try
-	 {
-	   if (!ActiveItem)
-		 throw Exception("No active Scene!");
-       else if (ActiveItem->Type != DlgText)
-		 throw Exception("Active element isn't a Scene");
-       else
-		 {
-		   std::vector<TDlgAnswer*> answers;
-
-		   FindAnswersByDialog(ActiveItem->Dialog, &answers);
-		   TDlgAnswer *itm = answers[index];
-		   int ncd = itm->NextDialog;
-
-		   if (ncd >= 0)
-			 LoadDialog(answers[index]->NextDialog);
-		   else
-             CloseStory();
-		 }
-	 }
-  catch (Exception &e)
-	 {
-	   CreateLog("KobzarEngine::SelectAnswer", e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
