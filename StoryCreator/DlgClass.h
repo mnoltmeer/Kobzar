@@ -198,7 +198,7 @@ class TDlgAnswer : public TDlgBaseText
 	{
 	  Type = DlgAnsw;
 	  end_dlg = false;
-	  prev_id = -1;
+	  prev_id = 0;
 	}
 
 	TDlgAnswer(int left, int top, TForm *ContainerOwner)
@@ -206,7 +206,7 @@ class TDlgAnswer : public TDlgBaseText
     {
 	  Type = DlgAnsw;
 	  end_dlg = false;
-	  prev_id = -1;
+	  prev_id = 0;
 	  SetContainerData();
 	}
 
@@ -215,7 +215,7 @@ class TDlgAnswer : public TDlgBaseText
     {
 	  Type = DlgAnsw;
       end_dlg = false;
-	  prev_id = -1;
+	  prev_id = 0;
 	  SetContainerData();
 	}
 
@@ -226,7 +226,7 @@ class TDlgAnswer : public TDlgBaseText
 	{
 	  Type = DlgAnsw;
 	  end_dlg = false;
-	  prev_id = -1;
+	  prev_id = 0;
       SetContainerData();
 	}
 

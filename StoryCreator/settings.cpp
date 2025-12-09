@@ -21,7 +21,7 @@ This file is part of Kobzar Engine.
 #include <vcl.h>
 #pragma hdrstop
 
-#include "..\..\work-functions\MyFunc.h"
+#include "..\..\work-functions\Logs.h"
 #include "main.h"
 #include "EditText.h"
 #include "EditScript.h"
@@ -56,7 +56,7 @@ void __fastcall TAppSettings::FormShow(TObject *Sender)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "AppSettings::FormShow: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "AppSettings::FormShow: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -81,7 +81,7 @@ void __fastcall TAppSettings::SaveSettingsClick(TObject *Sender)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "AppSettings::SaveSettingsClick: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "AppSettings::SaveSettingsClick: " + e.ToString());
 	 }
 
   Close();

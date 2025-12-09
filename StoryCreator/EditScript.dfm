@@ -88,9 +88,9 @@ object EditScriptForm: TEditScriptForm
     Top = 35
     Width = 587
     Height = 302
-    Font.Charset = RUSSIAN_CHARSET
+    Font.Charset = DEFAULT_CHARSET
     Font.Color = clWindowText
-    Font.Height = -17
+    Font.Height = -11
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False

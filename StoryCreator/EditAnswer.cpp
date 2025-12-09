@@ -21,7 +21,6 @@ This file is part of Kobzar Engine.
 #include <vcl.h>
 #pragma hdrstop
 
-#include "..\..\work-functions\MyFunc.h"
 #include "DlgClass.h"
 #include "main.h"
 #include "EditAnswer.h"

@@ -20,7 +20,8 @@ This file is part of Kobzar Engine.
 
 #pragma hdrstop
 
-#include "..\..\work-functions\MyFunc.h"
+#include "..\..\work-functions\Logs.h"
+#include "..\..\work-functions\Data.h"
 #include "main.h"
 #include "DlgClass.h"
 
@@ -40,19 +41,19 @@ extern bool NoWarningsAtImport;
 
 int GenDialogID()
 {
-  int max = -1;
+  int max = 0;
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		 {
-		   if (items[i]->Dialog > max)
-			 max = items[i]->Dialog;
+		   if (itm->Dialog > max)
+			 max = itm->Dialog;
 		 }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "DlgClass::DialogID: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::DialogID: " + e.ToString());
 	   max = -2;
 	 }
 
@@ -66,15 +67,15 @@ int GenElementID()
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		 {
-		   if (items[i]->ID > max)
-			 max = items[i]->ID;
+		   if (itm->ID > max)
+			 max = itm->ID;
 		 }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "DlgClass::ElementID: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::ElementID: " + e.ToString());
 	   max = -1;
 	 }
 
@@ -88,15 +89,15 @@ TDlgBaseText *FindElement(int id)
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		 {
-		   if (items[i]->ID == id)
-			 res = items[i];
+		   if (itm->ID == id)
+			 res = itm;
 		 }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "DlgClass::FindElement: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::FindElement: " + e.ToString());
 	   res = NULL;
 	 }
 
@@ -108,24 +109,23 @@ int FindLinkedElements(int id, std::vector<TDlgBaseText*> *el_list)
 {
   int cnt = 0;
 
-  if (id == -1)
+  if (id == 0)
 	return 0;
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		 {
-		   if (items[i]->PrevID == id)
+		   if (itm->PrevID == id)
 			 {
 			   cnt++;
-			   el_list->push_back(items[i]);
+			   el_list->push_back(itm);
 			 }
          }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::FindLinkedElements: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::FindLinkedElements: " + e.ToString());
 	   cnt = -1;
 	 }
 
@@ -137,25 +137,23 @@ int FindAnswersByDialog(int dlg_id, std::vector<TDlgBaseText*> *el_list)
 {
   int cnt = 0;
 
-  if (dlg_id == -1)
+  if (dlg_id == 0)
 	return 0;
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		 {
-		   if ((items[i]->Dialog == dlg_id) &&
-			   (items[i]->Type != DlgText))
+		   if ((itm->Dialog == dlg_id) && (itm->Type != DlgText))
 			 {
 			   cnt++;
-			   el_list->push_back(items[i]);
+			   el_list->push_back(itm);
 			 }
 		 }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::FindAnswersByDialog: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::FindAnswersByDialog: " + e.ToString());
 	   cnt = -1;
 	 }
 
@@ -165,24 +163,20 @@ int FindAnswersByDialog(int dlg_id, std::vector<TDlgBaseText*> *el_list)
 
 int FindTextElementID(int crd_dlg)
 {
-  int res = -1;
+  int res = 0;
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		 {
-		   if ((items[i]->Dialog == crd_dlg) &&
-			   (items[i]->Type == DlgText))
-			 {
-			   res = items[i]->ID;
-             }
+		   if ((itm->Dialog == crd_dlg) && (itm->Type == DlgText))
+			 res = itm->ID;
 		 }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::FindTextElementID: " + e.ToString());
-	   res = -1;
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::FindTextElementID: " + e.ToString());
+	   res = 0;
 	 }
 
   return res;
@@ -209,8 +203,7 @@ void RemoveFromItems(TDlgBaseText *element)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::RemoveFromItems: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::RemoveFromItems: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -224,33 +217,33 @@ void RedrawLinks()
 	   canv->Pen->Style = psSolid;
 	   canv->Pen->Width = 1;
 
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		  {
-			if (items[i]->PrevID > -1)
+			if (itm->PrevID > 0)
 			  {
 				canv->Pen->Color = clGreen;
 
-				TDlgBaseText *lnk = FindElement(items[i]->PrevID);
+				TDlgBaseText *lnk = FindElement(itm->PrevID);
 
 				if (lnk)
 				  {
-					canv->MoveTo(items[i]->Container->Left,
-								 items[i]->Container->Top);
+					canv->MoveTo(itm->Container->Left,
+								 itm->Container->Top);
 					canv->LineTo(lnk->Container->Left + lnk->Container->Width,
 								 lnk->Container->Top + lnk->Container->Height);
 				  }
 			  }
 
-			if (items[i]->NextID > -1)
+			if (itm->NextID > 0)
 			  {
 				canv->Pen->Color = clBlue;
 
-				TDlgBaseText *lnk = FindElement(items[i]->NextID);
+				TDlgBaseText *lnk = FindElement(itm->NextID);
 
 				if (lnk)
 				  {
-					canv->MoveTo(items[i]->Container->Left + items[i]->Container->Width,
-								 items[i]->Container->Top + items[i]->Container->Height);
+					canv->MoveTo(itm->Container->Left + itm->Container->Width,
+								 itm->Container->Top + itm->Container->Height);
 					canv->LineTo(lnk->Container->Left, lnk->Container->Top);
 				  }
 			  }
@@ -258,8 +251,7 @@ void RedrawLinks()
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::RedrawLinks: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::RedrawLinks: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -268,13 +260,12 @@ void UpdateContainers()
 {
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
-		  items[i]->SetContainerData();
+	   for (auto itm : items)
+		  itm->SetContainerData();
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::UpdateContainers: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::UpdateContainers: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -289,8 +280,7 @@ void AddScreenText(int left, int top, TForm *IconOwner)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::AddScreenText: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::AddScreenText: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -305,8 +295,7 @@ void AddAnswer(int left, int top, TForm *IconOwner)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::AddAnswer: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::AddAnswer: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -321,8 +310,7 @@ void AddScript(int left, int top, TForm *IconOwner)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::AddScript: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::AddScript: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -338,46 +326,46 @@ bool SaveDlgSchema(const wchar_t *file)
 	   fs->Position = 0;
 	   int val = 0;
 
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		  {
 			val = 0;
 
-			val = items[i]->ID;
+			val = itm->ID;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->Type;
+			val = itm->Type;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->PrevID;
+			val = itm->PrevID;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->NextID;
+			val = itm->NextID;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->Dialog;
+			val = itm->Dialog;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->NextDialog;
+			val = itm->NextDialog;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->Left;
+			val = itm->Left;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			val = items[i]->Top;
+			val = itm->Top;
 			fs->Position += fs->Write(&val, sizeof(int));
 
-			WriteStringIntoBinaryStream(fs.get(), items[i]->Text);
+			WriteStringIntoBinaryStream(fs.get(), itm->Text);
 
-			if (items[i]->Type == DlgScript)
+			if (itm->Type == DlgScript)
 			  {
-				TDlgScript *d = dynamic_cast<TDlgScript*>(items[i]);
+				TDlgScript *d = dynamic_cast<TDlgScript*>(itm);
 
 				WriteStringIntoBinaryStream(fs.get(), d->Params);
 			  }
 
-			if (items[i]->Type == DlgAnsw)
+			if (itm->Type == DlgAnsw)
 			  {
-				TDlgAnswer *d = dynamic_cast<TDlgAnswer*>(items[i]);
+				TDlgAnswer *d = dynamic_cast<TDlgAnswer*>(itm);
 				bool chk = d->EndDialog;
 				fs->Position += fs->Write(&chk, sizeof(bool));
 			  }
@@ -387,8 +375,7 @@ bool SaveDlgSchema(const wchar_t *file)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::SaveDlgSchema: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::SaveDlgSchema: " + e.ToString());
 	   res = false;
 	 }
 
@@ -424,6 +411,12 @@ bool LoadDlgSchema(const wchar_t *file)
 		   fs->Position += fs->Read(&next_card_of_dialog, sizeof(int));
 		   fs->Position += fs->Read(&left, sizeof(int));
 		   fs->Position += fs->Read(&top, sizeof(int));
+
+           if (id == 0)
+			 throw Exception("Element ID can't be 0");
+
+		   if (card_of_dialog == 0)
+			 throw Exception("Dialog ID can't be 0");
 
 		   switch (dlg_type)
 			 {
@@ -492,8 +485,7 @@ bool LoadDlgSchema(const wchar_t *file)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::LoadDlgSchema: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::LoadDlgSchema: " + e.ToString());
 	   res = false;
 	 }
 
@@ -505,22 +497,21 @@ int SearchDependeciesID(int id)
 {
   int dpnd = 0;
 
-  if (id == -1)
+  if (id == 0)
     return 0;
 
   try
 	 {
-       for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		  {
-			if ((items[i]->PrevID == id) || (items[i]->NextID == id))
+			if ((itm->PrevID == id) || (itm->NextID == id))
 			  dpnd++;
           }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::SearchDependeciesID: " + e.ToString());
-       dpnd = -1;
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::SearchDependeciesID: " + e.ToString());
+	   dpnd = -1;
 	 }
 
   return dpnd;
@@ -531,22 +522,21 @@ int SearchDependeciesDialog(int id)
 {
   int dpnd = 0;
 
-  if (id == -1)
+  if (id == 0)
     return 0;
 
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		  {
-			if (items[i]->Dialog == id)
+			if (itm->Dialog == id)
 			  dpnd++;
 		  }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::SearchDependeciesDialog: " + e.ToString());
-       dpnd = -1;
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::SearchDependeciesDialog: " + e.ToString());
+	   dpnd = -1;
 	 }
 
   return dpnd;
@@ -557,19 +547,18 @@ void UpdatePrevID(int old_id, int new_id)
 {
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		  {
-			if (items[i]->PrevID == old_id)
-			  items[i]->PrevID = new_id;
+			if (itm->PrevID == old_id)
+			  itm->PrevID = new_id;
 
-			if (items[i]->NextID == old_id)
-			  items[i]->NextID = new_id;
+			if (itm->NextID == old_id)
+			  itm->NextID = new_id;
 		  }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::UpdatePrevID: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::UpdatePrevID: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -578,16 +567,15 @@ void UpdateDialog(int old_val, int new_val)
 {
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		  {
-			if (items[i]->Dialog == old_val)
-			  items[i]->Dialog = new_val;
+			if (itm->Dialog == old_val)
+			  itm->Dialog = new_val;
 		  }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::UpdateDialog: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::UpdateDialog: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -617,7 +605,7 @@ void XMLImport(String xml_file)
 	   _di_IXMLNode EndDialog;
 
 	   int scene_left = StoryCreator->ItemList->Left + StoryCreator->ItemList->Width + 20;
-	   int left = scene_left + 80, top = 50, step = 0, curr_card = -1;
+	   int left = scene_left + 80, top = 50, step = 0, curr_card = 0;
 
 	   for (int i = 0; i < DialogFile->ChildNodes->Count; i++)
 		  {
@@ -632,9 +620,9 @@ void XMLImport(String xml_file)
 
 					 TDlgScreenText *lnk = new TDlgScreenText(scene_left, top, StoryCreator);
 
-						 lnk->Dialog = curr_card;
-						 lnk->Text = ScreenText->Text;
-						 items.push_back(lnk);
+					 lnk->Dialog = curr_card;
+					 lnk->Text = ScreenText->Text;
+					 items.push_back(lnk);
 
 					 left = left + CONTAINER_WIDTH + 10;
 				   }
@@ -673,7 +661,7 @@ void XMLImport(String xml_file)
 
 							  lnk->Dialog = curr_card;
 							  lnk->Params = Answer->GetAttribute("Params");
-                              lnk->NextDialog = -1;
+                              lnk->NextDialog = 0;
 							  lnk->Text = text;
 							  items.push_back(lnk);
 							}
@@ -695,7 +683,7 @@ void XMLImport(String xml_file)
 
 					 top = top + CONTAINER_HEIGHT + 10;
 					 //scene_left += 80;
-				  }
+				   }
 
 				 left = scene_left + CONTAINER_WIDTH + 10;
 			   }
@@ -708,8 +696,7 @@ void XMLImport(String xml_file)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::XMLImport: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::XMLImport: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -724,21 +711,19 @@ void XMLExport(const wchar_t *path)
 		  {
 			String xml_exp = "<StoryFile>\r\n";
 
-			for (int i = 0; i < items.size(); i++)
+			for (auto itm : items)
 			   {
-				 if (items[i]->Type == DlgText)
+				 if (itm->Type == DlgText)
 				   {
-					 xml_exp += "\t<Dialog id = '" +
-								IntToStr(items[i]->Dialog) +
-								"'>\r\n";
-					 xml_exp += items[i]->CreateXML();
+					 xml_exp += "\t<Dialog id = '" + IntToStr(itm->Dialog) + "'>\r\n";
+					 xml_exp += itm->CreateXML();
 					 xml_exp += "\t\t<AnswersMassive>\r\n";
 
-					 for (int j = 0; j < items.size(); j++)
+					 for (auto itm2 : items)
 						{
-						  if (items[j]->PrevID == items[i]->ID)
+						  if (itm2->PrevID == itm2->ID)
 							{
-							  xml_exp += items[j]->CreateXML();
+							  xml_exp += itm2->CreateXML();
 							  xml_exp += "\r\n";
 							}
 						}
@@ -757,8 +742,7 @@ void XMLExport(const wchar_t *path)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::XMLExport: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::XMLExport: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -767,15 +751,14 @@ void ClearItems()
 {
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
-		  delete items[i];
+	   for (auto itm : items)
+		  delete itm;
 
 	   items.clear();
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::ClearItems: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::ClearItems: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -784,19 +767,18 @@ void BuildLinksAfterXMLImport()
 {
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		  {
-			if (items[i]->Type != DlgText)
+			if (itm->Type != DlgText)
 			  {
-				items[i]->PrevID = FindTextElementID(items[i]->Dialog);
-				items[i]->NextID = FindTextElementID(items[i]->NextDialog);
+				itm->PrevID = FindTextElementID(itm->Dialog);
+				itm->NextID = FindTextElementID(itm->NextDialog);
 			  }
 		  }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::BuildLinksAfterXMLImport: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::BuildLinksAfterXMLImport: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -805,19 +787,18 @@ void RemoveLimboLinks()
 {
   try
 	 {
-	   for (int i = 0; i < items.size(); i++)
+	   for (auto itm : items)
 		  {
-			if ((items[i]->PrevID > -1) && (!FindElement(items[i]->PrevID)))
-			  items[i]->PrevID = -1;
+			if ((itm->PrevID > 0) && (!FindElement(itm->PrevID)))
+			  itm->PrevID = 0;
 
-			if ((items[i]->NextID > -1) && (!FindElement(items[i]->NextID)))
-			  items[i]->NextID = -1;
+			if ((itm->NextID > 0) && (!FindElement(itm->NextID)))
+			  itm->NextID = 0;
 		  }
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::RemoveLimboLinks: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::RemoveLimboLinks: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -845,8 +826,7 @@ String CreateContainerCaption(TDlgBaseText *element)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log",
-			   "DlgClass::CreateContainerCaption: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "DlgClass::CreateContainerCaption: " + e.ToString());
 	 }
 
   return res;
@@ -860,10 +840,10 @@ TDlgBaseText::TDlgBaseText()
   id = GenElementID();
   this->left = 0;
   this->top = 0;
-  cd = -1;
-  ncd = -1;
-  l_id = -1;
-  l_fr_id = -1;
+  cd = 0;
+  ncd = 0;
+  l_id = 0;
+  l_fr_id = 0;
   Container = NULL;
 }
 //---------------------------------------------------------------------------
@@ -873,10 +853,10 @@ TDlgBaseText::TDlgBaseText(int left, int top)
   id = GenElementID();
   this->left = left;
   this->top = top;
-  cd = -1;
-  ncd = -1;
-  l_id = -1;
-  l_fr_id = -1;
+  cd = 0;
+  ncd = 0;
+  l_id = 0;
+  l_fr_id = 0;
   SetPos(left, top);
   Container = NULL;
 }
@@ -887,10 +867,10 @@ TDlgBaseText::TDlgBaseText(int left, int top, int el_id, TForm *ContainerOwner)
   id = el_id;
   this->left = left;
   this->top = top;
-  cd = -1;
-  ncd = -1;
-  l_id = -1;
-  l_fr_id = -1;
+  cd = 0;
+  ncd = 0;
+  l_id = 0;
+  l_fr_id = 0;
   Container = CreateContainer(ContainerOwner);
   SetPos(left, top);
 }
@@ -902,9 +882,9 @@ TDlgBaseText::TDlgBaseText(int left, int top, int el_id, int dlg_id, TForm *Cont
   this->left = left;
   this->top = top;
   cd = dlg_id;
-  ncd = -1;
-  l_id = -1;
-  l_fr_id = -1;
+  ncd = 0;
+  l_id = 0;
+  l_fr_id = 0;
   Container = CreateContainer(ContainerOwner);
   SetPos(left, top);
 }
@@ -915,10 +895,10 @@ TDlgBaseText::TDlgBaseText(int left, int top, TForm *ContainerOwner)
   id = GenElementID();
   this->left = left;
   this->top = top;
-  cd = -1;
-  ncd = -1;
-  l_id = -1;
-  l_fr_id = -1;
+  cd = 0;
+  ncd = 0;
+  l_id = 0;
+  l_fr_id = 0;
   Container = CreateContainer(ContainerOwner);
   SetPos(left, top);
 }
@@ -1050,7 +1030,7 @@ void TDlgBaseText::SetPrevID(int val)
 					 MB_YESNO | MB_ICONWARNING) == mrYes))
 		{
 		  l_id = val;
-          cd = -1;
+          cd = 0;
 		}
 	}
 }
@@ -1093,7 +1073,7 @@ void TDlgBaseText::SetNextID(int val)
 					 MB_YESNO | MB_ICONWARNING) == mrYes))
 		{
 		  l_fr_id = val;
-          ncd = -1;
+          ncd = 0;
 		}
 	}
 }
@@ -1146,7 +1126,7 @@ void TDlgBaseText::SetDialog(int val)
 			}
 		  else
 			{
-			  UpdatePrevID(ID, -1);
+			  UpdatePrevID(ID, 0);
 			}
 		}
 	}
@@ -1166,7 +1146,7 @@ void TDlgBaseText::SetNextDialog(int val)
 	  ncd = val;
 	  int new_dlg_id = FindTextElementID(ncd);
 
-	  if (new_dlg_id > -1)
+	  if (new_dlg_id > 0)
 		{
 		  TDlgBaseText *ndlg = FindElement(new_dlg_id);
 		  ndlg->PrevID = ID;
@@ -1225,14 +1205,14 @@ void __fastcall TDlgBaseText::ContainerClick(TObject *Sender)
 	{
 	  if ((Selected->Type == DlgAnsw) && (this->Type == DlgText))
 		{
-		  if (this->PrevID > -1) //если ScreenText уже привязан к Answer'у
+		  if (this->PrevID > 0) //если ScreenText уже привязан к Answer'у
 			{
 			  TDlgBaseText *old_answ = FindElement(this->PrevID);
 
 			  if (old_answ) //найдем Answer и изменим привязки
 				{
-				  old_answ->NextDialog = -1;
-				  old_answ->NextID = -1;
+				  old_answ->NextDialog = 0;
+				  old_answ->NextID = 0;
 				}
 			}
 

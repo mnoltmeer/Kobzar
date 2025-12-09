@@ -28,7 +28,6 @@ This file is part of Kobzar Engine.
 #include "EditText.h"
 #include "EditAnswer.h"
 #include "EditScript.h"
-#include "Splash.h"
 #include "main.h"
 
 //---------------------------------------------------------------------------
@@ -73,8 +72,6 @@ __fastcall TStoryCreator::TStoryCreator(TComponent* Owner)
   Version = GetVersionInString(Application->ExeName.c_str());
 
   Caption = Title + Version + ": <new>";
-
-  LogPath = GetEnvironmentVariable("USERPROFILE") + "\\Documents";
 
   AppDir = Application->ExeName;
   int pos = AppDir.LastDelimiter("\\");
@@ -268,7 +265,7 @@ void __fastcall TStoryCreator::FormShow(TObject *Sender)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "FormShow: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "FormShow: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -350,7 +347,7 @@ void __fastcall TStoryCreator::ReadSettings()
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "ReadSettings: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "ReadSettings: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -397,7 +394,7 @@ void __fastcall TStoryCreator::WriteSettings()
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "WriteSettings: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "WriteSettings: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -435,7 +432,7 @@ void __fastcall TStoryCreator::WriteLastFilesList()
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "WriteLastFilesList: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "WriteLastFilesList: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -453,7 +450,7 @@ void __fastcall TStoryCreator::ReadLastFilesList()
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "ReadLastFilesList: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "ReadLastFilesList: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -479,7 +476,7 @@ void __fastcall TStoryCreator::AddLastFile(String file)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "AddLastFile: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "AddLastFile: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -498,7 +495,7 @@ void __fastcall TStoryCreator::ShowLastFiles()
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "ShowLastFiles: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "ShowLastFiles: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -528,7 +525,7 @@ void __fastcall TStoryCreator::PPLastFileClick(TObject *Sender)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "PPLastFileClick: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "PPLastFileClick: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -547,7 +544,7 @@ void __fastcall TStoryCreator::VisualiseElements()
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "VisualiseElements: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "VisualiseElements: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -605,7 +602,7 @@ void __fastcall TStoryCreator::MenuEditClick(TObject *Sender)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "MenuEditClick: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "MenuEditClick: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -645,9 +642,7 @@ void __fastcall TStoryCreator::MenuExportXMLClick(TObject *Sender)
   SaveSchema->FileName = CreateProjName(cur_proj_path);
 
   if (SaveSchema->Execute())
-	{
-	  XMLExport(SaveSchema->FileName.c_str());
-	}
+	XMLExport(SaveSchema->FileName.c_str());
 }
 //---------------------------------------------------------------------------
 
@@ -702,7 +697,7 @@ void __fastcall TStoryCreator::MenuExportTextClick(TObject *Sender)
 		 }
 	   catch (Exception &e)
 		 {
-		   SaveLog(LogPath + "\\exceptions.log", "MenuExportTextClick: " + e.ToString());
+		   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "MenuExportTextClick: " + e.ToString());
 		 }
 	}
 }
@@ -784,8 +779,6 @@ void __fastcall TStoryCreator::FormClose(TObject *Sender, TCloseAction &Action)
   ClearItems();
 
   delete LastFiles;
-
-  SplashForm->Close();
 }
 //---------------------------------------------------------------------------
 
@@ -873,7 +866,7 @@ void __fastcall TStoryCreator::MPPScrTxtClick(TObject *Sender)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "MPPScrTxtClick: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "MPPScrTxtClick: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -887,7 +880,7 @@ void __fastcall TStoryCreator::MPPAnswClick(TObject *Sender)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "MPPAnswClick: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "MPPAnswClick: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -901,7 +894,7 @@ void __fastcall TStoryCreator::MPPScriptClick(TObject *Sender)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "MPPScriptClick: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "MPPScriptClick: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -952,9 +945,7 @@ void __fastcall TStoryCreator::MenuShowItemsClick(TObject *Sender)
 	  UpdateItemsList(ItemList);
 	}
   else
-	{
-	  PropsPanel->Hide();
-	}
+	PropsPanel->Hide();
 }
 //---------------------------------------------------------------------------
 
@@ -987,9 +978,7 @@ void __fastcall TStoryCreator::MenuToolPaletteClick(TObject *Sender)
 	  PreparePalette();
 	}
   else
-	{
-	  Palette->Hide();
-	}
+	Palette->Hide();
 }
 //---------------------------------------------------------------------------
 
@@ -1011,7 +1000,7 @@ Kobzar Story Creator is distributed in the hope that it will be useful, but WITH
 of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.\r\n\r\n\
 You should have received a copy of the GNU General Public License along with Kobzar Story Creator. \
 If not, see <http://www.gnu.org/licenses/>.\r\n\r\n\
-Any questions, feedback and suggestions about this software are\
+Any questions, feedback and suggestions about this software are \
 accepted by the Developer by email: m.noltmeer@gmail.com";
 
   MessageBox(Application->Handle, text.c_str(), L"About", MB_OK);
@@ -1041,7 +1030,7 @@ void UpdateItemsList(TListBox *list)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "UpdateItemsList: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "UpdateItemsList: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -1211,7 +1200,7 @@ void __fastcall TStoryCreator::FormMouseDown(TObject *Sender, TMouseButton Butto
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "FormMouseDown: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "FormMouseDown: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------
@@ -1282,7 +1271,7 @@ void __fastcall TStoryCreator::ItemListClick(TObject *Sender)
 	 }
   catch (Exception &e)
 	 {
-	   SaveLog(LogPath + "\\exceptions.log", "ItemListClick: " + e.ToString());
+	   SaveLogToUserFolder("StoryCreator.log", "Kobzar", "ItemListClick: " + e.ToString());
 	 }
 }
 //---------------------------------------------------------------------------

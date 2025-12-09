@@ -6,7 +6,7 @@
         <AppType>Application</AppType>
         <MainSource>KobzarStoryCreator.cpp</MainSource>
         <Base>True</Base>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <Platform Condition="'$(Platform)'==''">Win32</Platform>
         <TargetedPlatforms>1</TargetedPlatforms>
         <CC_Suffix Condition="'$(CC_Suffix)'==''">c</CC_Suffix>
@@ -236,19 +236,20 @@
             <DependentOn>settings.h</DependentOn>
             <BuildOrder>16</BuildOrder>
         </CppCompile>
-        <CppCompile Include="Splash.cpp">
-            <Form>SplashForm</Form>
-            <FormType>dfm</FormType>
-            <DependentOn>Splash.h</DependentOn>
-            <BuildOrder>16</BuildOrder>
-        </CppCompile>
         <None Include="TODO.txt"/>
         <None Include="Win32\Release\cfg.txt"/>
-        <CppCompile Include="..\..\work-functions\MyFunc.cpp">
-            <DependentOn>..\..\work-functions\MyFunc.h</DependentOn>
-            <BuildOrder>15</BuildOrder>
+        <CppCompile Include="..\..\work-functions\Data.cpp">
+            <DependentOn>..\..\work-functions\Data.h</DependentOn>
+            <BuildOrder>13</BuildOrder>
         </CppCompile>
-        <FormResources Include="Splash.dfm"/>
+        <CppCompile Include="..\..\work-functions\FilesDirs.cpp">
+            <DependentOn>..\..\work-functions\FilesDirs.h</DependentOn>
+            <BuildOrder>14</BuildOrder>
+        </CppCompile>
+        <CppCompile Include="..\..\work-functions\Logs.cpp">
+            <DependentOn>..\..\work-functions\Logs.h</DependentOn>
+            <BuildOrder>12</BuildOrder>
+        </CppCompile>
         <FormResources Include="settings.dfm"/>
         <FormResources Include="main.dfm"/>
         <FormResources Include="EditScript.dfm"/>
@@ -281,8 +282,8 @@
                     <Source Name="MainSource">KobzarStoryCreator.cpp</Source>
                 </Source>
                 <Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k280.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp280.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcboffice2k290.bpl">Embarcadero C++Builder Office 2000 Servers Package</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\bcbofficexp290.bpl">Embarcadero C++Builder Office XP Servers Package</Excluded_Packages>
                 </Excluded_Packages>
             </CPlusPlusBuilder.Personality>
             <Deployment Version="4">

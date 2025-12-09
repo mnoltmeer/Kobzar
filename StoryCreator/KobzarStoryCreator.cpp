@@ -8,10 +8,9 @@
 #include <Vcl.Themes.hpp>
 USEFORM("settings.cpp", AppSettings);
 USEFORM("main.cpp", StoryCreator);
-USEFORM("Splash.cpp", SplashForm);
+USEFORM("EditScript.cpp", EditScriptForm);
 USEFORM("EditAnswer.cpp", EditAnswerForm);
 USEFORM("EditText.cpp", EditTextForm);
-USEFORM("EditScript.cpp", EditScriptForm);
 //---------------------------------------------------------------------------
 int WINAPI _tWinMain(HINSTANCE, HINSTANCE, LPTSTR, int)
 {
@@ -19,8 +18,7 @@ int WINAPI _tWinMain(HINSTANCE, HINSTANCE, LPTSTR, int)
 	{
 		Application->Initialize();
 		Application->MainFormOnTaskBar = true;
-        Application->CreateForm(__classid(TSplashForm), &SplashForm);
-		Application->CreateForm(__classid(TStoryCreator), &StoryCreator);
+        Application->CreateForm(__classid(TStoryCreator), &StoryCreator);
 		Application->CreateForm(__classid(TAppSettings), &AppSettings);
 		Application->CreateForm(__classid(TEditTextForm), &EditTextForm);
 		Application->CreateForm(__classid(TEditAnswerForm), &EditAnswerForm);
