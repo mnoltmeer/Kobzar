@@ -72,7 +72,6 @@ void FreeEngine()
 }
 //---------------------------------------------------------------------------
 
-
 extern "C"
 {
 __declspec(dllexport) void __stdcall eGetEngineHandle(void *p)
@@ -80,7 +79,7 @@ __declspec(dllexport) void __stdcall eGetEngineHandle(void *p)
   try
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
-	   kIface = reinterpret_cast<KE_INTERFACE*>(eIface->GetParamToInt(L"pHandle"));
+	   kIface = reinterpret_cast<KE_INTERFACE*>(eIface->GetParamToInt(L"pKobzarEngineHandle"));
 
 	   if (kIface)
 		 eIface->SetFunctionResult(eIface->GetCurrentFuncName(), L"1");

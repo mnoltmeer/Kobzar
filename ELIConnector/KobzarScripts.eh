@@ -7,7 +7,7 @@
 
   #method Init()
   {
-    &$this.LibraryHandle = _ConnectLib(".\eliKobzar.dll");
+    &$this.LibraryHandle = _ConnectLib("C:\Users\mnolt\OneDrive\GIT\Kobzar\ELIConnector\Win32\Release\eliKobzar.dll");
 
     if (&$this.LibraryHandle != -1)
       {
