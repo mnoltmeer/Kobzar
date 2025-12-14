@@ -1,5 +1,5 @@
 /*!
-Copyright 2023-2024 Maxim Noltmeer (m.noltmeer@gmail.com)
+Copyright 2023-2025 Maxim Noltmeer (m.noltmeer@gmail.com)
 
 This file is part of Kobzar Engine.
 
@@ -69,22 +69,18 @@ struct KE_INTERFACE
 };
 //-------------------------------------------------------------------------------
 
-#if defined(BUILD_DLL)
-	#define DLL_EXPORT __declspec(dllexport)
+#ifdef BUILD_DLL
+	#define KE_API __declspec(dllexport)
 #else
-	#if defined(BUILD_APP)
-		#define DLL_EXPORT __declspec(dllimport)
-	#else
-		#define DLL_EXPORT
-	#endif
+	#define KE_API __declspec(dllimport)
 #endif
 
 extern "C"
 {
-  DLL_EXPORT int __stdcall GetKEInterface(KE_INTERFACE **eInterface);
-  DLL_EXPORT int __stdcall FreeKEInterface(KE_INTERFACE **eInterface);
+  KE_API int __stdcall GetKEInterface(KE_INTERFACE **eInterface);
+  KE_API int __stdcall FreeKEInterface(KE_INTERFACE **eInterface);
 }
 
 typedef int (__stdcall *GETKEINTERFACE)(KE_INTERFACE **eInterface);
 typedef int (__stdcall *FREEKEINTERFACE)(KE_INTERFACE **eInterface);
-#endif // ELI_INTERFACE_H_INCLUDED
+#endif

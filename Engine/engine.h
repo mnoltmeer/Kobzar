@@ -32,12 +32,6 @@ This file is part of Kobzar Engine.
 #include "DlgClass.h"
 #include "eli_script.h"
 
-#ifdef BUILD_DLL
-    #define DLL_EXPORT __declspec(dllexport)
-#else
-    #define DLL_EXPORT __declspec(dllimport)
-#endif
-
 String LogPath;
 wchar_t path[4096];
 

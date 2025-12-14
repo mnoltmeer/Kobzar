@@ -45,7 +45,7 @@ int WINAPI DllEntryPoint(HINSTANCE hinst, unsigned long reason, void* lpReserved
 }
 //--------------------------------------------------------------------------
 
-DLL_EXPORT int __stdcall GetKEInterface(KE_INTERFACE **eInterface)
+KE_API int __stdcall GetKEInterface(KE_INTERFACE **eInterface)
 {
   if (*eInterface)
 	return 0;
@@ -66,7 +66,7 @@ DLL_EXPORT int __stdcall GetKEInterface(KE_INTERFACE **eInterface)
 }
 //-------------------------------------------------------------------------
 
-DLL_EXPORT int __stdcall FreeKEInterface(KE_INTERFACE **eInterface)
+KE_API int __stdcall FreeKEInterface(KE_INTERFACE **eInterface)
 {
   if (*eInterface)
 	{
@@ -1649,6 +1649,8 @@ int KobzarEngine::TranslateScript(TDlgScript *el)
 			 throw Exception(script->Log);
 		   else
 			 el->Result = script->Result;
+
+		   CreateLog("KobzarEngine::TranslateScript", script->Log);
 		 }
 	 }
   catch (Exception &e)
