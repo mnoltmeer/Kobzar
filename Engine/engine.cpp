@@ -1639,7 +1639,7 @@ int KobzarEngine::TranslateScript(TDlgScript *el)
 
 		   wchar_t buffer[256];
 
-		   swprintf(buffer, L"%d\r\n", reinterpret_cast<int>(this));
+		   swprintf(buffer, L"%d", reinterpret_cast<int>(this));
 		   script->Interpreter->SetParam(L"pKobzarEngineHandle", buffer);
 
 		   script->Text = header + el->Text + footer;
@@ -1650,6 +1650,7 @@ int KobzarEngine::TranslateScript(TDlgScript *el)
 		   else
 			 el->Result = script->Result;
 
+           CreateLog("KobzarEngine::TranslateScript", script->Text);
 		   CreateLog("KobzarEngine::TranslateScript", script->Log);
 		 }
 	 }
