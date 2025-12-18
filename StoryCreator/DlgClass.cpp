@@ -1344,7 +1344,7 @@ const wchar_t *TDlgAnswer::CreateXML()
 const wchar_t *TDlgScript::CreateXML()
 {
   XMLText = "\t\t\t<Script Params = '" + Params + "'>\r\n";
-  XMLText = XMLText + "\t\t\t\t<Text>" + Text + "</Text>\r\n";
+  XMLText = XMLText + "\t\t\t\t<Text>\r\n\t\t\t\t\t<![CDATA[" + Text + "]]>\r\n\t\t\t\t</Text>\r\n";
   XMLText = XMLText + "\t\t\t</Script>";
 
   return XMLText.c_str();
