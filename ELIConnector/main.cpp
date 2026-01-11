@@ -670,7 +670,13 @@ __declspec(dllexport) void __stdcall eExecute(void *p)
 	 {
 	   eIface = static_cast<ELI_INTERFACE*>(p);
 
+	   SaveLogToUserFolder("Engine.log", "Kobzar", IntToStr((int)kIface));
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eExecute: " + String(eIface->GetVersion()));
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eExecute: " + String(eIface->GetCurrentFuncName()));
+
 	   String res = IntToStr(kIface->Execute());
+
+	   SaveLogToUserFolder("Engine.log", "Kobzar", "ELIConnector::eExecute: res = " + res);
 
 	   eIface->SetFunctionResult(eIface->GetCurrentFuncName(), res.c_str());
 	 }
