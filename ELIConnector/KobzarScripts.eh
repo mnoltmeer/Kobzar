@@ -108,6 +108,15 @@
   }
 //===========================================================;
 
+  #public method GetHandle()
+  {
+    if (!&$this.Initialised)
+      {_throw("KobzarScripts: Engine not initialised!");}
+    else
+      {#return _GetEngineHandle();}
+  }
+//===========================================================;
+
   #public method CreateStory($file)
   {
     if (!&$this.Initialised)

@@ -100,6 +100,12 @@ const wchar_t * __stdcall KobzarEngine::GetLastError()
 }
 //-------------------------------------------------------------------------
 
+int __stdcall KobzarEngine::GetHandle()
+{
+  return reinterpret_cast<int>(this);
+}
+//-------------------------------------------------------------------------
+
 int __stdcall KobzarEngine::CreateStory(const wchar_t *story_file)
 {
   int res = 0;
@@ -1636,11 +1642,6 @@ int KobzarEngine::TranslateScript(TDlgScript *el)
 
 		   header += LoadTextFile(dir + "\\scripts\\InnerScriptHeader.eh");
 		   header += "\r\n";
-
-		   wchar_t buffer[256];
-
-		   swprintf(buffer, L"%d", reinterpret_cast<int>(this));
-		   script->Interpreter->SetParam(L"pKobzarEngineHandle", buffer);
 
 		   script->Text = header + el->Text + footer;
 		   script->Params = el->Params;

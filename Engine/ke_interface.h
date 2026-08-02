@@ -26,6 +26,7 @@ struct KE_INTERFACE
 //functions for creating and managing stories
   virtual const wchar_t* __stdcall GetVersion() = 0;
   virtual const wchar_t* __stdcall GetLastError() = 0;
+  virtual int __stdcall GetHandle() = 0;
   virtual int __stdcall CreateStory(const wchar_t *story_file) = 0;
   virtual int __stdcall LoadStory(const wchar_t *story_file) = 0;
   virtual int __stdcall SaveStory() = 0;

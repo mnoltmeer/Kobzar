@@ -72,7 +72,8 @@ class KobzarEngine: public KE_INTERFACE
 	inline virtual ~KobzarEngine(){};
 
 	virtual const wchar_t * __stdcall GetVersion();
-    virtual const wchar_t* __stdcall GetLastError();
+	virtual const wchar_t* __stdcall GetLastError();
+    virtual int __stdcall GetHandle();
 	virtual int __stdcall CreateStory(const wchar_t *story_file);
 	virtual int __stdcall LoadStory(const wchar_t *story_file);
 	virtual int __stdcall SaveStory();
